@@ -86,21 +86,10 @@ uint8_t crsf_crc8(const uint8_t *ptr, uint8_t len) {
 }
 
 //prepare data packet
-void crsfPreparePacket(uint8_t packet[], int inputChannels[]){
+void crsfPreparePacket(uint8_t packet[], int channels[]){
 
 
-    static int channels[CRSF_MAX_CHANNEL] = {0};
-    const uint8_t crc = crsf_crc8(&packet[2], CRSF_PACKET_SIZE-3);
-    /*
-     * Map 1000-2000 with middle at 1500 chanel values to
-     * 173-1811 with middle at 992 S.BUS protocol requires
-     */
-    for (uint8_t i = 0; i < CRSF_MAX_CHANNEL; i++) {
-        channels[i] = map(inputChannels[i], RC_CHANNEL_MIN, RC_CHANNEL_MAX, CRSF_DIGITAL_CHANNEL_MIN, CRSF_DIGITAL_CHANNEL_MAX);
-    }    
-
-
-
+ 
     // packet[0] = UART_SYNC; //Header
     packet[0] = ADDR_MODULE; //Header
     packet[1] = 24;   // length of type (24) + payload + crc

@@ -31,19 +31,18 @@
 
 
 //#define DEBUG // if not commented out, Serial.print() is active! For debugging only!!
-
-#include "config.h"
-#include "crsf.c"
-#include "led.h"
-#include "battery.h"
-#include "esp32-hal-uart.h"
-
-static HardwareSerial myser;
+#include <Arduino.h>
+ #include "config.h"
+ #include "crsf.c"
+ #include "led.h"
+ #include "battery.h"
+ #include <HardwareSerial.h>
+static HardwareSerial myser = 1;
 
 
 portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 uint32_t clickCurrentMicros = 0;
-
+bool stoped = false;
     
 static uint8_t  currentPower = 0 ;//  "10mW", "25mW", "50mW", "100mW", "250mW"
 
@@ -85,6 +84,8 @@ void setup() {
    
    delay(3000); //Give enough time for uploda firmware
    myser.begin(SERIAL_BAUDRATE,SERIAL_8N1,13, 13,false, 500);
+   Serial.begin(115200);
+
    ESP_ERROR_CHECK(gpio_set_direction((gpio_num_t)13, GPIO_MODE_INPUT));
    gpio_matrix_in((gpio_num_t)13, U1RXD_IN_IDX, false);
    gpio_pullup_en((gpio_num_t)13);
@@ -95,7 +96,7 @@ void setup() {
    digitalWrite(DIGITAL_PIN_LED, LOW); //LED ON
 
   // reserve 200 bytes for the inputString:
-  inputString.reserve(200);
+  inputString.reserve(11);
    
 
 }
@@ -147,8 +148,9 @@ void loop() {
       if(powerChangeHasRun==false){
         Serial.printf("pwr: %u",currentPower);
 
-        buildElrsPacket(crsfCmdPacket,0,1);
-        Serial.write(crsfCmdPacket, CRSF_CMD_PACKET_SIZE);
+        buildElrsPacket(crsfCmdPacket,2,1);
+        myser.write(crsfCmdPacket, CRSF_CMD_PACKET_SIZE);
+        Serial.println("click");
         delay(4);
         //buildElrsPacket(crsfCmdPacket,17,1);
         //Serial.write(crsfCmdPacket, CRSF_CMD_PACKET_SIZE);
@@ -162,15 +164,14 @@ void loop() {
 //  transmit_enable=!digitalRead(transmit_pin);
         
     if (currentMicros > crsfTime) {
-        crsfPreparePacket(crsfPacket, rcChannels);
-        if (powerChangeHasRun==true && clickCurrentMicros < crsfTime) {
-          powerChangeHasRun = false;
-          clickCurrentMicros = micros();
+      crsfPreparePacket(crsfPacket, rcChannels);
+      if (powerChangeHasRun==true && clickCurrentMicros < crsfTime) {
+        powerChangeHasRun = false;
+        clickCurrentMicros = micros();
         Serial.println("reseT"); 
-          
-        }
+      }
       //For gimal calibation only
-	  #ifdef DEBUG
+	    #ifdef DEBUG
         Serial.printf("curTime: %u - crsfTime: %u - clickTime: %u",currentMicros,crsfTime,clickCurrentMicros); 
         Serial.println("");
       
@@ -201,34 +202,30 @@ void loop() {
         delay(1000);
        #else
          myser.write(crsfPacket, CRSF_PACKET_SIZE);
-
+       
 	   #endif
         if (stringComplete) {
-    Serial1.println("******************************************************");
+    //Serial1.println("******************************************************");
     //Serial.println(inputString);
     // clear the string:
     inputString = "";
     stringComplete = false;
   }
         crsfTime = currentMicros + CRSF_TIME_BETWEEN_FRAMES_US;
+         stoped = true;
     }
+
+  if (stoped==true) {
     serialEvent();
+  }
 }
 void serialEvent() {
-  while (Serial.available()) {
+  while (myser.available() && stoped==true) {
     // get the new byte:
- Serial1.println("**--------------------------***");
- 
-    char inChar = (char)Serial.read();
-    // add it to the inputString:
-    inputString += inChar;
-    // if the incoming character is a newline, set a flag so the main loop can
-    // do something about it:
     //Serial.println("**--------------------------***");
-
-    if (inChar == '\n') {
-      stringComplete = true;
-    }
+ 
+    //Serial.print(char(myser.read()));
+    stoped=false;
   }
 }
 
