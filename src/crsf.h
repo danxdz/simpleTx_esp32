@@ -22,7 +22,7 @@
 #if defined(DEBUG)
     #define SERIAL_BAUDRATE 115200 //low baud for Arduino Nano , the TX module will auto detect baud. max packet rate is 250Hz.
 #else
-    #define SERIAL_BAUDRATE 3750000 //low baud for Arduino Nano , the TX module will auto detect baud. max packet rate is 250Hz.
+    #define SERIAL_BAUDRATE 115200//3750000 //testing
 #endif
  // Device address & type
 #define RADIO_ADDRESS                  0xEA

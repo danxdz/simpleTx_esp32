@@ -28,59 +28,49 @@
  =======================================================================================================
  */
 
-
-
 //#define DEBUG // if not commented out, Serial.print() is active! For debugging only!!
+
 #include <Arduino.h>
- #include "config.h"
- #include "crsf.c"
- #include "led.h"
- #include "battery.h"
- #include <HardwareSerial.h>
+#include <HardwareSerial.h>
+
+#include "config.h"
+#include "crsf.c"
+#include "led.h"
+#include "battery.h"
+
 static HardwareSerial myser = 1;
 
 
 portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
-uint32_t clickCurrentMicros = 0;
-bool stoped = false;
+
+uint32_t clickCurrentMicros = 0;//click deboucer
+bool stoped = false; // simulation to check if tx done
     
 static uint8_t  currentPower = 0 ;//  "10mW", "25mW", "50mW", "100mW", "250mW"
 
-int Aileron_value = 0;        // values read from the pot 
-int Elevator_value = 0; 
-int Throttle_value=0;
-int Rudder_value = 0; 
-
-int Arm = 0;        // switch values read from the digital pin
-int FlightMode = 0; 
-
-float batteryVoltage;
-
+//float batteryVoltage;
 
 const int DigitalInPinPowerChange = 4;  // 
 
 int powerButtonPressed=0;
-
 bool powerChangeHasRun = false;
 
 uint8_t crsfPacket[CRSF_PACKET_SIZE];
 int rcChannels[CRSF_MAX_CHANNEL];
 uint32_t crsfTime = 0;
 
-String inputString;
-bool stringComplete = false;
 
 void setup() {
     for (uint8_t i = 0; i < CRSF_MAX_CHANNEL; i++) {
         rcChannels[i] = RC_CHANNEL_MIN;
     }
    //analogReference(EXTERNAL);
-   pinMode(DIGITAL_PIN_SWITCH_ARM, INPUT_PULLUP);
-   pinMode(DIGITAL_PIN_SWITCH_AUX2, INPUT_PULLUP);
+   pinMode(DIGITAL_PIN_SWITCH_ARM, INPUT);
+   pinMode(DIGITAL_PIN_SWITCH_AUX2, INPUT);
    pinMode(DIGITAL_PIN_LED, OUTPUT);//LED
-   pinMode(DIGITAL_PIN_BUZZER, OUTPUT);//LED
+   //pinMode(DIGITAL_PIN_BUZZER, OUTPUT);//
    //digitalWrite(DIGITAL_PIN_BUZZER, LOW);
-   batteryVoltage=7.0; 
+   //batteryVoltage=7.0; 
    
    delay(3000); //Give enough time for uploda firmware
    myser.begin(SERIAL_BAUDRATE,SERIAL_8N1,13, 13,false, 500);
@@ -95,130 +85,125 @@ void setup() {
 
    digitalWrite(DIGITAL_PIN_LED, LOW); //LED ON
 
-  // reserve 200 bytes for the inputString:
-  inputString.reserve(11);
    
 
 }
 
     
 void loop() {
-    uint32_t currentMicros = micros();
-    
-    batteryVoltage=readVoltage();
-
-    if (batteryVoltage<WARNING_VOLTAGE){
+  uint32_t currentMicros = micros();
+  /*
+  batteryVoltage=readVoltage();
+  if (batteryVoltage<WARNING_VOLTAGE){
        fastBlinkLED(DIGITAL_PIN_LED);
-    }
- // fastBlinkLED(DIGITAL_PIN_LED);
-    /*
-     * Here you can modify values of rcChannels
-     */
-    Aileron_value = analogRead(analogInPinAileron); //My gimbal do not center, this function constrain end.
-    Elevator_value= analogRead(analogInPinElevator); 
-    Throttle_value=analogRead(analogInPinThrottle); 
-    Rudder_value = analogRead(analogInPinRudder);  //My gimbal do not center, this function constrain end.
-    Arm = digitalRead(DIGITAL_PIN_SWITCH_ARM);
-    FlightMode = digitalRead(DIGITAL_PIN_SWITCH_AUX2);
-    rcChannels[0] = map(Aileron_value,0,4096,RC_CHANNEL_MIN,RC_CHANNEL_MAX); //reverse
-    rcChannels[1] = map(Elevator_value,0,4096,RC_CHANNEL_MIN,RC_CHANNEL_MAX); 
-    rcChannels[2] = map(Throttle_value,0,4096,RC_CHANNEL_MIN,RC_CHANNEL_MAX);//reverse
-    rcChannels[3] = map(Rudder_value ,0,4096,RC_CHANNEL_MIN,RC_CHANNEL_MAX);
+  }
+  fastBlinkLED(DIGITAL_PIN_LED);
+  /*
+  * Here you can modify values of rcChannels
+  */
+    
+  Aileron_value = analogRead(analogInPinAileron); //My gimbal do not center, this function constrain end.
+  Elevator_value= analogRead(analogInPinElevator); 
+  Throttle_value= analogRead(analogInPinThrottle); 
+  Rudder_value = analogRead(analogInPinRudder);  //My gimbal do not center, this function constrain end.
+  Arm = digitalRead(DIGITAL_PIN_SWITCH_ARM);
+  FlightMode = digitalRead(DIGITAL_PIN_SWITCH_AUX2);
+  rcChannels[0] = map(Aileron_value,0,4096,RC_CHANNEL_MIN,RC_CHANNEL_MAX);
+  rcChannels[1] = map(Elevator_value,0,4096,RC_CHANNEL_MIN,RC_CHANNEL_MAX); 
+  rcChannels[2] = map(Throttle_value,0,4096,RC_CHANNEL_MIN,RC_CHANNEL_MAX);
+  rcChannels[3] = map(Rudder_value ,0,4096,RC_CHANNEL_MIN,RC_CHANNEL_MAX);
 	
 	//Aux 1 Arm Channel
-    if(Arm==0){
-      rcChannels[4] =RC_CHANNEL_MIN;
-      //Serial.println("arm");
-    }else if(Arm==1){
-      //Serial.println("arm-1");
-
-      rcChannels[4] =RC_CHANNEL_MAX;
+  if(Arm==0){
+    rcChannels[4] = RC_CHANNEL_MIN;
+    //Serial.println("arm-0");
+  } else if (Arm==1) {
+    rcChannels[4] = RC_CHANNEL_MAX;
+    //Serial.println("arm-1");
     }
-
 	//Aux 2 Mode Channel
-    if(FlightMode==1){
-      rcChannels[5] =RC_CHANNEL_MIN;
-    }else if(FlightMode==0){
-      rcChannels[5] =RC_CHANNEL_MAX;
-    }
-    powerButtonPressed = digitalRead(DigitalInPinPowerChange);
-    if(powerButtonPressed==0){
-      // Setup ELRS Module
-      //Serial.println("pwr bt: ");
-      if(powerChangeHasRun==false){
-        Serial.printf("pwr: %u",currentPower);
-
-        buildElrsPacket(crsfCmdPacket,2,1);
-        myser.write(crsfCmdPacket, CRSF_CMD_PACKET_SIZE);
-        Serial.println("click");
-        delay(4);
-        //buildElrsPacket(crsfCmdPacket,17,1);
-        //Serial.write(crsfCmdPacket, CRSF_CMD_PACKET_SIZE);
-        //delay(4);
-
-        powerChangeHasRun=true;
-        clickCurrentMicros = crsfTime + 500000;
+  if(FlightMode==1){
+    rcChannels[5] =RC_CHANNEL_MIN;
+  } else if(FlightMode==0){
+    rcChannels[5] =RC_CHANNEL_MAX;
+  }
+  
+  powerButtonPressed = digitalRead(DigitalInPinPowerChange);
+  if(powerButtonPressed==0){
+    // Setup ELRS Module
+    //Serial.println("pwr bt: ");
+    if(powerChangeHasRun==false) {
+      Serial.printf("pwr: %u",currentPower);
+      Serial.println("click");
+      
+      buildElrsPacket(crsfCmdPacket,2,1);
+      myser.write(crsfCmdPacket, CRSF_CMD_PACKET_SIZE);
+      delay(4);
+      
+      //uncomment to send 2e command
+      //buildElrsPacket(crsfCmdPacket,17,1);
+      //myser.write(crsfCmdPacket, CRSF_CMD_PACKET_SIZE);
+      //delay(4);
+      
+      powerChangeHasRun=true;
+      clickCurrentMicros = crsfTime + 500000;
       }
     }
 	//Additional switch add here.
-//  transmit_enable=!digitalRead(transmit_pin);
+  
+  //  transmit_enable=!digitalRead(transmit_pin); ???
         
-    if (currentMicros > crsfTime) {
-      crsfPreparePacket(crsfPacket, rcChannels);
-      if (powerChangeHasRun==true && clickCurrentMicros < crsfTime) {
-        powerChangeHasRun = false;
-        clickCurrentMicros = micros();
-        Serial.println("reseT"); 
-      }
-      //For gimal calibation only
-	    #ifdef DEBUG
-        Serial.printf("curTime: %u - crsfTime: %u - clickTime: %u",currentMicros,crsfTime,clickCurrentMicros); 
-        Serial.println("");
-      
-      /* 
-        Serial.print("A_"); 
-        Serial.print(Aileron_value); 
-        Serial.print("_"); 
-        Serial.print(rcChannels[0]); 
-        Serial.print(";E_"); 
-        Serial.print(Elevator_value);
-        Serial.print("_"); 
-        Serial.print(rcChannels[1]);  
-        Serial.print(";T_"); 
-        Serial.print(Throttle_value);
-        Serial.print("_"); 
-        Serial.print(rcChannels[2]); 
-        Serial.print("_R_");  
-        Serial.print(Rudder_value);
-        Serial.print("_"); 
-        Serial.print(rcChannels[3]); 
-        Serial.print(";Arm_");  
-        Serial.print(Arm);
-        Serial.print(";Mode_");  
-        Serial.print(FlightMode);
-        Serial.print("_BatteryVoltage:");  
-        Serial.print(batteryVoltage);
-        Serial.println();*/  
-        delay(1000);
-       #else
-         myser.write(crsfPacket, CRSF_PACKET_SIZE);
-       
-	   #endif
-        if (stringComplete) {
-    //Serial1.println("******************************************************");
-    //Serial.println(inputString);
-    // clear the string:
-    inputString = "";
-    stringComplete = false;
-  }
-        crsfTime = currentMicros + CRSF_TIME_BETWEEN_FRAMES_US;
-         stoped = true;
+  if (currentMicros > crsfTime) {
+    crsfPreparePacket(crsfPacket, rcChannels);
+    if (powerChangeHasRun==true && clickCurrentMicros < crsfTime) {
+      powerChangeHasRun = false;
+      clickCurrentMicros = micros();
+      Serial.println("reset"); 
     }
+	  #ifdef DEBUG
+      Serial.printf("curTime: %u - crsfTime: %u - clickTime: %u",currentMicros,crsfTime,clickCurrentMicros); 
+      Serial.println("");
+      /* 
+      //For gimal calibation only
+      Serial.print("A_"); 
+      Serial.print(Aileron_value); 
+      Serial.print("_");
+      Serial.print(rcChannels[0]);
+      Serial.print(";E_");
+      Serial.print(Elevator_value);
+      Serial.print("_"); 
+      Serial.print(rcChannels[1]);  
+      Serial.print(";T_"); 
+      Serial.print(Throttle_value);
+      Serial.print("_");
+      Serial.print(rcChannels[2]); 
+      Serial.print("_R_");
+      Serial.print(Rudder_value);
+      Serial.print("_");
+      Serial.print(rcChannels[3]);
+      Serial.print(";Arm_");
+      Serial.print(Arm);
+      Serial.print(";Mode_");
+      Serial.print(FlightMode);
+      Serial.print("_BatteryVoltage:");
+      Serial.print(batteryVoltage);
+      Serial.println();
+      delay(1000);
+      */
+    #else
+      myser.write(crsfPacket, CRSF_PACKET_SIZE);   
+	  #endif
+  }
+  crsfTime = currentMicros + CRSF_TIME_BETWEEN_FRAMES_US;
+  stoped = true;
+  }
 
   if (stoped==true) {
     serialEvent();
   }
 }
+
+
 void serialEvent() {
   while (myser.available() && stoped==true) {
     // get the new byte:

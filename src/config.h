@@ -20,6 +20,13 @@
  Simple TX CONFIG OPTIONS (comment out unneeded options)
  =======================================================================================================
  */
+int Aileron_value = 0;        // values read from the pot 
+int Elevator_value = 0; 
+int Throttle_value=0;
+int Rudder_value = 0; 
+
+int Arm = 0;        // switch values read from the digital pin
+int FlightMode = 0; 
 
  // Define RC input Offset
 int Aileron_OFFSET = 0;        // values read from the pot 
