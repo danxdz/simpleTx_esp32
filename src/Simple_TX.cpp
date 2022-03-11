@@ -37,8 +37,8 @@
 #include "crsf.c"
 #include "led.h"
 #include "battery.h"
-
 #include "CrsfProtocol/crsf_protocol.h"
+
 
 #include <driver/gpio.h>
 #include <driver/uart.h>
@@ -147,12 +147,15 @@ void serialEvent() {
         if (CalculatedCRC == SerialInBuffer[SerialInPacketPtr-1])
         {
           GoodPktsCount++;
+          
+          #ifdef debug
           const uint8_t temp = inBuffer.asRCPacket_t.header.frame_size;
           db_out.write(temp);
           const uint8_t packetType = inBuffer.asRCPacket_t.header.type;
           db_out.write(packetType);
           
-          #ifdef debug
+          
+          
             db_out.printf("%u " ,SerialInBuffer[0]);
             db_out.printf("%u " ,SerialInBuffer[1]);
             db_out.printf("%u " ,SerialInBuffer[2]);
@@ -173,7 +176,7 @@ void serialEvent() {
             db_out.println("");
           #else
             for (int i=0;i<=15;i++) {
-              //db_out.write(SerialInBuffer[i]);
+              db_out.write(SerialInBuffer[i]); //output packets to serial for debug
             }
           #endif
         //db_out.printf(" micros %u",micros());
@@ -301,7 +304,7 @@ void loop() {
       //db_out.printf("pwr: %u",currentPower);
       //db_out.println("click");
       
-      buildElrsPacket(crsfCmdPacket,6,0);
+      buildElrsPacket(crsfCmdPacket,17,4);
       duplex_set_TX();
       elrs.write(crsfCmdPacket, CRSF_CMD_PACKET_SIZE);
       elrs.flush();
@@ -399,5 +402,13 @@ void loop() {
         // 17: Set Lua [BLE Joystick]=0 sending response for [BLE Joystick] chunk=0 step=0
         //     Set Lua [BLE Joystick]=1 sending response for [BLE Joystick] chunk=0 step=3
         //     Set Lua [BLE Joystick]=2 sending response for [BLE Joystick] chunk=0 step=3
+        //     Set Lua [BLE Joystick]=3 sending response for [BLE Joystick] chunk=0 step=3
+        //     Set Lua [BLE Joystick]=4 to enable
+        //                hwTimer stop
+        //                Set Lua [TX Power]=0
+        //                hwTimer interval: 5000
+        //                Adjusted max packet size 22-22
+        //                Starting BLE Joystick!
         // 19: Set Lua [Bad/Good]=0
         // 20: Set Lua [2.1.0 EU868]=0 =1 ?? get 
+
