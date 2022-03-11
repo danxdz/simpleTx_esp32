@@ -56,3 +56,6 @@ const int DIGITAL_PIN_BUZZER = 12;  //
 
  // Define battery warning voltage
  const float WARNING_VOLTAGE=7.2; //2S Lipo
+
+#define GPIO_PIN_RCSIGNAL_TX 13
+#define GPIO_PIN_RCSIGNAL_RX 13

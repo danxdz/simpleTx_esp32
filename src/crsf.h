@@ -18,8 +18,7 @@
  
  // Basic setup
 #define CRSF_MAX_CHANNEL 16
-#define CRSF_FRAME_SIZE_MAX 64
-#if defined(DEBUG)
+#ifdef DEBUG
     #define SERIAL_BAUDRATE 115200 //low baud for Arduino Nano , the TX module will auto detect baud. max packet rate is 250Hz.
 #else
     #define SERIAL_BAUDRATE 115200//3750000 //testing
@@ -44,7 +43,6 @@
 #define CRSF_PAYLOAD_OFFSET offsetof(crsfFrameDef_t, type)
 #define CRSF_MSP_RX_BUF_SIZE 128
 #define CRSF_MSP_TX_BUF_SIZE 128
-#define CRSF_PAYLOAD_SIZE_MAX   60
 #define CRSF_PACKET_LENGTH 22
 #define CRSF_PACKET_SIZE  26
 #define CRSF_FRAME_LENGTH 24;   // length of type + payload + crc
@@ -60,3 +58,7 @@
 #define TYPE_SETTINGS_WRITE            0x2D
 #define ADDR_RADIO                     0xEA  //  Radio Transmitter
 
+
+#define CRSF_CRC_POLY 0xd5
+
+#define CRSF_MAX_PACKET_LEN            64

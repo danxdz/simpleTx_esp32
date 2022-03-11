@@ -135,3 +135,4 @@ void buildElrsPacket(uint8_t packetCmd[],uint8_t command, uint8_t value)
   packetCmd[7] = crsf_crc8(&packetCmd[2], packetCmd[1]-1);
 
 }
+
