@@ -58,8 +58,7 @@ volatile uint8_t SerialInPacketPtr = 0; // index where we are reading/writing
 volatile bool CRSFframeActive = false; //since we get a copy of the serial data use this flag to know when to ignore it
 
 static inBuffer_U inBuffer;
-volatile crsfPayloadLinkstatistics_s LinkStatistics;
-
+static volatile crsfPayloadLinkstatistics_s LinkStatistics; // Link Statisitics Stored as Struct
 
 portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 
@@ -78,12 +77,24 @@ bool powerChangeHasRun = false;
 uint8_t crsfPacket[CRSF_PACKET_SIZE];
 int rcChannels[CRSF_MAX_CHANNEL];
 uint32_t crsfTime = 0;
-char inputString ;
-char inputStringPC ;
-bool stringCompletePC ;
+
+uint8_t *SerialInBuffer = inBuffer.asUint8_t;
+
+
+static uint8_t getCrossfireTelemetryValue(uint8_t index, uint32_t *value, uint8_t len) {
+  uint8_t result = 0;
+  uint8_t *byte = &SerialInBuffer[index];
+  *value = (*byte & 0x80) ? -1 : 0;
+  for (uint8_t i=0; i < len; i++) {
+    *value <<= 8;
+    if (*byte != 0xff) result = 1;
+    *value += *byte++;
+  }
+  return result;
+}
 
 void serialEvent() {
-  uint8_t *SerialInBuffer = inBuffer.asUint8_t;
+  uint8_t link_quality = LinkStatistics.downlink_Link_quality;
   
   while (elrs.available()) {
     if (CRSFframeActive == false)
@@ -91,9 +102,7 @@ void serialEvent() {
       unsigned char const inChar = elrs.read();
       // stage 1 wait for sync byte //
       //db_out.write(inChar);
-      if (inChar == CRSF_ADDRESS_RADIO_TRANSMITTER || 
-      inChar == CRSF_FRAMETYPE_BATTERY_SENSOR ||
-      inChar == CRSF_ADDRESS_BROADCAST)
+      if (inChar == CRSF_ADDRESS_RADIO_TRANSMITTER)
       {
       // we got sync, reset write pointer
       SerialInPacketPtr = 0;
@@ -147,7 +156,37 @@ void serialEvent() {
         if (CalculatedCRC == SerialInBuffer[SerialInPacketPtr-1])
         {
           GoodPktsCount++;
-          
+
+          uint32_t value;
+          uint8_t i;
+          uint8_t id = SerialInBuffer[2];
+          //db_out.write(id);
+          switch(id) {
+          case CRSF_FRAMETYPE_LINK_STATISTICS:
+          //db_out.println("link");
+
+            //for (i=1; i <= TELEM_CRSF_TX_SNR; i++) {
+            for (int i=1; i <= 10; i++) {
+              if (getCrossfireTelemetryValue(2+i, &value, 1)) {   // payload starts at third byte of rx packet
+                if (i == 7) {
+                  static const uint32_t power_values[] = { 0, 10, 25, 100, 500, 1000, 2000, 250, 50 };
+                  if ((uint8_t)value >= (sizeof power_values / sizeof (uint32_t)))
+                    continue;
+                  value = power_values[value];
+                }
+                //set_telemetry(i, value);
+                db_out.printf("%u ",value);
+
+              }
+            }
+            db_out.println("");
+
+          break;
+
+    case CRSF_FRAMETYPE_RADIO_ID:
+      //db_out.println("radio id");
+      break;
+      }
           #ifdef debug
           const uint8_t temp = inBuffer.asRCPacket_t.header.frame_size;
           db_out.write(temp);
@@ -175,9 +214,10 @@ void serialEvent() {
             db_out.printf("%u " ,SerialInBuffer[16]);
             db_out.println("");
           #else
-            for (int i=0;i<=15;i++) {
-              db_out.write(SerialInBuffer[i]); //output packets to serial for debug
-            }
+          //output packets to serial for debug
+            //for (int i=0;i<=15;i++) {
+              //db_out.write(SerialInBuffer[i]); 
+            //}
           #endif
         //db_out.printf(" micros %u",micros());
         //db_out.println("::");
@@ -304,7 +344,7 @@ void loop() {
       //db_out.printf("pwr: %u",currentPower);
       //db_out.println("click");
       
-      buildElrsPacket(crsfCmdPacket,17,4);
+      buildElrsPacket(crsfCmdPacket,6,0);
       duplex_set_TX();
       elrs.write(crsfCmdPacket, CRSF_CMD_PACKET_SIZE);
       elrs.flush();
