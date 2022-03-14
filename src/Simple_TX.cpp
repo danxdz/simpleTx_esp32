@@ -28,7 +28,7 @@
  =======================================================================================================
  */
 
-//#define DEBUG // if not commented out, Serial.print() is active! For debugging only!!
+#define DEBUG_TLM // if not commented out, Serial.print() is active! For debugging only!!
 
 #include <Arduino.h>
 #include <HardwareSerial.h>
@@ -37,6 +37,7 @@
 #include "crsf.c"
 #include "led.h"
 #include "battery.h"
+#include "tlm.h"
 #include "CrsfProtocol/crsf_protocol.h"
 
 
@@ -81,17 +82,18 @@ uint32_t crsfTime = 0;
 uint8_t *SerialInBuffer = inBuffer.asUint8_t;
 
 
-static uint8_t getCrossfireTelemetryValue(uint8_t index, uint32_t *value, uint8_t len) {
+static uint8_t getCrossfireTelemetryValue(uint8_t index, int32_t *value, uint8_t len) {
   uint8_t result = 0;
   uint8_t *byte = &SerialInBuffer[index];
   *value = (*byte & 0x80) ? -1 : 0;
-  for (uint8_t i=0; i < len; i++) {
+  for (int i=0; i < len; i++) {
     *value <<= 8;
     if (*byte != 0xff) result = 1;
     *value += *byte++;
   }
   return result;
 }
+
 
 void serialEvent() {
   uint8_t link_quality = LinkStatistics.downlink_Link_quality;
@@ -157,38 +159,39 @@ void serialEvent() {
         {
           GoodPktsCount++;
 
-          uint32_t value;
-          uint8_t i;
-          uint8_t id = SerialInBuffer[2];
-          //db_out.write(id);
-          switch(id) {
-          case CRSF_FRAMETYPE_LINK_STATISTICS:
-          //db_out.println("link");
-
-            //for (i=1; i <= TELEM_CRSF_TX_SNR; i++) {
-            for (int i=1; i <= 10; i++) {
-              if (getCrossfireTelemetryValue(2+i, &value, 1)) {   // payload starts at third byte of rx packet
-                if (i == 7) {
-                  static const uint32_t power_values[] = { 0, 10, 25, 100, 500, 1000, 2000, 250, 50 };
-                  if ((uint8_t)value >= (sizeof power_values / sizeof (uint32_t)))
-                    continue;
-                  value = power_values[value];
+          #ifdef DEBUG_TLM
+            int32_t value;
+            uint8_t id = SerialInBuffer[2];
+            //db_out.write(id);
+            switch(id) {
+              case CRSF_FRAMETYPE_LINK_STATISTICS:
+              //db_out.println("link");
+              //for (i=1; i <= TELEM_CRSF_TX_SNR; i++) {
+              for (int i=1; i <= TELEM_CRSF_TX_SNR; i++) {
+                if (getCrossfireTelemetryValue(2+i, &value, 1)) {   // payload starts at third byte of rx packet
+                  if (i == TELEM_CRSF_TX_POWER) {
+                    static const int32_t power_values[] = { 0, 10, 25, 100, 500, 1000, 2000, 250, 50 };
+                    if ((uint8_t)value >= (sizeof power_values / sizeof (int32_t)))
+                      continue;
+                    value = power_values[value];
+                    }
+                    //set_telemetry(i, value);
+                    db_out.printf("%i ",value);
                 }
-                //set_telemetry(i, value);
-                db_out.printf("%u ",value);
-
               }
-            }
-            db_out.println("");
-
-          break;
-
-    case CRSF_FRAMETYPE_RADIO_ID:
-      //db_out.println("radio id");
-      break;
-      }
-          #ifdef debug
-          const uint8_t temp = inBuffer.asRCPacket_t.header.frame_size;
+              db_out.println("");
+              break;
+            case CRSF_FRAMETYPE_RADIO_ID:
+              //db_out.println("radio id");
+              break;
+            case CRSF_FRAMETYPE_BATTERY_SENSOR:
+              //db_out.print("battery");
+              if (getCrossfireTelemetryValue(3, &value, 2))
+                //set_telemetry(TELEM_CRSF_BATT_VOLTAGE, value);
+                db_out.printf("%i \n",value);
+                
+              break;
+          /*   const uint8_t temp = inBuffer.asRCPacket_t.header.frame_size;
           db_out.write(temp);
           const uint8_t packetType = inBuffer.asRCPacket_t.header.type;
           db_out.write(packetType);
@@ -212,16 +215,19 @@ void serialEvent() {
             db_out.printf("%u " ,SerialInBuffer[14]);
             db_out.printf("%u " ,SerialInBuffer[15]);
             db_out.printf("%u " ,SerialInBuffer[16]);
-            db_out.println("");
+            db_out.println(""); */
+          }
           #else
           //output packets to serial for debug
-            //for (int i=0;i<=15;i++) {
-              //db_out.write(SerialInBuffer[i]); 
-            //}
+            for (int i=0;i<=15;i++) {
+              db_out.write(SerialInBuffer[i]); 
+            }
           #endif
         //db_out.printf(" micros %u",micros());
         //db_out.println("::");
         //delay(200);
+          
+        
         } else {
           db_out.write("UART CRC failure");
           // cleanup input buffer
@@ -344,7 +350,7 @@ void loop() {
       //db_out.printf("pwr: %u",currentPower);
       //db_out.println("click");
       
-      buildElrsPacket(crsfCmdPacket,6,0);
+      buildElrsPacket(crsfCmdPacket,1,3);
       duplex_set_TX();
       elrs.write(crsfCmdPacket, CRSF_CMD_PACKET_SIZE);
       elrs.flush();
@@ -375,7 +381,7 @@ void loop() {
       clickCurrentMicros = micros();
       //db_out.println("reset"); 
     }
-	  #ifdef DEBUG
+	  #ifdef DEBUG_CH
      Serial.println("");
       /* 
       //For gimal calibation only
