@@ -30,6 +30,7 @@
 
 #define DEBUG_TLM // if not commented out, Serial.print() is active! For debugging only!!
 
+
 #include <Arduino.h>
 #include <HardwareSerial.h>
 
@@ -40,9 +41,7 @@
 #include "tlm.h"
 #include "CrsfProtocol/crsf_protocol.h"
 
-
-#include <driver/gpio.h>
-#include <driver/uart.h>
+#include "oled.h"
 
 
 static HardwareSerial elrs(1);
@@ -60,10 +59,12 @@ volatile bool CRSFframeActive = false; //since we get a copy of the serial data 
 
 static inBuffer_U inBuffer;
 static volatile crsfPayloadLinkstatistics_s LinkStatistics; // Link Statisitics Stored as Struct
+static volatile crsf_sensor_battery_s batteryVoltage; // Link Statisitics Stored as Struct
 
 portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 
 uint32_t clickCurrentMicros = 0;//click deboucer
+uint32_t displayCurrentMicros = 0;//display deboucer
 bool stoped = false; // simulation to check if tx done
     
 static uint8_t  currentPower = 0 ;//  "10mW", "25mW", "50mW", "100mW", "250mW"
@@ -82,7 +83,7 @@ uint32_t crsfTime = 0;
 uint8_t *SerialInBuffer = inBuffer.asUint8_t;
 
 
-static uint8_t getCrossfireTelemetryValue(uint8_t index, int32_t *value, uint8_t len) {
+static uint8_t getCrossfireTelemetryValue(uint8_t index, uint32_t *value, uint8_t len) {
   uint8_t result = 0;
   uint8_t *byte = &SerialInBuffer[index];
   *value = (*byte & 0x80) ? -1 : 0;
@@ -93,10 +94,7 @@ static uint8_t getCrossfireTelemetryValue(uint8_t index, int32_t *value, uint8_t
   }
   return result;
 }
-
-
 void serialEvent() {
-  uint8_t link_quality = LinkStatistics.downlink_Link_quality;
   
   while (elrs.available()) {
     if (CRSFframeActive == false)
@@ -160,7 +158,7 @@ void serialEvent() {
           GoodPktsCount++;
 
           #ifdef DEBUG_TLM
-            int32_t value;
+            uint32_t value;
             uint8_t id = SerialInBuffer[2];
             //db_out.write(id);
             switch(id) {
@@ -171,13 +169,45 @@ void serialEvent() {
                 if (getCrossfireTelemetryValue(2+i, &value, 1)) {   // payload starts at third byte of rx packet
                   if (i == TELEM_CRSF_TX_POWER) {
                     static const int32_t power_values[] = { 0, 10, 25, 100, 500, 1000, 2000, 250, 50 };
-                    if ((uint8_t)value >= (sizeof power_values / sizeof (int32_t)))
+                    if ((int8_t)value >= (sizeof power_values / sizeof (int32_t)))
                       continue;
                     value = power_values[value];
+                  }
+                  //set_telemetry(i, value);
+                  db_out.printf("%i ",value);
+                  switch(i) {
+                    case TELEM_CRSF_RX_RSSI1:
+                      LinkStatistics.uplink_RSSI_1 = value;
+                      break;
+                    case TELEM_CRSF_RX_RSSI2:
+                      LinkStatistics.uplink_RSSI_2 = value;
+                      break;
+                    case TELEM_CRSF_RX_QUALITY:
+                      LinkStatistics.uplink_Link_quality = value;
+                      break;
+                    case TELEM_CRSF_RX_SNR:
+                      LinkStatistics.uplink_SNR = value;
+                      break;
+                    case  TELEM_CRSF_RX_ANTENNA:
+                      LinkStatistics.active_antenna = value;
+                      break;
+                    case TELEM_CRSF_RF_MODE:
+                      LinkStatistics.rf_Mode = value;
+                      break;
+                    case TELEM_CRSF_TX_POWER:
+                      LinkStatistics.uplink_TX_Power = value;
+                      break;
+                    case TELEM_CRSF_TX_RSSI:
+                      LinkStatistics.downlink_RSSI = value;
+                      break;
+                    case TELEM_CRSF_TX_QUALITY:
+                      LinkStatistics.downlink_Link_quality = value;
+                      break;
+                    case TELEM_CRSF_TX_SNR:
+                      LinkStatistics.downlink_SNR = value;
+                      break;
                     }
-                    //set_telemetry(i, value);
-                    db_out.printf("%i ",value);
-                }
+                  }
               }
               db_out.println("");
               break;
@@ -188,8 +218,8 @@ void serialEvent() {
               //db_out.print("battery");
               if (getCrossfireTelemetryValue(3, &value, 2))
                 //set_telemetry(TELEM_CRSF_BATT_VOLTAGE, value);
-                db_out.printf("%i \n",value);
-                
+                db_out.printf("%d",value);
+                batteryVoltage.voltage = value;
               break;
           /*   const uint8_t temp = inBuffer.asRCPacket_t.header.frame_size;
           db_out.write(temp);
@@ -282,6 +312,33 @@ void duplex_set_TX()
 
 
 void setup() {
+
+  // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
+  if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
+    Serial.println(F("SSD1306 allocation failed"));
+    for(;;); // Don't proceed, loop forever
+  }
+  // Show initial display buffer contents on the screen --
+  // the library initializes this with an Adafruit splash screen.
+  display.display();
+  delay(2000); // Pause for 2 seconds
+
+  // Clear the buffer
+  display.clearDisplay();
+
+  // Draw a single pixel in white
+  display.drawPixel(10, 10, SSD1306_WHITE);
+
+  // Show the display buffer on the screen. You MUST call display() after
+  // drawing commands to make them visible on screen!
+  display.display();
+
+  display.invertDisplay(true);
+  delay(500);
+  display.invertDisplay(false);
+  delay(500);
+  startDisplay();
+  delay(2000);
     for (uint8_t i = 0; i < CRSF_MAX_CHANNEL; i++) {
         rcChannels[i] = RC_CHANNEL_MIN;
     }
@@ -365,6 +422,7 @@ void loop() {
       duplex_set_RX();
       powerChangeHasRun=true;
       clickCurrentMicros = crsfTime + 500000;
+      
       }
     }
 	//Additional switch add here.
@@ -420,6 +478,12 @@ void loop() {
     
     duplex_set_RX();  
     serialEvent();
+    if (displayCurrentMicros<=crsfTime) {
+      displayCurrentMicros = crsfTime + 500000;
+      updateDisplay(LinkStatistics.uplink_RSSI_1,LinkStatistics.uplink_Link_quality,batteryVoltage.voltage);
+    }
+
+
     //delayMicroseconds(1200);
   #endif
   }

@@ -285,14 +285,14 @@ typedef struct crsf_sensor_battery_s crsf_sensor_battery_t;
 
 typedef struct crsfPayloadLinkstatistics_s
 {
-    uint8_t uplink_RSSI_1;
-    uint8_t uplink_RSSI_2;
+    int8_t uplink_RSSI_1;
+    int8_t uplink_RSSI_2;
     uint8_t uplink_Link_quality;
     int8_t uplink_SNR;
     uint8_t active_antenna;
     uint8_t rf_Mode;
     uint8_t uplink_TX_Power;
-    uint8_t downlink_RSSI;
+    int8_t downlink_RSSI;
     uint8_t downlink_Link_quality;
     int8_t downlink_SNR;
 } crsfLinkStatistics_t;

@@ -39,7 +39,7 @@
 
 // internal crsf variables
 #define CRSF_TIME_NEEDED_PER_FRAME_US   1100 // 700 ms + 400 ms for potential ad-hoc request
-#define CRSF_TIME_BETWEEN_FRAMES_US     4000 // 4 ms 250Hz
+#define CRSF_TIME_BETWEEN_FRAMES_US     3700 // 4 ms 250Hz
 #define CRSF_PAYLOAD_OFFSET offsetof(crsfFrameDef_t, type)
 #define CRSF_MSP_RX_BUF_SIZE 128
 #define CRSF_MSP_TX_BUF_SIZE 128
