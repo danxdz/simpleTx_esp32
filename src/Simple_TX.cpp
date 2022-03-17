@@ -28,7 +28,8 @@
  =======================================================================================================
  */
 
-#define DEBUG_TLM // if not commented out, Serial.print() is active! For debugging only!!
+//#define DEBUG_TLM // if not commented out, Serial.print() is active! For debugging only!!
+//#define DEBUG_CH // if not commented out, Serial.print() is active! For debugging only!!
 
 
 #include <Arduino.h>
@@ -157,9 +158,48 @@ void serialEvent() {
         {
           GoodPktsCount++;
 
-          #ifdef DEBUG_TLM
             uint32_t value;
             uint8_t id = SerialInBuffer[2];
+            if (id == CRSF_FRAMETYPE_BATTERY_SENSOR) {
+              //db_out.print("battery");
+              if (getCrossfireTelemetryValue(3, &value, 2)) {
+                batteryVoltage.voltage = value;
+              }
+            }
+            
+            if (id == CRSF_FRAMETYPE_LINK_STATISTICS) {
+              if (getCrossfireTelemetryValue(2+TELEM_CRSF_RX_RSSI1, &value, 1)) { 
+                LinkStatistics.uplink_RSSI_1 = value;
+              }
+              if (getCrossfireTelemetryValue(2+TELEM_CRSF_RX_RSSI2, &value, 1)) { 
+                LinkStatistics.uplink_RSSI_2 = value;
+              } 
+              if (getCrossfireTelemetryValue(2+TELEM_CRSF_RX_QUALITY, &value, 1)) { 
+                LinkStatistics.uplink_Link_quality = value;
+              } 
+              if (getCrossfireTelemetryValue(2+TELEM_CRSF_RF_MODE, &value, 1)) { 
+                LinkStatistics.rf_Mode = value;
+              } 
+              if (getCrossfireTelemetryValue(2+TELEM_CRSF_TX_POWER, &value, 1)) { 
+                static const int32_t power_values[] = { 0, 10, 25, 100, 500, 1000, 2000, 250, 50 };
+                //if ((int8_t)value >= (sizeof power_values / sizeof (int32_t)))
+                //  continue;
+                value = power_values[value];
+                LinkStatistics.uplink_TX_Power = value;
+                //db_out.printf("%i",value);
+
+
+              }
+              if (getCrossfireTelemetryValue(2+TELEM_CRSF_TX_RSSI, &value, 1)) { 
+                LinkStatistics.downlink_RSSI = value;
+              }
+              if (getCrossfireTelemetryValue(2+TELEM_CRSF_TX_QUALITY, &value, 1)) { 
+                LinkStatistics.downlink_Link_quality = value;
+              }
+            }
+          
+          #ifdef DEBUG_TLM
+  
             //db_out.write(id);
             switch(id) {
               case CRSF_FRAMETYPE_LINK_STATISTICS:
@@ -175,7 +215,7 @@ void serialEvent() {
                   }
                   //set_telemetry(i, value);
                   db_out.printf("%i ",value);
-                  switch(i) {
+                  /* switch(i) {
                     case TELEM_CRSF_RX_RSSI1:
                       LinkStatistics.uplink_RSSI_1 = value;
                       break;
@@ -206,7 +246,7 @@ void serialEvent() {
                     case TELEM_CRSF_TX_SNR:
                       LinkStatistics.downlink_SNR = value;
                       break;
-                    }
+                    } */
                   }
               }
               db_out.println("");
@@ -247,11 +287,12 @@ void serialEvent() {
             db_out.printf("%u " ,SerialInBuffer[16]);
             db_out.println(""); */
           }
-          #else
+          #endif
+          #ifdef debug
           //output packets to serial for debug
-            for (int i=0;i<=15;i++) {
-              db_out.write(SerialInBuffer[i]); 
-            }
+            //for (int i=0;i<=15;i++) {
+              //db_out.write(SerialInBuffer[i]); 
+            //}
           #endif
         //db_out.printf(" micros %u",micros());
         //db_out.println("::");
@@ -310,8 +351,13 @@ void duplex_set_TX()
   portENABLE_INTERRUPTS();
 }
 
+TaskHandle_t Task1;
+TaskHandle_t Task2;
 
-void setup() {
+void Task1code( void * pvParameters ){
+  db_out.print("Task1 running on core ");
+  db_out.println(xPortGetCoreID());
+
 
   // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
   if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
@@ -320,8 +366,8 @@ void setup() {
   }
   // Show initial display buffer contents on the screen --
   // the library initializes this with an Adafruit splash screen.
-  display.display();
-  delay(2000); // Pause for 2 seconds
+  //display.display();
+  //delay(1000); // Pause for 2 seconds
 
   // Clear the buffer
   display.clearDisplay();
@@ -338,38 +384,43 @@ void setup() {
   display.invertDisplay(false);
   delay(500);
   startDisplay();
-  delay(2000);
-    for (uint8_t i = 0; i < CRSF_MAX_CHANNEL; i++) {
-        rcChannels[i] = RC_CHANNEL_MIN;
-    }
-   //analogReference(EXTERNAL);
-   pinMode(DIGITAL_PIN_SWITCH_ARM, INPUT);
-   pinMode(DIGITAL_PIN_SWITCH_AUX2, INPUT);
-   pinMode(DIGITAL_PIN_LED, OUTPUT);//LED
-   //pinMode(DIGITAL_PIN_BUZZER, OUTPUT);//
-   //digitalWrite(DIGITAL_PIN_BUZZER, LOW);
-   //batteryVoltage=7.0; 
-   
-  delay(3000); //Give enough time for uploda firmware
+  delay(1000);
+  
 
-  db_out.begin(115200);
-
- 
-portDISABLE_INTERRUPTS();
-elrs.begin(SERIAL_BAUDRATE,SERIAL_8N1,13, 13,false, 500);
-db_out.write("starting");
-db_out.println("");
-duplex_set_TX();  
-portENABLE_INTERRUPTS();
-
-  //digitalWrite(DIGITAL_PIN_LED, LOW); //LED ON
-
-   
-
+  for(;;){
+    delay(500);
+      updateDisplay(
+        LinkStatistics.downlink_RSSI,
+        LinkStatistics.downlink_Link_quality,
+        LinkStatistics.rf_Mode,
+        LinkStatistics.uplink_TX_Power,
+        LinkStatistics.uplink_RSSI_1,
+        LinkStatistics.uplink_RSSI_2,
+        LinkStatistics.uplink_Link_quality,
+        batteryVoltage.voltage);
+    db_out.println("out");
+  } 
 }
 
-    
-void loop() {
+
+//Task2code: blinks an LED every 700 ms
+void Task2code( void * pvParameters ){
+  db_out.print("Task2 running on core ");
+  db_out.println(xPortGetCoreID());
+  for (uint8_t i = 0; i < CRSF_MAX_CHANNEL; i++) {
+    rcChannels[i] = RC_CHANNEL_MIN;
+  }
+  portDISABLE_INTERRUPTS();
+  elrs.begin(SERIAL_BAUDRATE,SERIAL_8N1,13, 13,false, 500);
+  db_out.write("starting");
+  db_out.println("");
+  duplex_set_TX();  
+  portENABLE_INTERRUPTS();
+
+  //digitalWrite(DIGITAL_PIN_LED, LOW); //LED ON
+   
+  for(;;){
+
   uint32_t currentMicros = micros();
 
   // Here you can modify values of rcChannels
@@ -468,25 +519,55 @@ void loop() {
       Serial.println();
       */
       delay(1000);
-
   #else
     duplex_set_TX();  
     elrs.write(crsfPacket, CRSF_PACKET_SIZE);
-
     crsfTime = currentMicros + CRSF_TIME_BETWEEN_FRAMES_US;
     elrs.flush();
-    
-    duplex_set_RX();  
+    //start receiving
+    duplex_set_RX();
     serialEvent();
-    if (displayCurrentMicros<=crsfTime) {
-      displayCurrentMicros = crsfTime + 500000;
-      updateDisplay(LinkStatistics.uplink_RSSI_1,LinkStatistics.uplink_Link_quality,batteryVoltage.voltage);
-    }
-
-
-    //delayMicroseconds(1200);
   #endif
   }
+  }
+}
+
+void setup() {
+
+  //analogReference(EXTERNAL);
+  pinMode(DIGITAL_PIN_SWITCH_ARM, INPUT);
+  pinMode(DIGITAL_PIN_SWITCH_AUX2, INPUT);
+  pinMode(DIGITAL_PIN_LED, OUTPUT);//LED
+  //pinMode(DIGITAL_PIN_BUZZER, OUTPUT);//
+  //digitalWrite(DIGITAL_PIN_BUZZER, LOW);
+  //batteryVoltage=7.0; 
+  
+  db_out.begin(115200);
+  delay(3000); 
+ 
+  xTaskCreatePinnedToCore(
+                    Task1code,   /* Task function. */
+                    "Task1",     /* name of task. */
+                    10000,       /* Stack size of task */
+                    NULL,        /* parameter of the task */
+                    1,           /* priority of the task */
+                    &Task1,      /* Task handle to keep track of created task */
+                    0);          /* pin task to core 0 */                  
+                    delay(500); 
+
+  xTaskCreatePinnedToCore(
+                    Task2code,   /* Task function. */
+                    "Task2",     /* name of task. */
+                    10000,       /* Stack size of task */
+                    NULL,        /* parameter of the task */
+                    1,           /* priority of the task */
+                    &Task2,      /* Task handle to keep track of created task */
+                    1);          /* pin task to core 1 */
+                    delay(500); 
+  
+}
+    
+void loop() {
 }
 
 

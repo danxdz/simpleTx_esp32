@@ -34,23 +34,32 @@ void startDisplay() {
   display.printf("starting...");
   display.display();
 }
-void updateDisplay(uint8_t tx_rssi_1,uint8_t tx_lq, uint8_t batteryVoltage ) {
+void updateDisplay(
+                    int8_t tx_rssi,
+                    uint8_t tx_lq,
+                    uint8_t rf_mode,
+                    uint8_t tx_pwr,
+                    int8_t rx_rssi_1,
+                    int8_t rx_rssi_2,
+                    uint8_t rx_lq, 
+                    uint8_t batteryVoltage ) {
+  
   display.clearDisplay();
   display.setTextSize(1);             // Normal 1:1 pixel scale
   display.setTextColor(SSD1306_WHITE);        // Draw white text
   display.setCursor(0,0);             // Start at top-left corner
   //int32_t tx_rssi_1 = tx_rssi;//LinkStatistics.uplink_RSSI_1;
-  int8_t rf_mode = 5;//LinkStatistics.rf_Mode;
+  //int8_t rf_mode = 5;//LinkStatistics.rf_Mode;
   //int8_t tx_lq = tx_lq; //LinkStatistics.uplink_Link_quality;
-  display.printf("Tx %idBm %i:%i%% ",tx_rssi_1,rf_mode,tx_lq);
+  display.printf("Tx %idBm %i:%i%% ",tx_rssi,rf_mode,tx_lq);
   display.println("");
-  int32_t rx_rssi = 100;//LinkStatistics.downlink_RSSI;
-  int8_t rx_lq = 100;//LinkStatistics.downlink_Link_quality;
-  display.printf("Rx %idBm %i:%i%% ",rx_rssi,rf_mode,rx_lq);
+  //int32_t rx_rssi = 100;//LinkStatistics.downlink_RSSI;
+  //int8_t rx_lq = 100;//LinkStatistics.downlink_Link_quality;
+  display.printf("Rx %idBm %i:%i%% ",rx_rssi_1,rf_mode,rx_lq);
   display.setTextSize(2);             // Normal 1:1 pixel scale
-  int8_t tx_power = 10;// LinkStatistics.uplink_TX_Power;
+  //int8_t tx_power = 10;// LinkStatistics.uplink_TX_Power;
   display.setCursor(0,40);             // Start at top-left corner
-  display.printf("%imW", tx_power);
+  display.printf("%imW", tx_pwr);
   
   display.setCursor(60,40);             // Start at top-left corner
   float vBat = (float)batteryVoltage/10;
