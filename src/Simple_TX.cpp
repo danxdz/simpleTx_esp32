@@ -166,7 +166,7 @@ void serialEvent() {
                 batteryVoltage.voltage = value;
               }
             }
-            
+            //testing
             if (id == CRSF_FRAMETYPE_LINK_STATISTICS) {
               if (getCrossfireTelemetryValue(2+TELEM_CRSF_RX_RSSI1, &value, 1)) { 
                 LinkStatistics.uplink_RSSI_1 = value;
@@ -398,7 +398,6 @@ void Task1code( void * pvParameters ){
         LinkStatistics.uplink_RSSI_2,
         LinkStatistics.uplink_Link_quality,
         batteryVoltage.voltage);
-    db_out.println("out");
   } 
 }
 
