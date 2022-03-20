@@ -83,6 +83,7 @@ bool powerChangeHasRun = false;
 uint8_t crsfPacket[CRSF_PACKET_SIZE];
 int rcChannels[CRSF_MAX_CHANNEL];
 uint32_t crsfTime = 0;
+uint32_t lastCrsfTime = 4000;
 
 uint8_t *SerialInBuffer = inBuffer.asUint8_t;
 
@@ -295,7 +296,7 @@ void serialEvent() {
                     
 
                     //moduleSyncStatus.getAdjustedRefreshRate();
-                    moduleSyncStatus.invalidate();
+                    //moduleSyncStatus.invalidate();
 
                       //db_out.printf("%u", moduleSyncStatus.getAdjustedRefreshRate());
                       //db_out.println("");
@@ -678,22 +679,26 @@ void ElrsTask( void * pvParameters ){
     //db_out.printf("%u",moduleSyncStatus.getAdjustedRefreshRate());
     //db_out.println("");
     //ModuleSyncStatus();
-    
-    db_out.printf("%u - %i",updateInterval,correction);
-    db_out.println("");
   
-    
     duplex_set_TX();  
     elrs.write(crsfPacket, CRSF_PACKET_SIZE);
     elrs.flush();
-    crsfTime = currentMicros + (updateInterval-correction);// + CRSF_TIME_BETWEEN_FRAMES_US;
 
     
     //start receiving
     duplex_set_RX();
     serialEvent();
-    delay(4);
-
+    //delayMicroseconds(dl-(dl/5));
+    int32_t tmpTime = currentMicros + moduleSyncStatus.getAdjustedRefreshRate();
+    int32_t dl = (tmpTime-lastCrsfTime)-moduleSyncStatus.refreshRate;
+    int32_t realTime = (tmpTime-lastCrsfTime);
+    if (dl<0)dl=0;
+    if (dl > moduleSyncStatus.refreshRate ) dl = 0 ;
+    crsfTime = tmpTime-dl;
+    db_out.printf("%u ; %u ; %u ; %u ; %u ; %i ; %i",crsfTime,tmpTime,realTime,moduleSyncStatus.refreshRate,updateInterval,correction,dl);
+    db_out.println("");
+    lastCrsfTime = crsfTime;
+    
   #endif
   }
   }
