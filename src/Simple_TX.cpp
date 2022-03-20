@@ -28,6 +28,7 @@
  =======================================================================================================
  */
 
+//#define DEBUG_PACKETS// if not commented out, Serial.print() is active! For debugging only!!
 //#define DEBUG_TLM // if not commented out, Serial.print() is active! For debugging only!!
 //#define DEBUG_CH // if not commented out, Serial.print() is active! For debugging only!!
 
@@ -82,9 +83,103 @@ int rcChannels[CRSF_MAX_CHANNEL];
 uint32_t crsfTime = 0;
 
 uint8_t *SerialInBuffer = inBuffer.asUint8_t;
+static uint32_t updateInterval = CRSF_TIME_BETWEEN_FRAMES_US;
+static int32_t correction;
+uint32_t tmpInterval=CRSF_TIME_BETWEEN_FRAMES_US;
+#define constrain(amt,low,high) ((amt)<(low)?(low):((amt)>(high)?(high):(amt)))
+
+typedef uint32_t tmr10ms_t;
+
+volatile tmr10ms_t g_tmr10ms;
+static inline tmr10ms_t get_tmr10ms()
+{
+  return g_tmr10ms;
+}
 
 
-static uint8_t getCrossfireTelemetryValue(uint8_t index, uint32_t *value, uint8_t len) {
+struct ModuleSyncStatus
+{
+  // feedback input: last received values
+  uint16_t  refreshRate; // in us
+  int16_t   inputLag;    // in us
+
+  tmr10ms_t lastUpdate;  // in 10ms
+  int16_t   currentLag;  // in us
+  
+  inline bool isValid() {
+    // 2 seconds
+    return (get_tmr10ms() - lastUpdate < 200);
+  }
+
+  // Set feedback from RF module
+  void update(uint16_t newRefreshRate, int16_t newInputLag);
+
+  //mark as timeouted
+  void invalidate();
+
+  // Get computed settings for scheduler
+  uint16_t getAdjustedRefreshRate();
+
+  // Status string for the UI
+  void getRefreshString(char* refreshText);
+
+  ModuleSyncStatus();
+
+};
+static ModuleSyncStatus moduleSyncStatus;
+ModuleSyncStatus& getModuleSyncStatus(uint8_t moduleIdx)
+{
+  return moduleSyncStatus;
+}
+ModuleSyncStatus& getModuleSyncStatus(uint8_t moduleIdx);
+ModuleSyncStatus::ModuleSyncStatus()
+{
+  memset(this, 0, sizeof(ModuleSyncStatus));
+}
+void ModuleSyncStatus::update(uint16_t newRefreshRate, int16_t newInputLag)
+{
+  if (!newRefreshRate)
+    return;
+  
+  if (newRefreshRate < CRSF_FRAME_PERIOD_MIN)
+    newRefreshRate = newRefreshRate * (CRSF_FRAME_PERIOD_MIN / (newRefreshRate + 1));
+  else if (newRefreshRate > CRSF_FRAME_PERIOD_MAX)
+    newRefreshRate = CRSF_FRAME_PERIOD_MAX;
+
+  refreshRate = newRefreshRate;
+  inputLag    = newInputLag;
+  currentLag  = newInputLag;
+  lastUpdate  = get_tmr10ms();
+}
+
+void ModuleSyncStatus::invalidate() {
+  //make invalid after use
+  currentLag = 0;
+}
+
+uint16_t ModuleSyncStatus::getAdjustedRefreshRate()
+{
+  int16_t lag = currentLag;
+  int32_t newRefreshRate = refreshRate;
+
+  if (lag == 0) {
+    return refreshRate;
+  }
+  
+  newRefreshRate += lag;
+  
+  if (newRefreshRate < CRSF_FRAME_PERIOD_MIN) {
+      newRefreshRate = CRSF_FRAME_PERIOD_MIN;
+  }
+  else if (newRefreshRate > CRSF_FRAME_PERIOD_MAX) {
+    newRefreshRate = CRSF_FRAME_PERIOD_MAX;
+  }
+
+  currentLag -= newRefreshRate - refreshRate;
+  return (uint16_t)newRefreshRate;
+}
+
+static uint8_t getCrossfireTelemetryValue(uint8_t index, int32_t *value, uint8_t len) {
   uint8_t result = 0;
   uint8_t *byte = &SerialInBuffer[index];
   *value = (*byte & 0x80) ? -1 : 0;
@@ -158,7 +253,7 @@ void serialEvent() {
         {
           GoodPktsCount++;
 
-            uint32_t value;
+            int32_t value;
             uint8_t id = SerialInBuffer[2];
             if (id == CRSF_FRAMETYPE_BATTERY_SENSOR) {
               //db_out.print("battery");
@@ -166,6 +261,33 @@ void serialEvent() {
                 batteryVoltage.voltage = value;
               }
             }
+            if (id == CRSF_FRAMETYPE_RADIO_ID) {
+              if (SerialInBuffer[3] == ADDR_RADIO//0xEA     // radio address
+                && SerialInBuffer[5] == SUBCOMMAND_CRSF//0x10  // timing correction frame
+              ) { 
+                uint32_t update_interval;
+                int32_t offset;
+                if (getCrossfireTelemetryValue(6, (int32_t *)&update_interval,4) &&
+                    getCrossfireTelemetryValue(10, &offset, 4)) {
+                    // values are in 10th of micro-seconds
+                    update_interval /= 10;
+                    offset /= 10;
+                    getModuleSyncStatus(4).update(update_interval, offset);
+                    moduleSyncStatus.invalidate();
+
+                }
+              }
+            }
+/* 
+                if (getCrossfireTelemetryValue(6, (int32_t *)&updateInterval, 4))
+                  updateInterval /= 10;  // values are in 10th of micro-seconds
+                  
+                if (getCrossfireTelemetryValue(10, (int32_t *)&correction, 4)) 
+                {
+                  correction /= 10;  // values are in 10th of micro-seconds
+                  
+             }
+            } */
             //testing
             if (id == CRSF_FRAMETYPE_LINK_STATISTICS) {
               if (getCrossfireTelemetryValue(2+TELEM_CRSF_RX_RSSI1, &value, 1)) { 
@@ -288,11 +410,11 @@ void serialEvent() {
             db_out.println(""); */
           }
           #endif
-          #ifdef debug
+          #ifdef DEBUG_PACKETS
           //output packets to serial for debug
-            //for (int i=0;i<=15;i++) {
-              //db_out.write(SerialInBuffer[i]); 
-            //}
+            for (int i=0;i<=15;i++) {
+              db_out.write(SerialInBuffer[i]); 
+            }
           #endif
         //db_out.printf(" micros %u",micros());
         //db_out.println("::");
@@ -354,8 +476,13 @@ void duplex_set_TX()
 TaskHandle_t Task1;
 TaskHandle_t Task2;
 
-void Task1code( void * pvParameters ){
-  db_out.print("Task1 running on core ");
+void OutputTask( void * pvParameters ){
+  
+  //uart debug
+  db_out.begin(115200);
+  delay(3000); 
+
+  db_out.print("output task running on core ");
   db_out.println(xPortGetCoreID());
 
 
@@ -388,6 +515,7 @@ void Task1code( void * pvParameters ){
   
 
   for(;;){
+
     delay(500);
       updateDisplay(
         LinkStatistics.downlink_RSSI,
@@ -397,15 +525,19 @@ void Task1code( void * pvParameters ){
         LinkStatistics.uplink_RSSI_1,
         LinkStatistics.uplink_RSSI_2,
         LinkStatistics.uplink_Link_quality,
-        batteryVoltage.voltage);
+        batteryVoltage.voltage,
+        moduleSyncStatus.refreshRate);
   } 
 }
 
 
 //Task2code: blinks an LED every 700 ms
-void Task2code( void * pvParameters ){
+void ElrsTask( void * pvParameters ){
+  
+ 
   db_out.print("Task2 running on core ");
   db_out.println(xPortGetCoreID());
+
   for (uint8_t i = 0; i < CRSF_MAX_CHANNEL; i++) {
     rcChannels[i] = RC_CHANNEL_MIN;
   }
@@ -413,11 +545,16 @@ void Task2code( void * pvParameters ){
   elrs.begin(SERIAL_BAUDRATE,SERIAL_8N1,13, 13,false, 500);
   db_out.write("starting");
   db_out.println("");
-  duplex_set_TX();  
+  duplex_set_RX();  
   portENABLE_INTERRUPTS();
 
   //digitalWrite(DIGITAL_PIN_LED, LOW); //LED ON
-   
+//  updateInterval = get_update_interval();
+  
+  
+  //todo
+  // change to get last rate
+  int packetRateSelected = 0;
   for(;;){
 
   uint32_t currentMicros = micros();
@@ -456,15 +593,19 @@ void Task2code( void * pvParameters ){
     if(powerChangeHasRun==false) {
       //db_out.printf("pwr: %u",currentPower);
       //db_out.println("click");
-      
-      buildElrsPacket(crsfCmdPacket,1,3);
+      if(packetRateSelected>=3) {
+        packetRateSelected = 0;
+      } else {
+        packetRateSelected++;
+      }
+      buildElrsPacket(crsfCmdPacket,1,packetRateSelected);
       duplex_set_TX();
       elrs.write(crsfCmdPacket, CRSF_CMD_PACKET_SIZE);
       elrs.flush();
       delay(4);
       
       //uncomment to send 2e command
-      buildElrsPacket(crsfCmdPacket,5,0);
+      buildElrsPacket(crsfCmdPacket,2,3);
       elrs.write(crsfCmdPacket, CRSF_CMD_PACKET_SIZE);
       elrs.flush();
       //delay(4);
@@ -490,8 +631,6 @@ void Task2code( void * pvParameters ){
       //db_out.println("reset"); 
     }
 	  #ifdef DEBUG_CH
-     Serial.println("");
-      /* 
       //For gimal calibation only
       Serial.print("A_"); 
       Serial.print(Aileron_value); 
@@ -516,13 +655,18 @@ void Task2code( void * pvParameters ){
       Serial.print("_BatteryVoltage:");
       Serial.print(batteryVoltage);
       Serial.println();
-      */
       delay(1000);
   #else
     duplex_set_TX();  
+  
+    crsfTime = currentMicros + moduleSyncStatus.getAdjustedRefreshRate();// + CRSF_TIME_BETWEEN_FRAMES_US;
+  
     elrs.write(crsfPacket, CRSF_PACKET_SIZE);
-    crsfTime = currentMicros + CRSF_TIME_BETWEEN_FRAMES_US;
+
     elrs.flush();
+
+    //db_out.println(updateInterval);
+    
     //start receiving
     duplex_set_RX();
     serialEvent();
@@ -541,12 +685,9 @@ void setup() {
   //digitalWrite(DIGITAL_PIN_BUZZER, LOW);
   //batteryVoltage=7.0; 
   
-  db_out.begin(115200);
-  delay(3000); 
- 
   xTaskCreatePinnedToCore(
-                    Task1code,   /* Task function. */
-                    "Task1",     /* name of task. */
+                    OutputTask,   /* Task function. */
+                    "OutputTask",     /* name of task. */
                     10000,       /* Stack size of task */
                     NULL,        /* parameter of the task */
                     1,           /* priority of the task */
@@ -555,11 +696,11 @@ void setup() {
                     delay(500); 
 
   xTaskCreatePinnedToCore(
-                    Task2code,   /* Task function. */
-                    "Task2",     /* name of task. */
+                    ElrsTask,   /* Task function. */
+                    "ElrsTask",     /* name of task. */
                     10000,       /* Stack size of task */
                     NULL,        /* parameter of the task */
-                    1,           /* priority of the task */
+                    2,           /* priority of the task */
                     &Task2,      /* Task handle to keep track of created task */
                     1);          /* pin task to core 1 */
                     delay(500); 
@@ -601,4 +742,5 @@ void loop() {
         //                Starting BLE Joystick!
         // 19: Set Lua [Bad/Good]=0
         // 20: Set Lua [2.1.0 EU868]=0 =1 ?? get 
+
 

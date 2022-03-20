@@ -42,7 +42,8 @@ void updateDisplay(
                     int8_t rx_rssi_1,
                     int8_t rx_rssi_2,
                     uint8_t rx_lq, 
-                    uint8_t batteryVoltage ) {
+                    uint8_t batteryVoltage,
+                    uint32_t rate ) {
   
   display.clearDisplay();
   display.setTextSize(1);             // Normal 1:1 pixel scale
@@ -56,6 +57,10 @@ void updateDisplay(
   //int32_t rx_rssi = 100;//LinkStatistics.downlink_RSSI;
   //int8_t rx_lq = 100;//LinkStatistics.downlink_Link_quality;
   display.printf("Rx %idBm %i:%i%% ",rx_rssi_1,rf_mode,rx_lq);
+  display.setCursor(0,15);             // Start at top-left corner
+
+  display.printf("RR: %u ",rate);
+
   display.setTextSize(2);             // Normal 1:1 pixel scale
   //int8_t tx_power = 10;// LinkStatistics.uplink_TX_Power;
   display.setCursor(0,40);             // Start at top-left corner

@@ -37,9 +37,11 @@
 #define CRSF_DIGITAL_CHANNEL_MIN 172
 #define CRSF_DIGITAL_CHANNEL_MAX 1811
 
+#define CRSF_FRAME_PERIOD_MIN     850    // 1000Hz 1ms, but allow shorter for offset cancellation
+#define CRSF_FRAME_PERIOD_MAX     50000  // 25Hz  40ms, but allow longer for offset cancellation
 // internal crsf variables
 #define CRSF_TIME_NEEDED_PER_FRAME_US   1100 // 700 ms + 400 ms for potential ad-hoc request
-#define CRSF_TIME_BETWEEN_FRAMES_US     3750 // 4 ms 250Hz
+#define CRSF_TIME_BETWEEN_FRAMES_US     4000 // 4 ms 250Hz
 #define CRSF_PAYLOAD_OFFSET offsetof(crsfFrameDef_t, type)
 #define CRSF_MSP_RX_BUF_SIZE 128
 #define CRSF_MSP_TX_BUF_SIZE 128
@@ -62,3 +64,6 @@
 #define CRSF_CRC_POLY 0xd5
 
 #define CRSF_MAX_PACKET_LEN            64
+
+// Frame Subtype
+#define SUBTYPE_TIMING_UPDATE 0x10
