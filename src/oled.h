@@ -57,17 +57,44 @@ void updateDisplay(
   //int32_t rx_rssi = 100;//LinkStatistics.downlink_RSSI;
   //int8_t rx_lq = 100;//LinkStatistics.downlink_Link_quality;
   display.printf("Rx %idBm %i:%i%% ",rx_rssi_1,rf_mode,rx_lq);
-  display.setCursor(0,15);             // Start at top-left corner
-
-  display.printf("RR: %u ",rate);
-
   display.setTextSize(2);             // Normal 1:1 pixel scale
   //int8_t tx_power = 10;// LinkStatistics.uplink_TX_Power;
-  display.setCursor(0,40);             // Start at top-left corner
+  display.println("");
   display.printf("%imW", tx_pwr);
-  
-  display.setCursor(60,40);             // Start at top-left corner
   float vBat = (float)batteryVoltage/10;
   display.printf("%4.1fv",vBat);
+
+  display.println();             // Start at top-left corner
+  display.setTextSize(1);             // Normal 1:1 pixel scale
+
+  uint16_t rr = 0;
+  switch (rate)
+  {
+  case 2000:
+    rr = 500;//?
+    break;
+  case 4000:
+    rr = 250;//?
+    break;
+  case 5000:
+    rr = 200;
+    break;
+  case 6666:
+    rr = 150;//?
+    break;
+  case 10000:
+    rr = 100;
+    break;
+  case 20000:
+    rr = 50;
+    break;
+  case 40000:
+    rr = 25;
+    break;
+  default:
+    break;
+  }
+  display.printf("%uHz ",rr);
+
   display.display();
 }

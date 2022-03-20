@@ -44,6 +44,7 @@
 #include "CrsfProtocol/crsf_protocol.h"
 
 #include "oled.h"
+#include "halfduplex.h"
 
 
 static HardwareSerial elrs(1);
@@ -65,6 +66,7 @@ static volatile crsf_sensor_battery_s batteryVoltage; // Link Statisitics Stored
 
 portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 
+uint32_t currentMicros = 0;
 uint32_t clickCurrentMicros = 0;//click deboucer
 uint32_t displayCurrentMicros = 0;//display deboucer
 bool stoped = false; // simulation to check if tx done
@@ -83,8 +85,10 @@ int rcChannels[CRSF_MAX_CHANNEL];
 uint32_t crsfTime = 0;
 
 uint8_t *SerialInBuffer = inBuffer.asUint8_t;
+
 static uint32_t updateInterval = CRSF_TIME_BETWEEN_FRAMES_US;
 static int32_t correction;
+
 uint32_t tmpInterval=CRSF_TIME_BETWEEN_FRAMES_US;
 #define constrain(amt,low,high) ((amt)<(low)?(low):((amt)>(high)?(high):(amt)))
 
@@ -126,18 +130,20 @@ struct ModuleSyncStatus
   ModuleSyncStatus();
 
 };
+ModuleSyncStatus& getModuleSyncStatus();
 static ModuleSyncStatus moduleSyncStatus;
-ModuleSyncStatus& getModuleSyncStatus(uint8_t moduleIdx)
+ModuleSyncStatus& getModuleSyncStatus()
 {
   return moduleSyncStatus;
 }
-ModuleSyncStatus& getModuleSyncStatus(uint8_t moduleIdx);
 ModuleSyncStatus::ModuleSyncStatus()
 {
   memset(this, 0, sizeof(ModuleSyncStatus));
 }
 void ModuleSyncStatus::update(uint16_t newRefreshRate, int16_t newInputLag)
 {
+  //db_out.printf("n: %u - %i -  ",newRefreshRate,newInputLag);
+
   if (!newRefreshRate)
     return;
   
@@ -145,11 +151,14 @@ void ModuleSyncStatus::update(uint16_t newRefreshRate, int16_t newInputLag)
     newRefreshRate = newRefreshRate * (CRSF_FRAME_PERIOD_MIN / (newRefreshRate + 1));
   else if (newRefreshRate > CRSF_FRAME_PERIOD_MAX)
     newRefreshRate = CRSF_FRAME_PERIOD_MAX;
-
   refreshRate = newRefreshRate;
   inputLag    = newInputLag;
   currentLag  = newInputLag;
   lastUpdate  = get_tmr10ms();
+/*   db_out.printf("r: %u - ",refreshRate);
+  db_out.printf("cL: %i - ",currentLag);
+  db_out.println("");
+ */
 }
 
 void ModuleSyncStatus::invalidate() {
@@ -176,6 +185,7 @@ uint16_t ModuleSyncStatus::getAdjustedRefreshRate()
   }
 
   currentLag -= newRefreshRate - refreshRate;
+  //db_out.println(newRefreshRate);
   return (uint16_t)newRefreshRate;
 }
 
@@ -265,16 +275,30 @@ void serialEvent() {
               if (SerialInBuffer[3] == ADDR_RADIO//0xEA     // radio address
                 && SerialInBuffer[5] == SUBCOMMAND_CRSF//0x10  // timing correction frame
               ) { 
-                uint32_t update_interval;
-                int32_t offset;
-                if (getCrossfireTelemetryValue(6, (int32_t *)&update_interval,4) &&
-                    getCrossfireTelemetryValue(10, &offset, 4)) {
+                if (getCrossfireTelemetryValue(6, (int32_t *)&updateInterval,4) &&
+                    getCrossfireTelemetryValue(10,(int32_t *)&correction, 4)) {
                     // values are in 10th of micro-seconds
-                    update_interval /= 10;
-                    offset /= 10;
-                    getModuleSyncStatus(4).update(update_interval, offset);
+                    updateInterval /= 10;
+                    correction /= 10;
+                    if (correction >= 0)
+                      correction %= updateInterval;
+                    else
+                      correction = -((-correction) % updateInterval);
+
+                    //db_out.printf("%u ; %i ; %u ;;",updateInterval,correction,moduleSyncStatus.getAdjustedRefreshRate());
+                    getModuleSyncStatus().update(updateInterval, correction);
+                    updateInterval = moduleSyncStatus.getAdjustedRefreshRate();
+                    //db_out.printf("%u ; %i ; %u ;-;",updateInterval,correction,updateInterval);
+                    //db_out.printf("%u ; %i ; %u",updateInterval,correction,moduleSyncStatus.getAdjustedRefreshRate());
+                    //db_out.println("");                                     
+                    //crsfTime = currentMicros + updateInterval;// + CRSF_TIME_BETWEEN_FRAMES_US;
+                    
+
+                    //moduleSyncStatus.getAdjustedRefreshRate();
                     moduleSyncStatus.invalidate();
 
+                      //db_out.printf("%u", moduleSyncStatus.getAdjustedRefreshRate());
+                      //db_out.println("");
                 }
               }
             }
@@ -482,10 +506,6 @@ void OutputTask( void * pvParameters ){
   db_out.begin(115200);
   delay(3000); 
 
-  db_out.print("output task running on core ");
-  db_out.println(xPortGetCoreID());
-
-
   // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
   if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
     Serial.println(F("SSD1306 allocation failed"));
@@ -516,7 +536,7 @@ void OutputTask( void * pvParameters ){
 
   for(;;){
 
-    delay(500);
+    delay(1000);
       updateDisplay(
         LinkStatistics.downlink_RSSI,
         LinkStatistics.downlink_Link_quality,
@@ -534,9 +554,6 @@ void OutputTask( void * pvParameters ){
 //Task2code: blinks an LED every 700 ms
 void ElrsTask( void * pvParameters ){
   
- 
-  db_out.print("Task2 running on core ");
-  db_out.println(xPortGetCoreID());
 
   for (uint8_t i = 0; i < CRSF_MAX_CHANNEL; i++) {
     rcChannels[i] = RC_CHANNEL_MIN;
@@ -557,7 +574,7 @@ void ElrsTask( void * pvParameters ){
   int packetRateSelected = 0;
   for(;;){
 
-  uint32_t currentMicros = micros();
+  currentMicros = micros();
 
   // Here you can modify values of rcChannels
   Aileron_value = analogRead(analogInPinAileron); 
@@ -593,7 +610,7 @@ void ElrsTask( void * pvParameters ){
     if(powerChangeHasRun==false) {
       //db_out.printf("pwr: %u",currentPower);
       //db_out.println("click");
-      if(packetRateSelected>=3) {
+      if(packetRateSelected>=6) {
         packetRateSelected = 0;
       } else {
         packetRateSelected++;
@@ -612,7 +629,7 @@ void ElrsTask( void * pvParameters ){
       
       duplex_set_RX();
       powerChangeHasRun=true;
-      clickCurrentMicros = crsfTime + 500000;
+      clickCurrentMicros = crsfTime + (2*1000000);//2sec
       
       }
     }
@@ -620,9 +637,8 @@ void ElrsTask( void * pvParameters ){
   
   //  transmit_enable=!digitalRead(transmit_pin); ???
         
-  if (currentMicros > crsfTime) {
-    
-
+  if (currentMicros >= crsfTime) {
+  
     crsfPreparePacket(crsfPacket, rcChannels);
     if (powerChangeHasRun==true && clickCurrentMicros < crsfTime) 
     {
@@ -657,19 +673,27 @@ void ElrsTask( void * pvParameters ){
       Serial.println();
       delay(1000);
   #else
+//  uint16_t tmp = moduleSyncStatus.getAdjustedRefreshRate();
+
+    //db_out.printf("%u",moduleSyncStatus.getAdjustedRefreshRate());
+    //db_out.println("");
+    //ModuleSyncStatus();
+    
+    db_out.printf("%u - %i",updateInterval,correction);
+    db_out.println("");
+  
+    
     duplex_set_TX();  
-  
-    crsfTime = currentMicros + moduleSyncStatus.getAdjustedRefreshRate();// + CRSF_TIME_BETWEEN_FRAMES_US;
-  
     elrs.write(crsfPacket, CRSF_PACKET_SIZE);
-
     elrs.flush();
+    crsfTime = currentMicros + (updateInterval-correction);// + CRSF_TIME_BETWEEN_FRAMES_US;
 
-    //db_out.println(updateInterval);
     
     //start receiving
     duplex_set_RX();
     serialEvent();
+    delay(4);
+
   #endif
   }
   }
@@ -700,7 +724,7 @@ void setup() {
                     "ElrsTask",     /* name of task. */
                     10000,       /* Stack size of task */
                     NULL,        /* parameter of the task */
-                    2,           /* priority of the task */
+                    -1,           /* priority of the task */
                     &Task2,      /* Task handle to keep track of created task */
                     1);          /* pin task to core 1 */
                     delay(500); 
