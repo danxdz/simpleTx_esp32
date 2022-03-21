@@ -82,6 +82,7 @@ bool powerChangeHasRun = false;
 
 uint8_t crsfPacket[CRSF_PACKET_SIZE];
 int rcChannels[CRSF_MAX_CHANNEL];
+
 uint32_t crsfTime = 0;
 uint32_t lastCrsfTime = 4000;
 
@@ -90,104 +91,15 @@ uint8_t *SerialInBuffer = inBuffer.asUint8_t;
 static uint32_t updateInterval = CRSF_TIME_BETWEEN_FRAMES_US;
 static int32_t correction;
 
-uint32_t tmpInterval=CRSF_TIME_BETWEEN_FRAMES_US;
 #define constrain(amt,low,high) ((amt)<(low)?(low):((amt)>(high)?(high):(amt)))
 
-typedef uint32_t tmr10ms_t;
+static uint32_t get_update_interval() {
+    if (correction == 0) return updateInterval;
 
-volatile tmr10ms_t g_tmr10ms;
-static inline tmr10ms_t get_tmr10ms()
-{
-  return g_tmr10ms;
-}
-
-
-struct ModuleSyncStatus
-{
-  // feedback input: last received values
-  uint16_t  refreshRate; // in us
-  int16_t   inputLag;    // in us
-
-  tmr10ms_t lastUpdate;  // in 10ms
-  int16_t   currentLag;  // in us
-  
-  inline bool isValid() {
-    // 2 seconds
-    return (get_tmr10ms() - lastUpdate < 200);
-  }
-
-  // Set feedback from RF module
-  void update(uint16_t newRefreshRate, int16_t newInputLag);
-
-  //mark as timeouted
-  void invalidate();
-
-  // Get computed settings for scheduler
-  uint16_t getAdjustedRefreshRate();
-
-  // Status string for the UI
-  void getRefreshString(char* refreshText);
-
-  ModuleSyncStatus();
-
-};
-ModuleSyncStatus& getModuleSyncStatus();
-static ModuleSyncStatus moduleSyncStatus;
-ModuleSyncStatus& getModuleSyncStatus()
-{
-  return moduleSyncStatus;
-}
-ModuleSyncStatus::ModuleSyncStatus()
-{
-  memset(this, 0, sizeof(ModuleSyncStatus));
-}
-void ModuleSyncStatus::update(uint16_t newRefreshRate, int16_t newInputLag)
-{
-  //db_out.printf("n: %u - %i -  ",newRefreshRate,newInputLag);
-
-  if (!newRefreshRate)
-    return;
-  
-  if (newRefreshRate < CRSF_FRAME_PERIOD_MIN)
-    newRefreshRate = newRefreshRate * (CRSF_FRAME_PERIOD_MIN / (newRefreshRate + 1));
-  else if (newRefreshRate > CRSF_FRAME_PERIOD_MAX)
-    newRefreshRate = CRSF_FRAME_PERIOD_MAX;
-  refreshRate = newRefreshRate;
-  inputLag    = newInputLag;
-  currentLag  = newInputLag;
-  lastUpdate  = get_tmr10ms();
-/*   db_out.printf("r: %u - ",refreshRate);
-  db_out.printf("cL: %i - ",currentLag);
-  db_out.println("");
- */
-}
-
-void ModuleSyncStatus::invalidate() {
-  //make invalid after use
-  currentLag = 0;
-}
-
-uint16_t ModuleSyncStatus::getAdjustedRefreshRate()
-{
-  int16_t lag = currentLag;
-  int32_t newRefreshRate = refreshRate;
-
-  if (lag == 0) {
-    return refreshRate;
-  }
-  
-  newRefreshRate += lag;
-  
-  if (newRefreshRate < CRSF_FRAME_PERIOD_MIN) {
-      newRefreshRate = CRSF_FRAME_PERIOD_MIN;
-  }
-  else if (newRefreshRate > CRSF_FRAME_PERIOD_MAX) {
-    newRefreshRate = CRSF_FRAME_PERIOD_MAX;
-  }
-
-  currentLag -= newRefreshRate - refreshRate;
-  //db_out.println(newRefreshRate);
-  return (uint16_t)newRefreshRate;
+    uint32_t update = updateInterval + correction;
+    update = constrain(update, CRSF_FRAME_PERIOD_MIN, CRSF_FRAME_PERIOD_MAX);
+    correction -= update - updateInterval;
+    return update;
 }
 
 static uint8_t getCrossfireTelemetryValue(uint8_t index, int32_t *value, uint8_t len) {
@@ -285,21 +197,6 @@ void serialEvent() {
                       correction %= updateInterval;
                     else
                       correction = -((-correction) % updateInterval);
-
-                    //db_out.printf("%u ; %i ; %u ;;",updateInterval,correction,moduleSyncStatus.getAdjustedRefreshRate());
-                    getModuleSyncStatus().update(updateInterval, correction);
-                    updateInterval = moduleSyncStatus.getAdjustedRefreshRate();
-                    //db_out.printf("%u ; %i ; %u ;-;",updateInterval,correction,updateInterval);
-                    //db_out.printf("%u ; %i ; %u",updateInterval,correction,moduleSyncStatus.getAdjustedRefreshRate());
-                    //db_out.println("");                                     
-                    //crsfTime = currentMicros + updateInterval;// + CRSF_TIME_BETWEEN_FRAMES_US;
-                    
-
-                    //moduleSyncStatus.getAdjustedRefreshRate();
-                    //moduleSyncStatus.invalidate();
-
-                      //db_out.printf("%u", moduleSyncStatus.getAdjustedRefreshRate());
-                      //db_out.println("");
                 }
               }
             }
@@ -547,7 +444,7 @@ void OutputTask( void * pvParameters ){
         LinkStatistics.uplink_RSSI_2,
         LinkStatistics.uplink_Link_quality,
         batteryVoltage.voltage,
-        moduleSyncStatus.refreshRate);
+        200);//get_update_interval());
   } 
 }
 
@@ -688,14 +585,15 @@ void ElrsTask( void * pvParameters ){
     //start receiving
     duplex_set_RX();
     serialEvent();
-    //delayMicroseconds(dl-(dl/5));
-    int32_t tmpTime = currentMicros + moduleSyncStatus.getAdjustedRefreshRate();
-    int32_t dl = (tmpTime-lastCrsfTime)-moduleSyncStatus.refreshRate;
-    int32_t realTime = (tmpTime-lastCrsfTime);
+    uint32_t tempUpdateInt = get_update_interval();
+    uint32_t tmpTime = currentMicros + tempUpdateInt;//moduleSyncStatus.getAdjustedRefreshRate();
+    int32_t dl = (tmpTime-lastCrsfTime)- tempUpdateInt;
+    uint32_t realTime = (tmpTime-lastCrsfTime);
     if (dl<0)dl=0;
-    if (dl > moduleSyncStatus.refreshRate ) dl = 0 ;
+    if (dl > tempUpdateInt ) dl = 0 ;
     crsfTime = tmpTime-dl;
-    db_out.printf("%u ; %u ; %u ; %u ; %u ; %i ; %i",crsfTime,tmpTime,realTime,moduleSyncStatus.refreshRate,updateInterval,correction,dl);
+    db_out.printf("%u ; %u ; %u ; %u ; %i ; %i ; %u",
+    crsfTime,tmpTime,realTime,updateInterval,correction,dl,get_update_interval());
     db_out.println("");
     lastCrsfTime = crsfTime;
     
