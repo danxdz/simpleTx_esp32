@@ -185,8 +185,8 @@ void serialEvent() {
               }
             }
             if (id == CRSF_FRAMETYPE_RADIO_ID) {
-              if (SerialInBuffer[3] == ADDR_RADIO//0xEA     // radio address
-                && SerialInBuffer[5] == SUBCOMMAND_CRSF//0x10  // timing correction frame
+              if (SerialInBuffer[3] == ADDR_RADIO//0xEA - radio address
+                && SerialInBuffer[5] == SUBCOMMAND_CRSF//0x10 - timing correction frame
               ) { 
                 if (getCrossfireTelemetryValue(6, (int32_t *)&updateInterval,4) &&
                     getCrossfireTelemetryValue(10,(int32_t *)&correction, 4)) {
@@ -197,20 +197,15 @@ void serialEvent() {
                       correction %= updateInterval;
                     else
                       correction = -((-correction) % updateInterval);
+
+                //db_out.printf("%u ; %u ; %i",get_update_interval(),updateInterval,correction);
+                //db_out.println("");
+                
                 }
               }
             }
-/* 
-                if (getCrossfireTelemetryValue(6, (int32_t *)&updateInterval, 4))
-                  updateInterval /= 10;  // values are in 10th of micro-seconds
-                  
-                if (getCrossfireTelemetryValue(10, (int32_t *)&correction, 4)) 
-                {
-                  correction /= 10;  // values are in 10th of micro-seconds
-                  
-             }
-            } */
-            //testing
+
+            //testing if's or switch case 
             if (id == CRSF_FRAMETYPE_LINK_STATISTICS) {
               if (getCrossfireTelemetryValue(2+TELEM_CRSF_RX_RSSI1, &value, 1)) { 
                 LinkStatistics.uplink_RSSI_1 = value;
@@ -585,18 +580,23 @@ void ElrsTask( void * pvParameters ){
     //start receiving
     duplex_set_RX();
     serialEvent();
+    
     uint32_t tempUpdateInt = get_update_interval();
-    uint32_t tmpTime = currentMicros + tempUpdateInt;//moduleSyncStatus.getAdjustedRefreshRate();
-    int32_t dl = (tmpTime-lastCrsfTime)- tempUpdateInt;
-    uint32_t realTime = (tmpTime-lastCrsfTime);
+    uint32_t tmpTime = currentMicros + tempUpdateInt;//set current micros
+    int32_t dl = (tmpTime-lastCrsfTime)- tempUpdateInt;//get dif between pckt send
+    
+    uint32_t realTime = (tmpTime-lastCrsfTime);//debug
+    
     if (dl<0)dl=0;
     if (dl > tempUpdateInt ) dl = 0 ;
-    crsfTime = tmpTime-dl;
-    db_out.printf("%u ; %u ; %u ; %u ; %i ; %i ; %u",
-    crsfTime,tmpTime,realTime,updateInterval,correction,dl,get_update_interval());
-    db_out.println("");
-    lastCrsfTime = crsfTime;
-    
+    crsfTime = tmpTime-dl;//crsfTime = currentMicros + CRSF_TIME_BETWEEN_FRAMES_US;
+    lastCrsfTime = crsfTime; //set time that we send last packet
+    //debug timing
+    if (tempUpdateInt > updateInterval) {
+      db_out.printf("%u ; %u ; %u ; %u ; %i ; %u ; %i",
+                    crsfTime,tmpTime,realTime,tempUpdateInt,dl,updateInterval,correction);
+      db_out.println("");
+    }
   #endif
   }
   }
