@@ -31,6 +31,8 @@
 //#define DEBUG_PACKETS// if not commented out, Serial.print() is active! For debugging only!!
 //#define DEBUG_TLM // if not commented out, Serial.print() is active! For debugging only!!
 //#define DEBUG_CH // if not commented out, Serial.print() is active! For debugging only!!
+//#define DEBUG_SYNC // if not commented out, Serial.print() is active! For debugging only!!
+//#define DEBUG_HALF_DUPLEX // if not commented out, Serial.print() is active! For debugging only!!
 
 
 #include <Arduino.h>
@@ -50,6 +52,8 @@
 static HardwareSerial elrs(1);
 static HardwareSerial db_out(0);
 
+TaskHandle_t Task1;
+TaskHandle_t Task2;
 
 /// UART Handling ///
 uint32_t GoodPktsCount = 0;
@@ -60,7 +64,6 @@ volatile uint8_t SerialInPacketLen = 0; // length of the CRSF packet as measured
 volatile uint8_t SerialInPacketPtr = 0; // index where we are reading/writing
 volatile bool CRSFframeActive = false; //since we get a copy of the serial data use this flag to know when to ignore it
 
-static inBuffer_U inBuffer;
 static volatile crsfPayloadLinkstatistics_s LinkStatistics; // Link Statisitics Stored as Struct
 static volatile crsf_sensor_battery_s batteryVoltage; // Link Statisitics Stored as Struct
 
@@ -69,9 +72,7 @@ portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 uint32_t currentMicros = 0;
 uint32_t clickCurrentMicros = 0;//click deboucer
 uint32_t displayCurrentMicros = 0;//display deboucer
-bool stoped = false; // simulation to check if tx done
     
-static uint8_t  currentPower = 0 ;//  "10mW", "25mW", "50mW", "100mW", "250mW"
 
 //float batteryVoltage;
 
@@ -84,14 +85,45 @@ uint8_t crsfPacket[CRSF_PACKET_SIZE];
 int rcChannels[CRSF_MAX_CHANNEL];
 
 uint32_t crsfTime = 0;
-uint32_t lastCrsfTime = 4000;
+uint32_t lastCrsfTime = 0;
 
-uint8_t *SerialInBuffer = inBuffer.asUint8_t;
+static uint8_t SerialInBuffer[CRSF_MAX_PACKET_LEN];
+//static u8 telemetryRxBuffer[TELEMETRY_RX_PACKET_SIZE];
 
 static uint32_t updateInterval = CRSF_TIME_BETWEEN_FRAMES_US;
 static int32_t correction;
 
 #define constrain(amt,low,high) ((amt)<(low)?(low):((amt)>(high)?(high):(amt)))
+
+void CRSF_serial_rcv(uint8_t *buffer, uint8_t num_bytes) {
+    db_out.printf("%u",buffer[0]);
+    db_out.println("");
+    switch (buffer[0]) {
+    case CRSF_FRAMETYPE_DEVICE_INFO:
+        db_out.printf("1: %u ; %u",buffer[0],num_bytes);
+        db_out.println("");
+        break;
+
+    case CRSF_FRAMETYPE_ELRS_STATUS:
+        //parse_elrs_info(buffer);
+        db_out.printf("2: %u ; %u",buffer[0],num_bytes);
+        db_out.println("");
+    
+        break;
+
+    case CRSF_FRAMETYPE_PARAMETER_SETTINGS_ENTRY:
+        db_out.printf("3: %u ; %u",buffer[0],num_bytes);
+        db_out.println("");
+    
+        //read_timeout = 0;
+        //add_param(buffer, num_bytes);
+        break;
+
+    default:
+        break;
+    } 
+}
+
 
 static uint32_t get_update_interval() {
     if (correction == 0) return updateInterval;
@@ -123,44 +155,43 @@ void serialEvent() {
       //db_out.write(inChar);
       if (inChar == CRSF_ADDRESS_RADIO_TRANSMITTER)
       {
-      // we got sync, reset write pointer
-      SerialInPacketPtr = 0;
-      SerialInPacketLen = 0;
-      CRSFframeActive = true;
-      SerialInBuffer[SerialInPacketPtr] = inChar;
-      SerialInPacketPtr++;
+        // we got sync, reset write pointer
+        SerialInPacketPtr = 0;
+        SerialInPacketLen = 0;
+        CRSFframeActive = true;
+        SerialInBuffer[SerialInPacketPtr] = inChar;
+        SerialInPacketPtr++;
       }
     } else // frame is active so we do the processing
     {
       // first if things have gone wrong //
       if (SerialInPacketPtr > CRSF_MAX_PACKET_LEN - 1)
       {
-          // we reached the maximum allowable packet length, so start again because shit fucked up hey.
-          SerialInPacketPtr = 0;
-          SerialInPacketLen = 0;
-          CRSFframeActive = false;
-          db_out.println("bad packet len");
-          return;
+        // we reached the maximum allowable packet length, so start again because shit fucked up hey.
+        SerialInPacketPtr = 0;
+        SerialInPacketLen = 0;
+        CRSFframeActive = false;
+        db_out.println("bad packet len");
+        return;
       }
-
       // special case where we save the expected pkt len to buffer //
       if (SerialInPacketPtr == 1)
       {
-          unsigned char const inChar = elrs.read();
+        unsigned char const inChar = elrs.read();
 
-          if (inChar <= CRSF_MAX_PACKET_LEN)
-          {
-              SerialInPacketLen = inChar;
-              SerialInBuffer[SerialInPacketPtr] = inChar;
-              SerialInPacketPtr++;
-          }
-          else
-          {
-              SerialInPacketPtr = 0;
-              SerialInPacketLen = 0;
-              CRSFframeActive = false;
-              return;
-          }
+        if (inChar <= CRSF_MAX_PACKET_LEN)
+        {
+            SerialInPacketLen = inChar;
+            SerialInBuffer[SerialInPacketPtr] = inChar;
+            SerialInPacketPtr++;
+        }
+        else
+        {
+            SerialInPacketPtr = 0;
+            SerialInPacketLen = 0;
+            CRSFframeActive = false;
+            return;
+        }
       }
 
       int toRead = (SerialInPacketLen + 2) - SerialInPacketPtr;
@@ -171,13 +202,16 @@ void serialEvent() {
       if (SerialInPacketPtr >= (SerialInPacketLen + 2)) // plus 2 because the packlen is referenced from the start of the 'type' flag, IE there are an extra 2 bytes.
       {
         char CalculatedCRC = crsf_crc8(SerialInBuffer + 2, SerialInPacketPtr - 3);
-
         if (CalculatedCRC == SerialInBuffer[SerialInPacketPtr-1])
         {
           GoodPktsCount++;
 
             int32_t value;
             uint8_t id = SerialInBuffer[2];
+
+            CRSF_serial_rcv(SerialInBuffer+2, SerialInBuffer[1]-1);
+
+
             if (id == CRSF_FRAMETYPE_BATTERY_SENSOR) {
               //db_out.print("battery");
               if (getCrossfireTelemetryValue(3, &value, 2)) {
@@ -185,8 +219,10 @@ void serialEvent() {
               }
             }
             if (id == CRSF_FRAMETYPE_RADIO_ID) {
-              if (SerialInBuffer[3] == ADDR_RADIO//0xEA - radio address
-                && SerialInBuffer[5] == SUBCOMMAND_CRSF//0x10 - timing correction frame
+              //db_out.print("radio id");
+
+              if (SerialInBuffer[3] == CRSF_ADDRESS_RADIO_TRANSMITTER//0xEA - radio address
+                && SerialInBuffer[5] == CRSF_FRAMETYPE_OPENTX_SYNC//0x10 - timing correction frame
               ) { 
                 if (getCrossfireTelemetryValue(6, (int32_t *)&updateInterval,4) &&
                     getCrossfireTelemetryValue(10,(int32_t *)&correction, 4)) {
@@ -197,15 +233,10 @@ void serialEvent() {
                       correction %= updateInterval;
                     else
                       correction = -((-correction) % updateInterval);
-
-                //db_out.printf("%u ; %u ; %i",get_update_interval(),updateInterval,correction);
-                //db_out.println("");
-                
                 }
               }
             }
 
-            //testing if's or switch case 
             if (id == CRSF_FRAMETYPE_LINK_STATISTICS) {
               if (getCrossfireTelemetryValue(2+TELEM_CRSF_RX_RSSI1, &value, 1)) { 
                 LinkStatistics.uplink_RSSI_1 = value;
@@ -225,9 +256,6 @@ void serialEvent() {
                 //  continue;
                 value = power_values[value];
                 LinkStatistics.uplink_TX_Power = value;
-                //db_out.printf("%i",value);
-
-
               }
               if (getCrossfireTelemetryValue(2+TELEM_CRSF_TX_RSSI, &value, 1)) { 
                 LinkStatistics.downlink_RSSI = value;
@@ -239,93 +267,29 @@ void serialEvent() {
           
           #ifdef DEBUG_TLM
   
-            //db_out.write(id);
-            switch(id) {
-              case CRSF_FRAMETYPE_LINK_STATISTICS:
-              //db_out.println("link");
-              //for (i=1; i <= TELEM_CRSF_TX_SNR; i++) {
-              for (int i=1; i <= TELEM_CRSF_TX_SNR; i++) {
-                if (getCrossfireTelemetryValue(2+i, &value, 1)) {   // payload starts at third byte of rx packet
-                  if (i == TELEM_CRSF_TX_POWER) {
-                    static const int32_t power_values[] = { 0, 10, 25, 100, 500, 1000, 2000, 250, 50 };
-                    if ((int8_t)value >= (sizeof power_values / sizeof (int32_t)))
-                      continue;
-                    value = power_values[value];
-                  }
-                  //set_telemetry(i, value);
-                  db_out.printf("%i ",value);
-                  /* switch(i) {
-                    case TELEM_CRSF_RX_RSSI1:
-                      LinkStatistics.uplink_RSSI_1 = value;
-                      break;
-                    case TELEM_CRSF_RX_RSSI2:
-                      LinkStatistics.uplink_RSSI_2 = value;
-                      break;
-                    case TELEM_CRSF_RX_QUALITY:
-                      LinkStatistics.uplink_Link_quality = value;
-                      break;
-                    case TELEM_CRSF_RX_SNR:
-                      LinkStatistics.uplink_SNR = value;
-                      break;
-                    case  TELEM_CRSF_RX_ANTENNA:
-                      LinkStatistics.active_antenna = value;
-                      break;
-                    case TELEM_CRSF_RF_MODE:
-                      LinkStatistics.rf_Mode = value;
-                      break;
-                    case TELEM_CRSF_TX_POWER:
-                      LinkStatistics.uplink_TX_Power = value;
-                      break;
-                    case TELEM_CRSF_TX_RSSI:
-                      LinkStatistics.downlink_RSSI = value;
-                      break;
-                    case TELEM_CRSF_TX_QUALITY:
-                      LinkStatistics.downlink_Link_quality = value;
-                      break;
-                    case TELEM_CRSF_TX_SNR:
-                      LinkStatistics.downlink_SNR = value;
-                      break;
-                    } */
-                  }
-              }
-              db_out.println("");
-              break;
-            case CRSF_FRAMETYPE_RADIO_ID:
-              //db_out.println("radio id");
-              break;
-            case CRSF_FRAMETYPE_BATTERY_SENSOR:
-              //db_out.print("battery");
-              if (getCrossfireTelemetryValue(3, &value, 2))
-                //set_telemetry(TELEM_CRSF_BATT_VOLTAGE, value);
-                db_out.printf("%d",value);
-                batteryVoltage.voltage = value;
-              break;
           /*   const uint8_t temp = inBuffer.asRCPacket_t.header.frame_size;
           db_out.write(temp);
           const uint8_t packetType = inBuffer.asRCPacket_t.header.type;
           db_out.write(packetType);
-          
-          
-          
-            db_out.printf("%u " ,SerialInBuffer[0]);
-            db_out.printf("%u " ,SerialInBuffer[1]);
-            db_out.printf("%u " ,SerialInBuffer[2]);
-            db_out.printf("%u " ,SerialInBuffer[3]);
-            db_out.printf("%u " ,SerialInBuffer[4]);
-            db_out.printf("%u " ,SerialInBuffer[5]);
-            db_out.printf("%u " ,SerialInBuffer[6]);
-            db_out.printf("%u " ,SerialInBuffer[7]);
-            db_out.printf("%u " ,SerialInBuffer[8]);
-            db_out.printf("%u " ,SerialInBuffer[9]);
-            db_out.printf("%u " ,SerialInBuffer[10]);
-            db_out.printf("%u " ,SerialInBuffer[11]);
-            db_out.printf("%u " ,SerialInBuffer[12]);
-            db_out.printf("%u " ,SerialInBuffer[13]);
-            db_out.printf("%u " ,SerialInBuffer[14]);
-            db_out.printf("%u " ,SerialInBuffer[15]);
-            db_out.printf("%u " ,SerialInBuffer[16]);
-            db_out.println(""); */
-          }
+          db_out.printf("%u " ,SerialInBuffer[0]);
+          db_out.printf("%u " ,SerialInBuffer[1]);
+          db_out.printf("%u " ,SerialInBuffer[2]);
+          db_out.printf("%u " ,SerialInBuffer[3]);
+          db_out.printf("%u " ,SerialInBuffer[4]);
+          db_out.printf("%u " ,SerialInBuffer[5]);
+          db_out.printf("%u " ,SerialInBuffer[6]);
+          db_out.printf("%u " ,SerialInBuffer[7]);
+          db_out.printf("%u " ,SerialInBuffer[8]);
+          db_out.printf("%u " ,SerialInBuffer[9]);
+          db_out.printf("%u " ,SerialInBuffer[10]);
+          db_out.printf("%u " ,SerialInBuffer[11]);
+          db_out.printf("%u " ,SerialInBuffer[12]);
+          db_out.printf("%u " ,SerialInBuffer[13]);
+          db_out.printf("%u " ,SerialInBuffer[14]);
+          db_out.printf("%u " ,SerialInBuffer[15]);
+          db_out.printf("%u " ,SerialInBuffer[16]);
+          db_out.println(""); */
+        }
           #endif
           #ifdef DEBUG_PACKETS
           //output packets to serial for debug
@@ -333,10 +297,7 @@ void serialEvent() {
               db_out.write(SerialInBuffer[i]); 
             }
           #endif
-        //db_out.printf(" micros %u",micros());
-        //db_out.println("::");
-        //delay(200);
-          
+    
         
         } else {
           db_out.write("UART CRC failure");
@@ -350,48 +311,7 @@ void serialEvent() {
       }
     }  
   }
-//db_out.printf("UART STATS Bad:Good = %u:%u", BadPktsCount, GoodPktsCount);
-//db_out.println("");
-//delayMicroseconds(1200);
 }
-
-
-void duplex_set_RX()
-{
-#ifdef debug
-  db_out.printf("rx: %u",micros());
-  db_out.println("");
-#endif
-
-  portDISABLE_INTERRUPTS();
-    ESP_ERROR_CHECK(gpio_set_direction((gpio_num_t)GPIO_PIN_RCSIGNAL_RX, GPIO_MODE_INPUT));
-    gpio_matrix_in((gpio_num_t)GPIO_PIN_RCSIGNAL_RX, U1RXD_IN_IDX, false);
-    gpio_pullup_en((gpio_num_t)GPIO_PIN_RCSIGNAL_RX);
-    gpio_pulldown_dis((gpio_num_t)GPIO_PIN_RCSIGNAL_RX);
-  portENABLE_INTERRUPTS();
-}
-
-void duplex_set_TX()
-{
-#ifdef debug
-  db_out.printf("tx: %u",micros());
-  db_out.println("");
-#endif
-
-  portDISABLE_INTERRUPTS();
-    ESP_ERROR_CHECK(gpio_set_pull_mode((gpio_num_t)GPIO_PIN_RCSIGNAL_TX, GPIO_FLOATING));
-    ESP_ERROR_CHECK(gpio_set_pull_mode((gpio_num_t)GPIO_PIN_RCSIGNAL_RX, GPIO_FLOATING));
-
-    ESP_ERROR_CHECK(gpio_set_level((gpio_num_t)GPIO_PIN_RCSIGNAL_TX, 1));
-    ESP_ERROR_CHECK(gpio_set_direction((gpio_num_t)GPIO_PIN_RCSIGNAL_TX, GPIO_MODE_OUTPUT));
-    constexpr uint8_t MATRIX_DETACH_IN_HIGH = 0x38; // routes 1 to matrix slot
-    gpio_matrix_in(MATRIX_DETACH_IN_HIGH, U1RXD_IN_IDX, false); // Disconnect RX from all pads
-    gpio_matrix_out((gpio_num_t)GPIO_PIN_RCSIGNAL_TX, U1TXD_OUT_IDX, false, false);
-  portENABLE_INTERRUPTS();
-}
-
-TaskHandle_t Task1;
-TaskHandle_t Task2;
 
 void OutputTask( void * pvParameters ){
   
@@ -404,28 +324,27 @@ void OutputTask( void * pvParameters ){
     Serial.println(F("SSD1306 allocation failed"));
     for(;;); // Don't proceed, loop forever
   }
-  // Show initial display buffer contents on the screen --
-  // the library initializes this with an Adafruit splash screen.
-  //display.display();
-  //delay(1000); // Pause for 2 seconds
-
   // Clear the buffer
   display.clearDisplay();
-
-  // Draw a single pixel in white
-  display.drawPixel(10, 10, SSD1306_WHITE);
-
-  // Show the display buffer on the screen. You MUST call display() after
-  // drawing commands to make them visible on screen!
   display.display();
 
   display.invertDisplay(true);
   delay(500);
   display.invertDisplay(false);
   delay(500);
+  display.setTextSize(1);             // Normal 1:1 pixel scale
+  display.setTextColor(SSD1306_WHITE);        // Draw white text
+  display.setCursor(0,0);             // Start at top-left corner
+  display.printf("ELRS");
+  display.setTextSize(2);             
+  display.println("");
+  display.printf("simpleTX");
+  display.display();
+  delay(2000);
+
   startDisplay();
-  delay(1000);
-  
+
+
 
   for(;;){
 
@@ -444,25 +363,21 @@ void OutputTask( void * pvParameters ){
 }
 
 
-//Task2code: blinks an LED every 700 ms
+//Task2 - ELRS task - main loop
 void ElrsTask( void * pvParameters ){
-  
-
+  //setup channels
   for (uint8_t i = 0; i < CRSF_MAX_CHANNEL; i++) {
     rcChannels[i] = RC_CHANNEL_MIN;
   }
-  portDISABLE_INTERRUPTS();
+ 
   elrs.begin(SERIAL_BAUDRATE,SERIAL_8N1,13, 13,false, 500);
   db_out.write("starting");
   db_out.println("");
-  duplex_set_RX();  
-  portENABLE_INTERRUPTS();
+  duplex_set_TX();  
 
   //digitalWrite(DIGITAL_PIN_LED, LOW); //LED ON
-//  updateInterval = get_update_interval();
-  
-  
-  //todo
+
+  //TODO
   // change to get last rate
   int packetRateSelected = 0;
   for(;;){
@@ -508,6 +423,7 @@ void ElrsTask( void * pvParameters ){
       } else {
         packetRateSelected++;
       }
+
       buildElrsPacket(crsfCmdPacket,1,packetRateSelected);
       duplex_set_TX();
       elrs.write(crsfCmdPacket, CRSF_CMD_PACKET_SIZE);
@@ -515,10 +431,12 @@ void ElrsTask( void * pvParameters ){
       delay(4);
       
       //uncomment to send 2e command
-      buildElrsPacket(crsfCmdPacket,2,3);
+      /* buildElrsPacket(crsfCmdPacket,1,packetRateSelected);
+      duplex_set_TX();
       elrs.write(crsfCmdPacket, CRSF_CMD_PACKET_SIZE);
       elrs.flush();
-      //delay(4);
+      delay(4);
+       */
       
       duplex_set_RX();
       powerChangeHasRun=true;
@@ -565,40 +483,31 @@ void ElrsTask( void * pvParameters ){
       Serial.print(batteryVoltage);
       Serial.println();
       delay(1000);
-  #else
-//  uint16_t tmp = moduleSyncStatus.getAdjustedRefreshRate();
+    #else
 
-    //db_out.printf("%u",moduleSyncStatus.getAdjustedRefreshRate());
-    //db_out.println("");
-    //ModuleSyncStatus();
-  
-    duplex_set_TX();  
-    elrs.write(crsfPacket, CRSF_PACKET_SIZE);
-    elrs.flush();
-
+      //send crsf packet
+      duplex_set_TX();  
+      elrs.write(crsfPacket, CRSF_PACKET_SIZE);
+      elrs.flush();
     
-    //start receiving
-    duplex_set_RX();
-    serialEvent();
-    
-    uint32_t tempUpdateInt = get_update_interval();
-    uint32_t tmpTime = currentMicros + tempUpdateInt;//set current micros
-    int32_t dl = (tmpTime-lastCrsfTime)- tempUpdateInt;//get dif between pckt send
-    
-    uint32_t realTime = (tmpTime-lastCrsfTime);//debug
-    
-    if (dl<0)dl=0;
-    if (dl > tempUpdateInt ) dl = 0 ;
-    crsfTime = tmpTime-dl;//crsfTime = currentMicros + CRSF_TIME_BETWEEN_FRAMES_US;
-    lastCrsfTime = crsfTime; //set time that we send last packet
-    //debug timing
-    if (tempUpdateInt > updateInterval) {
-      db_out.printf("%u ; %u ; %u ; %u ; %i ; %u ; %i",
-                    crsfTime,tmpTime,realTime,tempUpdateInt,dl,updateInterval,correction);
-      db_out.println("");
+      //start receiving
+      duplex_set_RX();
+      serialEvent();
+      
+      crsfTime = currentMicros;//set current micros
+      int32_t offset = (crsfTime-lastCrsfTime);//-updated_interval;//get dif between pckt send
+      uint32_t updated_interval = get_update_interval();
+      //debug timing
+      #ifdef DEBUG_SYNC
+      if (updated_interval > updateInterval) {
+        db_out.printf("%u ; %u ; %i ; %u",lastCrsfTime, crsfTime ,offset,updated_interval);
+        db_out.println("");
+      }
+      #endif
+      crsfTime += updated_interval - offset;//set current micros
+      lastCrsfTime = crsfTime; //set time that we send last packet
+    #endif
     }
-  #endif
-  }
   }
 }
 

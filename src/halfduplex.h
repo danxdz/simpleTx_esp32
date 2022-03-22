@@ -3,9 +3,9 @@
 #define GPIO_PIN_RCSIGNAL_TX 13
 #define GPIO_PIN_RCSIGNAL_RX 13
 
-void duplex_set_RXs()
+void duplex_set_RX()
 {
-#ifdef debug
+#ifdef DEBUG_HALF_DUPLEX
   db_out.printf("rx: %u",micros());
   db_out.println("");
 #endif
@@ -18,9 +18,9 @@ void duplex_set_RXs()
   portENABLE_INTERRUPTS();
 }
 
-void duplex_set_TXs()
+void duplex_set_TX()
 {
-#ifdef debug
+#ifdef DEBUG_HALF_DUPLEX
   db_out.printf("tx: %u",micros());
   db_out.println("");
 #endif

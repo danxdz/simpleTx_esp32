@@ -58,8 +58,8 @@
 #define ELRS_TLM_RATIO_COMMAND         2
 #define ELRS_POWER_COMMAND             3
 #define TYPE_SETTINGS_WRITE            0x2D
+#define TYPE_SETTINGS_READ             0x2C
 #define ADDR_RADIO                     0xEA  //  Radio Transmitter
-
 
 #define CRSF_CRC_POLY 0xd5
 
