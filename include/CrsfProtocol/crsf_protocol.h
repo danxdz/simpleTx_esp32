@@ -413,3 +413,14 @@ static inline uint32_t htobe32(uint32_t val)
 #endif
 }
 #endif
+
+
+#define CRSF_MAX_NAME_LEN      16
+
+typedef struct {
+    uint8_t update;
+    uint8_t bad_pkts;
+    uint16_t good_pkts;
+    uint8_t flags;
+    char flag_info[CRSF_MAX_NAME_LEN];
+} elrs_info_t;

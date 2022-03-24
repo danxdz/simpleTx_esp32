@@ -128,12 +128,20 @@ void buildElrsPacket(uint8_t packetCmd[],uint8_t command, uint8_t value)
   packetCmd[0] = ADDR_MODULE;
   packetCmd[1] = 6; // length of Command (4) + payload + crc
   packetCmd[2] = TYPE_SETTINGS_WRITE;
-  //packetCmd[2] = TYPE_SETTINGS_READ;
   packetCmd[3] = ELRS_ADDRESS;
   packetCmd[4] = ADDR_RADIO;
   packetCmd[5] = command;
   packetCmd[6] = value;
   packetCmd[7] = crsf_crc8(&packetCmd[2], packetCmd[1]-1);
-
 }
-
+void buildElrsPingPacket(uint8_t packetCmd[])
+{
+  packetCmd[0] = ADDR_MODULE;
+  packetCmd[1] = 6; // length of Command (4) + payload + crc
+  packetCmd[2] = TYPE_SETTINGS_WRITE;
+  packetCmd[3] = ELRS_ADDRESS;
+  packetCmd[4] = ADDR_RADIO;
+  packetCmd[5] = 0;
+  packetCmd[6] = 0;
+  packetCmd[7] = crsf_crc8(&packetCmd[2], packetCmd[1]-1);
+}

@@ -43,7 +43,8 @@ void updateDisplay(
                     int8_t rx_rssi_2,
                     uint8_t rx_lq, 
                     uint8_t batteryVoltage,
-                    uint32_t rate ) {
+                    uint8_t bpkts,
+                    uint16_t gpkts ) {
   
   display.clearDisplay();
   display.setTextSize(1);             // Normal 1:1 pixel scale
@@ -67,34 +68,7 @@ void updateDisplay(
   display.println();             // Start at top-left corner
   display.setTextSize(1);             // Normal 1:1 pixel scale
 
-  uint16_t rr = 0;
-  switch (rate)
-  {
-  case 2000:
-    rr = 500;//?
-    break;
-  case 4000:
-    rr = 250;//?
-    break;
-  case 5000:
-    rr = 200;
-    break;
-  case 6666:
-    rr = 150;//?
-    break;
-  case 10000:
-    rr = 100;
-    break;
-  case 20000:
-    rr = 50;
-    break;
-  case 40000:
-    rr = 25;
-    break;
-  default:
-    break;
-  }
-  display.printf("%uHz ",rr);
+  display.printf("%u:%u",bpkts,gpkts);
 
   display.display();
 }

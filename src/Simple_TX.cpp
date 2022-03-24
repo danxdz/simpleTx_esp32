@@ -49,8 +49,6 @@
 #include "halfduplex.h"
 
 
-static HardwareSerial elrs(1);
-static HardwareSerial db_out(0);
 
 TaskHandle_t Task1;
 TaskHandle_t Task2;
@@ -95,9 +93,57 @@ static int32_t correction;
 
 #define constrain(amt,low,high) ((amt)<(low)?(low):((amt)>(high)?(high):(amt)))
 
+static elrs_info_t local_info;
+
+void sync_crsf();
+
+void CRSF_ping_devices() {
+  buildElrsPingPacket(crsfCmdPacket);
+  duplex_set_TX();
+  elrs.write(crsfCmdPacket, CRSF_CMD_PACKET_SIZE);
+  elrs.flush();
+  delay(4);
+  duplex_set_RX();
+
+  sync_crsf();
+}
+
+static void send_cmd_to_get_info() {
+      buildElrsPacket(crsfCmdPacket,0,0);
+      duplex_set_TX();
+      elrs.write(crsfCmdPacket, CRSF_CMD_PACKET_SIZE);
+      elrs.flush();
+      duplex_set_RX();
+      
+}
+
+static void parse_elrs_info(uint8_t *buffer) {
+    local_info.bad_pkts = buffer[3];                      // bad packet rate (should be 0)
+    local_info.good_pkts = (buffer[4] << 8) + buffer[5];  // good packet rate (configured rate)
+  
+    // flags bit 0 indicates receiver connected
+    // other bits indicate errors - error text in flags_info
+    local_info.flags = buffer[6];
+    strlcpy(local_info.flag_info, (const char*)&buffer[7], CRSF_MAX_NAME_LEN);  // null-terminated text of flags
+  
+    //db_out.printf("%u : %u ; %u ; %u ; %u ",local_info.bad_pkts,local_info.good_pkts,local_info.flags,local_info.flag_info,local_info.update);
+    //db_out.println("");
+
+    // save in global for use in UI
+  /*   local_info.update = elrs_info.update;
+    if (memcmp((void*)&elrs_info, (void*)&local_info, sizeof(elrs_info_t)-CRSF_MAX_NAME_LEN)) {
+        if (local_info.flag_info[0] && strncmp(local_info.flag_info, elrs_info.flag_info, CRSF_MAX_NAME_LEN)) {
+            PAGE_ShowWarning(NULL, local_info.flag_info);       // show warning if new flag info string
+            MUSIC_Beep("d2", 100, 100, 5);
+        }
+
+        memcpy((void*)&elrs_info, (void*)&local_info, sizeof(elrs_info_t)-CRSF_MAX_NAME_LEN);
+   }*/  
+}
+
 void CRSF_serial_rcv(uint8_t *buffer, uint8_t num_bytes) {
-    db_out.printf("%u",buffer[0]);
-    db_out.println("");
+    //db_out.printf("%u",buffer[0]);
+    //db_out.println("");
     switch (buffer[0]) {
     case CRSF_FRAMETYPE_DEVICE_INFO:
         db_out.printf("1: %u ; %u",buffer[0],num_bytes);
@@ -105,7 +151,7 @@ void CRSF_serial_rcv(uint8_t *buffer, uint8_t num_bytes) {
         break;
 
     case CRSF_FRAMETYPE_ELRS_STATUS:
-        //parse_elrs_info(buffer);
+        parse_elrs_info(buffer);
         db_out.printf("2: %u ; %u",buffer[0],num_bytes);
         db_out.println("");
     
@@ -123,7 +169,6 @@ void CRSF_serial_rcv(uint8_t *buffer, uint8_t num_bytes) {
         break;
     } 
 }
-
 
 static uint32_t get_update_interval() {
     if (correction == 0) return updateInterval;
@@ -146,7 +191,8 @@ static uint8_t getCrossfireTelemetryValue(uint8_t index, int32_t *value, uint8_t
   return result;
 }
 void serialEvent() {
-  
+  //set uart as rx
+  duplex_set_RX();
   while (elrs.available()) {
     if (CRSFframeActive == false)
     {
@@ -344,11 +390,15 @@ void OutputTask( void * pvParameters ){
 
   startDisplay();
 
+  CRSF_ping_devices();
 
+  //if (local_info.good_pkts==0){
+    //send_cmd_to_get_info();
+  //}
+  
 
   for(;;){
-
-    delay(1000);
+    delay(200);
       updateDisplay(
         LinkStatistics.downlink_RSSI,
         LinkStatistics.downlink_Link_quality,
@@ -358,10 +408,28 @@ void OutputTask( void * pvParameters ){
         LinkStatistics.uplink_RSSI_2,
         LinkStatistics.uplink_Link_quality,
         batteryVoltage.voltage,
-        200);//get_update_interval());
+        local_info.bad_pkts,
+        local_info.good_pkts);//get_update_interval());
+  
   } 
 }
 
+void sync_crsf () {
+
+      crsfTime = currentMicros;//set current micros
+      int32_t offset = (crsfTime-lastCrsfTime);//get dif between pckt send
+      uint32_t updated_interval = get_update_interval();
+      //debug timing
+      #if defined(DEBUG_SYNC)
+      if (updated_interval > updateInterval) {
+        db_out.printf("%u ; %u ; %i ; %u",lastCrsfTime, crsfTime ,offset,updated_interval);
+        db_out.println("");
+      }
+      #endif
+      crsfTime += updated_interval - offset;//set current micros
+      lastCrsfTime = crsfTime; //set time that we send last packet
+    
+}
 
 //Task2 - ELRS task - main loop
 void ElrsTask( void * pvParameters ){
@@ -373,13 +441,12 @@ void ElrsTask( void * pvParameters ){
   elrs.begin(SERIAL_BAUDRATE,SERIAL_8N1,13, 13,false, 500);
   db_out.write("starting");
   db_out.println("");
-  duplex_set_TX();  
-
   //digitalWrite(DIGITAL_PIN_LED, LOW); //LED ON
 
   //TODO
   // change to get last rate
-  int packetRateSelected = 0;
+  uint8_t packetRateSelected = 0;
+  
   for(;;){
 
   currentMicros = micros();
@@ -413,34 +480,23 @@ void ElrsTask( void * pvParameters ){
   
   powerButtonPressed = digitalRead(DigitalInPinPowerChange);
   if(powerButtonPressed==0){
-    // Setup ELRS Module
-    //Serial.println("pwr bt: ");
+    //TODO
     if(powerChangeHasRun==false) {
-      //db_out.printf("pwr: %u",currentPower);
-      //db_out.println("click");
       if(packetRateSelected>=6) {
         packetRateSelected = 0;
       } else {
         packetRateSelected++;
       }
-
+      //uncomment to send 2e command
       buildElrsPacket(crsfCmdPacket,1,packetRateSelected);
       duplex_set_TX();
       elrs.write(crsfCmdPacket, CRSF_CMD_PACKET_SIZE);
       elrs.flush();
       delay(4);
+    
       
-      //uncomment to send 2e command
-      /* buildElrsPacket(crsfCmdPacket,1,packetRateSelected);
-      duplex_set_TX();
-      elrs.write(crsfCmdPacket, CRSF_CMD_PACKET_SIZE);
-      elrs.flush();
-      delay(4);
-       */
-      
-      duplex_set_RX();
       powerChangeHasRun=true;
-      clickCurrentMicros = crsfTime + (2*1000000);//2sec
+      clickCurrentMicros = crsfTime + (1000000);//2sec
       
       }
     }
@@ -455,7 +511,7 @@ void ElrsTask( void * pvParameters ){
     {
       powerChangeHasRun = false;
       clickCurrentMicros = micros();
-      //db_out.println("reset"); 
+      CRSF_ping_devices();
     }
 	  #ifdef DEBUG_CH
       //For gimal calibation only
@@ -491,22 +547,11 @@ void ElrsTask( void * pvParameters ){
       elrs.flush();
     
       //start receiving
-      duplex_set_RX();
       serialEvent();
       
-      crsfTime = currentMicros;//set current micros
-      int32_t offset = (crsfTime-lastCrsfTime);//-updated_interval;//get dif between pckt send
-      uint32_t updated_interval = get_update_interval();
-      //debug timing
-      #ifdef DEBUG_SYNC
-      if (updated_interval > updateInterval) {
-        db_out.printf("%u ; %u ; %i ; %u",lastCrsfTime, crsfTime ,offset,updated_interval);
-        db_out.println("");
-      }
+      sync_crsf();
+      
       #endif
-      crsfTime += updated_interval - offset;//set current micros
-      lastCrsfTime = crsfTime; //set time that we send last packet
-    #endif
     }
   }
 }

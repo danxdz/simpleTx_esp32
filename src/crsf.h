@@ -67,3 +67,4 @@
 
 // Frame Subtype
 #define SUBTYPE_TIMING_UPDATE 0x10
+

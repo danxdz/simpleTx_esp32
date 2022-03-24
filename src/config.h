@@ -56,3 +56,6 @@ const int DIGITAL_PIN_BUZZER = 12;  //
 
  // Define battery warning voltage
  const float WARNING_VOLTAGE=7.2; //2S Lipo
+
+static HardwareSerial elrs(1);
+static HardwareSerial db_out(0);
