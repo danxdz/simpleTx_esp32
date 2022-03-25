@@ -1,5 +1,11 @@
 {
     "files.associations": {
-        "type_traits": "cpp"
+        "type_traits": "cpp",
+        "*.tcc": "cpp",
+        "cmath": "cpp",
+        "random": "cpp",
+        "functional": "cpp",
+        "limits": "cpp",
+        "tuple": "cpp"
     }
 }

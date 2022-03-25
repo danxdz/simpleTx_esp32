@@ -134,14 +134,29 @@ void buildElrsPacket(uint8_t packetCmd[],uint8_t command, uint8_t value)
   packetCmd[6] = value;
   packetCmd[7] = crsf_crc8(&packetCmd[2], packetCmd[1]-1);
 }
+
 void buildElrsPingPacket(uint8_t packetCmd[])
 {
   packetCmd[0] = ADDR_MODULE;
   packetCmd[1] = 6; // length of Command (4) + payload + crc
   packetCmd[2] = TYPE_SETTINGS_WRITE;
-  packetCmd[3] = ELRS_ADDRESS;
+  packetCmd[3] = ADDR_BROADCAST;
   packetCmd[4] = ADDR_RADIO;
   packetCmd[5] = 0;
   packetCmd[6] = 0;
   packetCmd[7] = crsf_crc8(&packetCmd[2], packetCmd[1]-1);
 }
+
+// Request parameter info from known device
+//void CRSF_read_param(u8 device, u8 id, u8 chunk) {
+void CRSF_read_param(uint8_t packetCmd[],uint8_t param,uint8_t chunk) {
+    packetCmd[0] = ADDR_MODULE;
+    packetCmd[1] = 6; // length of Command (4) + payload + crc
+    packetCmd[2] = TYPE_SETTINGS_READ;
+    packetCmd[3] = ELRS_ADDRESS;
+    packetCmd[4] = ADDR_RADIO;
+    packetCmd[5] = param;
+    packetCmd[6] = chunk;
+    packetCmd[7] = crsf_crc8(&packetCmd[2], packetCmd[1]-1);
+}
+

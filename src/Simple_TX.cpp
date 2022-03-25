@@ -41,22 +41,18 @@
 #include "config.h"
 #include "crsf.c"
 #include "led.h"
-#include "battery.h"
+//#include "battery.h"
 #include "tlm.h"
+#include "gpio/gpio.cpp"
+
 #include "CrsfProtocol/crsf_protocol.h"
 
 #include "oled.h"
 #include "halfduplex.h"
 
+TaskHandle_t elrsTaskHandler;
+TaskHandle_t outputTaskHandler;
 
-
-TaskHandle_t Task1;
-TaskHandle_t Task2;
-
-/// UART Handling ///
-uint32_t GoodPktsCount = 0;
-uint32_t BadPktsCount = 0;
-uint32_t UARTwdtLastChecked;
 /// UART Handling ///
 volatile uint8_t SerialInPacketLen = 0; // length of the CRSF packet as measured
 volatile uint8_t SerialInPacketPtr = 0; // index where we are reading/writing
@@ -65,7 +61,7 @@ volatile bool CRSFframeActive = false; //since we get a copy of the serial data 
 static volatile crsfPayloadLinkstatistics_s LinkStatistics; // Link Statisitics Stored as Struct
 static volatile crsf_sensor_battery_s batteryVoltage; // Link Statisitics Stored as Struct
 
-portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
+//portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 
 uint32_t currentMicros = 0;
 uint32_t clickCurrentMicros = 0;//click deboucer
@@ -76,8 +72,6 @@ uint32_t displayCurrentMicros = 0;//display deboucer
 
 const int DigitalInPinPowerChange = 4;  // 
 
-int powerButtonPressed=0;
-bool powerChangeHasRun = false;
 
 uint8_t crsfPacket[CRSF_PACKET_SIZE];
 int rcChannels[CRSF_MAX_CHANNEL];
@@ -93,19 +87,65 @@ static int32_t correction;
 
 #define constrain(amt,low,high) ((amt)<(low)?(low):((amt)>(high)?(high):(amt)))
 
-static elrs_info_t local_info;
+static int32_t read_timeout;
+static uint8_t current_folder = 0;
+static uint8_t params_loaded;     // if not zero, number received so far for current device
+static uint8_t params_displayed;  // if not zero, number displayed so far for current device
+static uint8_t device_idx;   // current device index
+static uint8_t next_param;   // parameter and chunk currently being read
+static uint8_t next_chunk;
+char recv_param_buffer[CRSF_MAX_CHUNKS * CRSF_MAX_CHUNK_SIZE];
+char *recv_param_ptr;
+char Modelname[24];
 
-void sync_crsf();
+crsf_device_t deviation = {
+    .address = ADDR_RADIO,
+    .number_of_params = 1,
+    .params_version = 0,
+    .serial_number = 1,
+    .hardware_id = 0,
+    .firmware_id = 0,
+};
+
+elrs_info_t local_info;
+
+elrs_info_t elrs_info;
+crsf_device_t crsf_devices[CRSF_MAX_DEVICES];
+
+
+
+static uint8_t model_id_send;
+static uint32_t elrs_info_time;
+static module_type_t module_type;
+
+#define MODULE_IS_ELRS     (module_type == MODULE_ELRS)
+#define MODULE_IS_UNKNOWN  (module_type == MODULE_UNKNOWN)
+void protocol_module_type(module_type_t type) {
+    module_type = type;
+};
+uint8_t protocol_module_is_elrs() { return MODULE_IS_ELRS; }
+
+
+
+
+
+
+
+
+
+
+void debug_output_uart(char *msg) {
+      db_out.print(msg);
+}
 
 void CRSF_ping_devices() {
   buildElrsPingPacket(crsfCmdPacket);
   duplex_set_TX();
   elrs.write(crsfCmdPacket, CRSF_CMD_PACKET_SIZE);
   elrs.flush();
-  delay(4);
-  duplex_set_RX();
-
-  sync_crsf();
+  //delay(4);
+  //sync_crsf();
+  //serialEvent();
 }
 
 static void send_cmd_to_get_info() {
@@ -113,7 +153,7 @@ static void send_cmd_to_get_info() {
       duplex_set_TX();
       elrs.write(crsfCmdPacket, CRSF_CMD_PACKET_SIZE);
       elrs.flush();
-      duplex_set_RX();
+      sync_crsf();
       
 }
 
@@ -126,19 +166,19 @@ static void parse_elrs_info(uint8_t *buffer) {
     local_info.flags = buffer[6];
     strlcpy(local_info.flag_info, (const char*)&buffer[7], CRSF_MAX_NAME_LEN);  // null-terminated text of flags
   
-    //db_out.printf("%u : %u ; %u ; %u ; %u ",local_info.bad_pkts,local_info.good_pkts,local_info.flags,local_info.flag_info,local_info.update);
-    //db_out.println("");
-
-    // save in global for use in UI
-  /*   local_info.update = elrs_info.update;
+    local_info.update = elrs_info.update;
     if (memcmp((void*)&elrs_info, (void*)&local_info, sizeof(elrs_info_t)-CRSF_MAX_NAME_LEN)) {
         if (local_info.flag_info[0] && strncmp(local_info.flag_info, elrs_info.flag_info, CRSF_MAX_NAME_LEN)) {
-            PAGE_ShowWarning(NULL, local_info.flag_info);       // show warning if new flag info string
-            MUSIC_Beep("d2", 100, 100, 5);
+            db_out.printf("error: %s",local_info.flag_info);
+            db_out.println("");
         }
 
         memcpy((void*)&elrs_info, (void*)&local_info, sizeof(elrs_info_t)-CRSF_MAX_NAME_LEN);
-   }*/  
+        elrs_info.update++;
+   }
+  
+    db_out.printf("%u : %u ; %u ; %s ; %u ",local_info.bad_pkts,local_info.good_pkts,local_info.flags,local_info.flag_info,local_info.update);
+    db_out.println("");
 }
 
 void CRSF_serial_rcv(uint8_t *buffer, uint8_t num_bytes) {
@@ -161,8 +201,8 @@ void CRSF_serial_rcv(uint8_t *buffer, uint8_t num_bytes) {
         db_out.printf("3: %u ; %u",buffer[0],num_bytes);
         db_out.println("");
     
-        //read_timeout = 0;
-        //add_param(buffer, num_bytes);
+        read_timeout = 0;
+        add_param(buffer, num_bytes);
         break;
 
     default:
@@ -178,6 +218,7 @@ static uint32_t get_update_interval() {
     correction -= update - updateInterval;
     return update;
 }
+
 
 static uint8_t getCrossfireTelemetryValue(uint8_t index, int32_t *value, uint8_t len) {
   uint8_t result = 0;
@@ -250,24 +291,20 @@ void serialEvent() {
         char CalculatedCRC = crsf_crc8(SerialInBuffer + 2, SerialInPacketPtr - 3);
         if (CalculatedCRC == SerialInBuffer[SerialInPacketPtr-1])
         {
-          GoodPktsCount++;
-
-            int32_t value;
-            uint8_t id = SerialInBuffer[2];
-
-            CRSF_serial_rcv(SerialInBuffer+2, SerialInBuffer[1]-1);
+          int32_t value;
+          uint8_t id = SerialInBuffer[2];
+          CRSF_serial_rcv(SerialInBuffer+2, SerialInBuffer[1]-1);
 
 
-            if (id == CRSF_FRAMETYPE_BATTERY_SENSOR) {
-              //db_out.print("battery");
-              if (getCrossfireTelemetryValue(3, &value, 2)) {
-                batteryVoltage.voltage = value;
+          if (id == CRSF_FRAMETYPE_BATTERY_SENSOR) {
+            //db_out.print("battery");
+            if (getCrossfireTelemetryValue(3, &value, 2)) {
+              batteryVoltage.voltage = value;
               }
             }
-            if (id == CRSF_FRAMETYPE_RADIO_ID) {
-              //db_out.print("radio id");
-
-              if (SerialInBuffer[3] == CRSF_ADDRESS_RADIO_TRANSMITTER//0xEA - radio address
+          if (id == CRSF_FRAMETYPE_RADIO_ID) {
+            //db_out.print("radio id");
+            if (SerialInBuffer[3] == CRSF_ADDRESS_RADIO_TRANSMITTER//0xEA - radio address
                 && SerialInBuffer[5] == CRSF_FRAMETYPE_OPENTX_SYNC//0x10 - timing correction frame
               ) { 
                 if (getCrossfireTelemetryValue(6, (int32_t *)&updateInterval,4) &&
@@ -281,6 +318,8 @@ void serialEvent() {
                       correction = -((-correction) % updateInterval);
                 }
               }
+              //if (MODULE_IS_UNKNOWN) CRSF_ping_devices();
+
             }
 
             if (id == CRSF_FRAMETYPE_LINK_STATISTICS) {
@@ -311,33 +350,7 @@ void serialEvent() {
               }
             }
           
-          #ifdef DEBUG_TLM
-  
-          /*   const uint8_t temp = inBuffer.asRCPacket_t.header.frame_size;
-          db_out.write(temp);
-          const uint8_t packetType = inBuffer.asRCPacket_t.header.type;
-          db_out.write(packetType);
-          db_out.printf("%u " ,SerialInBuffer[0]);
-          db_out.printf("%u " ,SerialInBuffer[1]);
-          db_out.printf("%u " ,SerialInBuffer[2]);
-          db_out.printf("%u " ,SerialInBuffer[3]);
-          db_out.printf("%u " ,SerialInBuffer[4]);
-          db_out.printf("%u " ,SerialInBuffer[5]);
-          db_out.printf("%u " ,SerialInBuffer[6]);
-          db_out.printf("%u " ,SerialInBuffer[7]);
-          db_out.printf("%u " ,SerialInBuffer[8]);
-          db_out.printf("%u " ,SerialInBuffer[9]);
-          db_out.printf("%u " ,SerialInBuffer[10]);
-          db_out.printf("%u " ,SerialInBuffer[11]);
-          db_out.printf("%u " ,SerialInBuffer[12]);
-          db_out.printf("%u " ,SerialInBuffer[13]);
-          db_out.printf("%u " ,SerialInBuffer[14]);
-          db_out.printf("%u " ,SerialInBuffer[15]);
-          db_out.printf("%u " ,SerialInBuffer[16]);
-          db_out.println(""); */
-        }
-          #endif
-          #ifdef DEBUG_PACKETS
+          #if defined(DEBUG_PACKETS)
           //output packets to serial for debug
             for (int i=0;i<=15;i++) {
               db_out.write(SerialInBuffer[i]); 
@@ -349,7 +362,7 @@ void serialEvent() {
           db_out.write("UART CRC failure");
           // cleanup input buffer
           elrs.flush();
-          BadPktsCount++;
+          // BadPktsCount++;
         }
         CRSFframeActive = false;
         SerialInPacketPtr = 0;
@@ -373,9 +386,6 @@ void OutputTask( void * pvParameters ){
   // Clear the buffer
   display.clearDisplay();
   display.display();
-
-  display.invertDisplay(true);
-  delay(500);
   display.invertDisplay(false);
   delay(500);
   display.setTextSize(1);             // Normal 1:1 pixel scale
@@ -390,15 +400,15 @@ void OutputTask( void * pvParameters ){
 
   startDisplay();
 
-  CRSF_ping_devices();
+  //CRSF_ping_devices();
 
-  //if (local_info.good_pkts==0){
-    //send_cmd_to_get_info();
-  //}
-  
 
   for(;;){
-    delay(200);
+    if (local_info.good_pkts==0) {
+      send_cmd_to_get_info();
+    }
+   
+    delay(1000);
       updateDisplay(
         LinkStatistics.downlink_RSSI,
         LinkStatistics.downlink_Link_quality,
@@ -413,6 +423,30 @@ void OutputTask( void * pvParameters ){
   
   } 
 }
+
+int powerButtonPressed=0;
+bool powerChangeHasRun = false;
+//TODO
+// change to get last rate
+uint8_t packetRateSelected = 0;
+  
+void bt_handle(uint8_t value) {
+        if(packetRateSelected>=6) {
+            packetRateSelected = 0;
+        } else {
+            packetRateSelected++;
+        }
+    //buildElrsPacket(crsfCmdPacket,value,packetRateSelected);
+    CRSF_read_param(crsfCmdPacket,1,0);
+    //buildElrsPingPacket(crsfCmdPacket);
+    elrsWrite(crsfCmdPacket, CRSF_CMD_PACKET_SIZE);
+
+
+    //serialEvent();
+    powerChangeHasRun=true;
+    clickCurrentMicros = crsfTime + (2*1000000);//2sec
+
+    }
 
 void sync_crsf () {
 
@@ -442,155 +476,260 @@ void ElrsTask( void * pvParameters ){
   db_out.write("starting");
   db_out.println("");
   //digitalWrite(DIGITAL_PIN_LED, LOW); //LED ON
+    next_param = 1;
+    next_chunk = 0;
+    recv_param_ptr = recv_param_buffer;
+    params_loaded = 0;
+    params_displayed = 0;
+    //next_string = mp->strings;
+    memset(crsf_params, 0, sizeof crsf_params);
+    //CBUF_Init(send_buf);
 
-  //TODO
-  // change to get last rate
-  uint8_t packetRateSelected = 0;
-  
   for(;;){
-
-  currentMicros = micros();
-
-  // Here you can modify values of rcChannels
-  Aileron_value = analogRead(analogInPinAileron); 
-  Elevator_value= analogRead(analogInPinElevator); 
-  Throttle_value= analogRead(analogInPinThrottle); 
-  Rudder_value = analogRead(analogInPinRudder);
-  Arm = digitalRead(DIGITAL_PIN_SWITCH_ARM);
-  FlightMode = digitalRead(DIGITAL_PIN_SWITCH_AUX2);
-  rcChannels[0] = map(Aileron_value,0,4096,RC_CHANNEL_MIN,RC_CHANNEL_MAX);
-  rcChannels[1] = map(Elevator_value,0,4096,RC_CHANNEL_MIN,RC_CHANNEL_MAX); 
-  rcChannels[2] = map(Throttle_value,0,4096,RC_CHANNEL_MIN,RC_CHANNEL_MAX);
-  rcChannels[3] = map(Rudder_value ,0,4096,RC_CHANNEL_MIN,RC_CHANNEL_MAX);
-	
-	//Aux 1 Arm Channel
-  if(Arm==1){
-    rcChannels[4] = RC_CHANNEL_MIN;
-    //Serial.println("arm-0");
-  } else if (Arm==0) {
-    rcChannels[4] = RC_CHANNEL_MAX;
-    //Serial.println("arm-1");
-    }
-	//Aux 2 Mode Channel
-  if(FlightMode==1){
-    rcChannels[5] =RC_CHANNEL_MIN;
-  } else if(FlightMode==0){
-    rcChannels[5] =RC_CHANNEL_MAX;
-  }
-  
-  powerButtonPressed = digitalRead(DigitalInPinPowerChange);
-  if(powerButtonPressed==0){
-    //TODO
-    if(powerChangeHasRun==false) {
-      if(packetRateSelected>=6) {
-        packetRateSelected = 0;
+    currentMicros = micros();
+    //read values of rcChannels
+    Aileron_value = analogRead(analogInPinAileron); 
+    Elevator_value= analogRead(analogInPinElevator); 
+    Throttle_value= analogRead(analogInPinThrottle); 
+    Rudder_value = analogRead(analogInPinRudder);
+    Arm = digitalRead(DIGITAL_PIN_SWITCH_ARM);
+    FlightMode = digitalRead(DIGITAL_PIN_SWITCH_AUX2);
+    //map rcchannels
+    rcChannels[0] = map(Aileron_value,0,4095,RC_CHANNEL_MIN,RC_CHANNEL_MAX);
+    rcChannels[1] = map(Elevator_value,0,4095,RC_CHANNEL_MIN,RC_CHANNEL_MAX); 
+    rcChannels[2] = map(Throttle_value,0,4095,RC_CHANNEL_MIN,RC_CHANNEL_MAX);
+    rcChannels[3] = map(Rudder_value ,0,4095,RC_CHANNEL_MIN,RC_CHANNEL_MAX);
+    //Aux 1 Arm Channel
+    rcChannels[4] = Arm ? RC_CHANNEL_MIN : RC_CHANNEL_MAX;
+    //Aux 2 Mode Channel
+    rcChannels[5] = FlightMode ? RC_CHANNEL_MIN : RC_CHANNEL_MAX;   
+    //Additional switch add here.
+    //rcChannels[6] = CH6 ? RC_CHANNEL_MIN : RC_CHANNEL_MAX;   
+    
+    if (currentMicros >= crsfTime) {
+      if (powerChangeHasRun==true && clickCurrentMicros < crsfTime) 
+      {
+        powerChangeHasRun = false;
+        clickCurrentMicros = currentMicros;
+        //CRSF_ping_devices();
+      }
+      powerButtonPressed = digitalRead(DigitalInPinPowerChange);
+      if((powerButtonPressed==0) && (powerChangeHasRun==false)){
+          db_out.println("click");
+          bt_handle(1);//TODO
       } else {
-        packetRateSelected++;
+          crsfPreparePacket(crsfPacket, rcChannels);
+          #if defined(DEBUG_CH)
+            char buf [64];
+            sprintf (buf, "A:%i:%i;E:%i:%i;T:%i:%i;R:%i:%i;arm:%i;fm:%i\r\n", 
+            Aileron_value,rcChannels[0],
+            Elevator_value,rcChannels[1],
+            Throttle_value,rcChannels[2],
+            Rudder_value,rcChannels[3],
+            Arm,FlightMode);//batteryVoltage);
+            debug_output_uart(buf);
+            delay(1000); 
+          #else
+            //send crsf packet
+            elrsWrite(crsfPacket, CRSF_PACKET_SIZE);
+          #endif
       }
-      //uncomment to send 2e command
-      buildElrsPacket(crsfCmdPacket,1,packetRateSelected);
-      duplex_set_TX();
-      elrs.write(crsfCmdPacket, CRSF_CMD_PACKET_SIZE);
-      elrs.flush();
-      delay(4);
-    
-      
-      powerChangeHasRun=true;
-      clickCurrentMicros = crsfTime + (1000000);//2sec
-      
-      }
-    }
-	//Additional switch add here.
-  
-  //  transmit_enable=!digitalRead(transmit_pin); ???
-        
-  if (currentMicros >= crsfTime) {
-  
-    crsfPreparePacket(crsfPacket, rcChannels);
-    if (powerChangeHasRun==true && clickCurrentMicros < crsfTime) 
-    {
-      powerChangeHasRun = false;
-      clickCurrentMicros = micros();
-      CRSF_ping_devices();
-    }
-	  #ifdef DEBUG_CH
-      //For gimal calibation only
-      Serial.print("A_"); 
-      Serial.print(Aileron_value); 
-      Serial.print("_");
-      Serial.print(rcChannels[0]);
-      Serial.print(";E_");
-      Serial.print(Elevator_value);
-      Serial.print("_"); 
-      Serial.print(rcChannels[1]);  
-      Serial.print(";T_"); 
-      Serial.print(Throttle_value);
-      Serial.print("_");
-      Serial.print(rcChannels[2]); 
-      Serial.print("_R_");
-      Serial.print(Rudder_value);
-      Serial.print("_");
-      Serial.print(rcChannels[3]);
-      Serial.print(";Arm_");
-      Serial.print(Arm);
-      Serial.print(";Mode_");
-      Serial.print(FlightMode);
-      Serial.print("_BatteryVoltage:");
-      Serial.print(batteryVoltage);
-      Serial.println();
-      delay(1000);
-    #else
-
-      //send crsf packet
-      duplex_set_TX();  
-      elrs.write(crsfPacket, CRSF_PACKET_SIZE);
-      elrs.flush();
-    
-      //start receiving
+      //start receiving at end of each crsf cycle
       serialEvent();
-      
-      sync_crsf();
-      
-      #endif
     }
   }
 }
 
 void setup() {
 
-  //analogReference(EXTERNAL);
-  pinMode(DIGITAL_PIN_SWITCH_ARM, INPUT);
-  pinMode(DIGITAL_PIN_SWITCH_AUX2, INPUT);
-  pinMode(DIGITAL_PIN_LED, OUTPUT);//LED
-  //pinMode(DIGITAL_PIN_BUZZER, OUTPUT);//
-  //digitalWrite(DIGITAL_PIN_BUZZER, LOW);
-  //batteryVoltage=7.0; 
-  
-  xTaskCreatePinnedToCore(
-                    OutputTask,   /* Task function. */
-                    "OutputTask",     /* name of task. */
-                    10000,       /* Stack size of task */
-                    NULL,        /* parameter of the task */
-                    1,           /* priority of the task */
-                    &Task1,      /* Task handle to keep track of created task */
-                    0);          /* pin task to core 0 */                  
-                    delay(500); 
+  initGpio();
 
   xTaskCreatePinnedToCore(
-                    ElrsTask,   /* Task function. */
-                    "ElrsTask",     /* name of task. */
-                    10000,       /* Stack size of task */
-                    NULL,        /* parameter of the task */
-                    -1,           /* priority of the task */
-                    &Task2,      /* Task handle to keep track of created task */
-                    1);          /* pin task to core 1 */
-                    delay(500); 
-  
+  OutputTask,
+  "OutputTask",
+  10000,
+  NULL,
+  1,
+  &outputTaskHandler,
+  0);          /* pin task to core 0 */                  
+  delay(500); 
+
+  xTaskCreatePinnedToCore(
+    ElrsTask,               /* Task function. */
+    "ElrsTask",             /* name of task. */
+    10000,                  /* Stack size of task */
+    NULL,        /* parameter of the task */
+    -1,           /* priority of the task */
+    &elrsTaskHandler,      /* Task handle to keep track of created task */
+    1);          /* pin task to core 1 */
+    delay(500); 
 }
     
 void loop() {
 }
+static char *next_string;
 
+static char *alloc_string(int32_t bytes) {
+  if (CRSF_STRING_BYTES_AVAIL(next_string) < bytes)
+        return NULL;
+
+    char *p = next_string;
+    next_string += bytes;
+    return p;
+}
+static void  elrsWrite (uint8_t crsfPacket[],uint8_t size) {
+  duplex_set_TX();
+  elrs.write(crsfPacket, size);
+  elrs.flush();
+  //set last time packet send
+  sync_crsf();
+}
+static uint8_t count_params_loaded() {
+    int i;
+    for (i=0; i < CRSF_MAX_PARAMS; i++)
+        if (crsf_params[i].id == 0) break;
+    return i;
+}
+
+
+static void add_param(uint8_t *buffer, uint8_t num_bytes) {
+  // abort if wrong device, or not enough buffer space
+  db_out.print("buffer: ");
+  db_out.printf("%u;%u;%u",recv_param_ptr,recv_param_buffer,buffer[2]);
+  int ts = ((int)((sizeof recv_param_buffer) - (recv_param_ptr - recv_param_buffer)));
+  db_out.printf(" :%i:%u",ts,num_bytes);
+
+  if (buffer[2] != crsf_devices[device_idx].address
+     || ((int)((sizeof recv_param_buffer) - (recv_param_ptr - recv_param_buffer)) < (num_bytes-4))) {
+        recv_param_ptr = recv_param_buffer;
+        next_chunk = 0;
+        next_param = 0;
+        db_out.println("err");
+        db_out.println(recv_param_ptr);
+        return;
+    }
+
+   db_out.printf("%u",buffer[2]);
+   db_out.println("");
+
+}
+    /*
+    
+   int count;
+    switch (parameter->type) {
+    case UINT8:
+    case INT8:
+    case UINT16:
+    case INT16:
+    case FLOAT:
+        parse_bytes(parameter->type, &recv_param_ptr, &parameter->value);
+        parse_bytes(parameter->type, &recv_param_ptr, &parameter->min_value);
+        parse_bytes(parameter->type, &recv_param_ptr, &parameter->max_value);
+        parse_bytes(parameter->type, &recv_param_ptr, &parameter->default_value);
+        if (parameter->type == FLOAT) {
+            parse_bytes(UINT8, &recv_param_ptr, &parameter->u.point);
+            parse_bytes(FLOAT, &recv_param_ptr, &parameter->step);
+        } else if (*recv_param_ptr) {
+            if (!update) parameter->s.unit = alloc_string(strlen(recv_param_ptr)+1);
+            strlcpy(parameter->s.unit, (const char *)recv_param_ptr,
+                    CRSF_STRING_BYTES_AVAIL(parameter->s.unit));
+        }
+        break;
+
+    case TEXT_SELECTION:
+        if (!update) {
+            parameter->value = alloc_string(strlen(recv_param_ptr)+1);
+            strlcpy(parameter->value,
+                    (const char *)recv_param_ptr,
+                    CRSF_STRING_BYTES_AVAIL(parameter->value));
+            recv_param_ptr += strlen(recv_param_ptr) + 1;
+            // put null between selection options
+            // find max choice string length to adjust textselectplate size
+            char *start = (char *)parameter->value;
+            int max_len = 0;
+            count = 0;
+            for (char *p = (char *)parameter->value; *p; p++) {
+                if (*p == ';') {
+                    *p = '\0';
+                    if (p - start > max_len) {
+                        parameter->max_str = start;  // save max to determine gui box size
+                        max_len = p - start;
+                    }
+                    start = p+1;
+                    count += 1;
+                }
+            }
+            parameter->max_value = count;   // bug fix for incorrect max from device
+        } else {
+            recv_param_ptr += strlen(recv_param_ptr) + 1;
+        }
+        parse_bytes(UINT8, &recv_param_ptr, &parameter->u.text_sel);
+        parse_bytes(UINT8, &recv_param_ptr, &parameter->min_value);
+        parse_bytes(UINT8, &recv_param_ptr, &count);  // don't use incorrect parameter->max_value
+        parse_bytes(UINT8, &recv_param_ptr, &parameter->default_value);
+        break;
+
+    case INFO:
+        if (!update) {
+            parameter->value = alloc_string(strlen(recv_param_ptr)+1);
+            strlcpy(parameter->value,
+                    (const char *)recv_param_ptr,
+                    CRSF_STRING_BYTES_AVAIL(parameter->value));
+            recv_param_ptr += strlen(recv_param_ptr) + 1;
+        }
+        break;
+
+    case STRING:
+        {
+            const char *value, *default_value;
+            value = recv_param_ptr;
+            recv_param_ptr += strlen(value) + 1;
+            default_value = recv_param_ptr;
+            recv_param_ptr += strlen(default_value) + 1;
+            parse_bytes(UINT8, &recv_param_ptr, &parameter->u.string_max_len);
+
+            // No string re-sizing so allocate max length for value
+            if (!update) parameter->value = alloc_string(parameter->u.string_max_len+1);
+            strlcpy(parameter->value, value,
+                    MIN(parameter->u.string_max_len+1,
+                        CRSF_STRING_BYTES_AVAIL(parameter->value)));
+            if (!update) parameter->default_value = alloc_string(strlen(default_value)+1);
+            strlcpy(parameter->default_value, default_value,
+                    CRSF_STRING_BYTES_AVAIL(parameter->default_value));
+        }
+        break;
+
+    case COMMAND:
+        parse_bytes(UINT8, &recv_param_ptr, &parameter->u.status);
+        parse_bytes(UINT8, &recv_param_ptr, &parameter->timeout);
+        if (!update) parameter->s.info = alloc_string(20);
+        strlcpy(parameter->s.info, (const char *)recv_param_ptr, 20);
+
+        command.param = parameter;
+        command.time = 0;
+        switch (parameter->u.status) {
+        case PROGRESS:
+            command.time = CLOCK_getms();
+            // FALLTHROUGH
+        case CONFIRMATION_NEEDED:
+            command.dialog = 1;
+            break;
+        case READY:
+            command.dialog = 2;
+            break;
+        }
+        break;
+
+    case FOLDER:
+    case OUT_OF_RANGE:
+    default:
+        break;
+    }
+
+  
+}
+
+*/
 
 // ESP32 Team900
         // buildElrsPacket(crsfCmdPacket,X,3);

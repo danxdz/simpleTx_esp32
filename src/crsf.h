@@ -68,3 +68,9 @@
 // Frame Subtype
 #define SUBTYPE_TIMING_UPDATE 0x10
 
+
+#define CRSF_MAX_CHUNK_SIZE   58   // 64 - header - type - destination - origin
+#define CRSF_MAX_CHUNKS        5   // not in specification. Max observed is 3 for Nano RX
+
+#define SEND_MSG_BUF_SIZE  64      // don't send more than one chunk
+#define ADDR_BROADCAST  0x00  //  Broadcast address
