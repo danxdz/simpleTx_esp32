@@ -101,13 +101,6 @@ typedef enum
     CRSF_FRAMETYPE_ARDUPILOT_RESP = 0x80,
 } crsf_frame_type_e;
 
-typedef enum {
-    SUBCOMMAND_CRSF = 0x10
-} crsf_command_e;
-
-typedef enum {
-    COMMAND_MODEL_SELECT_ID = 0x05
-} crsf_subcommand_e;
 
 enum {
     CRSF_FRAME_TX_MSP_FRAME_SIZE = 58,

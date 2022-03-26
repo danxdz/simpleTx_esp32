@@ -11,6 +11,11 @@ const int VOLTAGE_READ_PIN = 36;
 const int DIGITAL_PIN_SWITCH_ARM = 0;  // Arm switch
 const int DIGITAL_PIN_SWITCH_AUX2 = 2;  // 
 
+//pin for button : testing bt
+const int DigitalInPinPowerChange = 4;  // 
+
+
+
 //pins that used for output
 const int DIGITAL_PIN_LED = 16;  // 
 const int DIGITAL_PIN_BUZZER = 12;  // 

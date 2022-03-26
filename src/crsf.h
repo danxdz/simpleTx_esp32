@@ -61,12 +61,46 @@
 #define TYPE_SETTINGS_READ             0x2C
 #define ADDR_RADIO                     0xEA  //  Radio Transmitter
 
+// Frame Type
+#define TYPE_GPS              0x02
+#define TYPE_VARIO            0x07
+#define TYPE_BATTERY          0x08
+#define TYPE_HEARTBEAT        0x0b
+#define TYPE_VTX              0x0F
+#define TYPE_VTX_TELEM        0x10
+#define TYPE_LINK             0x14
+#define TYPE_CHANNELS         0x16
+#define TYPE_RX_ID            0x1C
+#define TYPE_TX_ID            0x1D
+#define TYPE_ATTITUDE         0x1E
+#define TYPE_FLIGHT_MODE      0x21
+#define TYPE_PING_DEVICES     0x28
+#define TYPE_DEVICE_INFO      0x29
+#define TYPE_REQUEST_SETTINGS 0x2A
+#define TYPE_SETTINGS_ENTRY   0x2B
+#define TYPE_SETTINGS_READ    0x2C
+#define TYPE_SETTINGS_WRITE   0x2D
+#define TYPE_ELRS_INFO        0x2E
+#define TYPE_COMMAND_ID       0x32
+#define TYPE_RADIO_ID         0x3A
+
+// Frame Subtype
+#define UART_SYNC                      0xC8
+#define CRSF_SUBCOMMAND                0x10
+#define COMMAND_MODEL_SELECT_ID        0x05
+
+#define TELEMETRY_RX_PACKET_SIZE   64
+
+#define CRSF_MAX_DEVICES       4
+#define CRSF_MAX_NAME_LEN      16
+#define CRSF_MAX_STRING_BYTES  2500     // max observed is 2010 in Nano RX
+//#define CRSF_STRING_BYTES_AVAIL(current)  (CRSF_MAX_STRING_BYTES-((char *)(current)-mp->strings))
+
+
 #define CRSF_CRC_POLY 0xd5
 
 #define CRSF_MAX_PACKET_LEN            64
 
-// Frame Subtype
-#define SUBTYPE_TIMING_UPDATE 0x10
 
 
 #define CRSF_MAX_CHUNK_SIZE   58   // 64 - header - type - destination - origin

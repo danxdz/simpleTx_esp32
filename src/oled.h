@@ -44,22 +44,23 @@ void updateDisplay(
                     uint8_t rx_lq, 
                     uint8_t batteryVoltage,
                     uint8_t bpkts,
-                    uint16_t gpkts ) {
-  
+                    uint16_t gpkts,
+                    char * name,
+                    module_type_t typeModule ) {
+
   display.clearDisplay();
   display.setTextSize(1);             // Normal 1:1 pixel scale
   display.setTextColor(SSD1306_WHITE);        // Draw white text
   display.setCursor(0,0);             // Start at top-left corner
-  //int32_t tx_rssi_1 = tx_rssi;//LinkStatistics.uplink_RSSI_1;
-  //int8_t rf_mode = 5;//LinkStatistics.rf_Mode;
-  //int8_t tx_lq = tx_lq; //LinkStatistics.uplink_Link_quality;
+  String typeModName;
+  if (typeModule==1) typeModName = "elrs";
+  display.printf("%s:%s",name,typeModName);
+  display.println("");
   display.printf("Tx %idBm %i:%i%% ",tx_rssi,rf_mode,tx_lq);
   display.println("");
-  //int32_t rx_rssi = 100;//LinkStatistics.downlink_RSSI;
-  //int8_t rx_lq = 100;//LinkStatistics.downlink_Link_quality;
+  display.println("");
   display.printf("Rx %idBm %i:%i%% ",rx_rssi_1,rf_mode,rx_lq);
-  display.setTextSize(2);             // Normal 1:1 pixel scale
-  //int8_t tx_power = 10;// LinkStatistics.uplink_TX_Power;
+  display.setTextSize(2);
   display.println("");
   display.printf("%imW", tx_pwr);
   float vBat = (float)batteryVoltage/10;
