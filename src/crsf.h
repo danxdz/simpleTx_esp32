@@ -49,6 +49,7 @@
 #define CRSF_PACKET_SIZE  26
 #define CRSF_FRAME_LENGTH 24;   // length of type + payload + crc
 #define CRSF_CMD_PACKET_SIZE  8
+#define LinkStatisticsFrameLength 10 //
 
 // ELRS command
 #define ELRS_ADDRESS                   0xEE
@@ -91,10 +92,6 @@
 
 #define TELEMETRY_RX_PACKET_SIZE   64
 
-#define CRSF_MAX_DEVICES       4
-#define CRSF_MAX_NAME_LEN      16
-#define CRSF_MAX_STRING_BYTES  2500     // max observed is 2010 in Nano RX
-//#define CRSF_STRING_BYTES_AVAIL(current)  (CRSF_MAX_STRING_BYTES-((char *)(current)-mp->strings))
 
 
 #define CRSF_CRC_POLY 0xd5

@@ -41,16 +41,59 @@ static HardwareSerial db_out(0);
 static void add_param(uint8_t *buffer, uint8_t num_bytes);
 static void elrsWrite (uint8_t crsfPacket[],uint8_t size); 
 
-
 void sync_crsf();
 void serialEvent();
 
 #define CRSF_MAX_PARAMS  55   // one extra required, max observed is 47 in Diversity Nano RX
-
 #define CRSF_MAX_DEVICES       4
 #define CRSF_MAX_NAME_LEN      16
 #define CRSF_MAX_STRING_BYTES  2500     // max observed is 2010 in Nano RX
-#define CRSF_STRING_BYTES_AVAIL(current)  200
+#define CRSF_STRING_BYTES_AVAIL(current)  (CRSF_MAX_STRING_BYTES-((char *)(current)-mp->strings))
+
+
+//NUM_TRIM_ELEMS + NUM_BOX_ELEMS + NUM_BAR_ELEMS + NUM_TOGGLE_ELEMS
+#ifndef NUM_ELEMS
+    #define NUM_ELEMS (6 + 8 + 8 + 4 + 1)
+#endif
+struct buttonAction {
+    uint32_t button;
+    uint8_t flags;
+    unsigned (*callback)(uint32_t button, unsigned flags, void *data);
+    void *data;
+    struct buttonAction *next;
+};
+struct main_page {
+    struct buttonAction action;
+    uint8_t ignore_release;
+    int16_t battery;
+    int32_t elem[NUM_ELEMS];
+    uint32_t time;
+};
+struct crsfconfig_page {
+    char strings[CRSF_MAX_STRING_BYTES];
+
+};
+struct crsfdevice_page {
+    char strings[CRSF_MAX_STRING_BYTES];
+};
+
+struct pagemem {
+    union {
+        struct main_page main_page;
+        struct crsfconfig_page crsfconfig_page;
+        struct crsfdevice_page crsfdevice_page;
+    } u;
+    uint8_t modal_page;
+};
+
+
+
+
+struct pagemem pagemem;
+static struct crsfconfig_page * const mp = &pagemem.u.crsfconfig_page;
+static uint16_t current_selected = 0;
+static uint8_t number_of_devices;    // total known
+
 
 
 enum data_type {
@@ -75,10 +118,10 @@ typedef struct {
     enum data_type type;  // (Parameter type definitions and hidden bit)
     uint8_t hidden;            // set if hidden
     char *name;           // Null-terminated string
-    void *value;          // size depending on data type
+    char *value;          // size depending on data type
 
     // field presence depends on type
-    void *default_value;  // size depending on data type. Not present for COMMAND.
+    char *default_value;  // size depending on data type. Not present for COMMAND.
     int32_t min_value;        // not sent for string type
     int32_t max_value;        // not sent for string type
     int32_t step;             // Step size ( type float only otherwise this entry is not sent )
@@ -96,6 +139,7 @@ typedef struct {
         char *unit;         // Unit ( Null-terminated string / not sent for type string and folder )
     } s;
 } crsf_param_t;
+
 crsf_param_t crsf_params[CRSF_MAX_PARAMS];
 
 typedef struct {

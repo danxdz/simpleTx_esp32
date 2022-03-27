@@ -417,3 +417,20 @@ typedef struct {
     uint8_t flags;
     char flag_info[CRSF_MAX_NAME_LEN];
 } elrs_info_t;
+
+static struct {
+    crsf_param_t *param;
+    uint32_t time;
+    uint16_t timeout;
+    uint8_t  dialog;
+} command;
+
+enum cmd_status {
+    READY               = 0,
+    START               = 1,
+    PROGRESS            = 2,
+    CONFIRMATION_NEEDED = 3,
+    CONFIRM             = 4,
+    CMD_CANCEL              = 5,
+    POLL                = 6
+};

@@ -59,7 +59,7 @@ static uint8_t currentFrequency = 6; //2.4G
  */
 
  // crc implementation from CRSF protocol document rev7
-static uint8_t crsf_crc8tab[256] = {
+static uint8_t crc8tab[256] = {
     0x00, 0xD5, 0x7F, 0xAA, 0xFE, 0x2B, 0x81, 0x54, 0x29, 0xFC, 0x56, 0x83, 0xD7, 0x02, 0xA8, 0x7D,
     0x52, 0x87, 0x2D, 0xF8, 0xAC, 0x79, 0xD3, 0x06, 0x7B, 0xAE, 0x04, 0xD1, 0x85, 0x50, 0xFA, 0x2F,
     0xA4, 0x71, 0xDB, 0x0E, 0x5A, 0x8F, 0x25, 0xF0, 0x8D, 0x58, 0xF2, 0x27, 0x73, 0xA6, 0x0C, 0xD9,
@@ -103,28 +103,16 @@ static uint8_t crsf_crc(const uint8_t crctab[], const uint8_t *ptr, uint8_t len)
     }
     return crc;
 }
-/* 
 uint8_t crsf_crc8(const uint8_t *ptr, uint8_t len) {
-    uint8_t crc = 0;
-    for (uint8_t i=0; i < len; i++) {
-        crc = crsf_crc8tab[crc ^ *ptr++];
-    }
-    return crc;
-}
- */
-uint8_t crsf_crc8(const uint8_t *ptr, uint8_t len) {
-    return crsf_crc(crsf_crc8tab, ptr, len);
+    return crsf_crc(crc8tab, ptr, len);
 }
 uint8_t crsf_crc8_BA(const uint8_t *ptr, uint8_t len) {
     return crsf_crc(crc8tab_BA, ptr, len);
 }
 
-
 //prepare data packet
 void crsfPreparePacket(uint8_t packet[], int channels[]){
 
-
- 
     // packet[0] = UART_SYNC; //Header
     packet[0] = ADDR_MODULE; //Header
     packet[1] = 24;   // length of type (24) + payload + crc
@@ -158,6 +146,7 @@ void crsfPreparePacket(uint8_t packet[], int channels[]){
 
 //prepare elrs setup packet (power, packet rate...)
 uint8_t crsfCmdPacket[CRSF_CMD_PACKET_SIZE];
+uint8_t crsfSetIdPacket[LinkStatisticsFrameLength];
 void buildElrsPacket(uint8_t packetCmd[],uint8_t command, uint8_t value)
 {
   packetCmd[0] = ADDR_MODULE;
@@ -190,16 +179,32 @@ void CRSF_read_param(uint8_t packetCmd[],uint8_t param,uint8_t chunk) {
     packetCmd[5] = param;
     packetCmd[6] = chunk;
     packetCmd[7] = crsf_crc8(&packetCmd[2], packetCmd[1]-1);
+
 }
-void CRSF_sendId(uint8_t packetCmd[]) {
-    packetCmd[0] = ADDR_MODULE;
-    packetCmd[1] = 8; // length of Command (4) + payload + crc
+// request ELRS_info message
+void CRSF_get_elrs(uint8_t packetCmd[])
+{
+  packetCmd[0] = ADDR_MODULE;
+  packetCmd[1] = 6; // length of Command (4) + payload + crc
+  packetCmd[2] = TYPE_SETTINGS_WRITE;
+  packetCmd[3] = ELRS_ADDRESS;
+  packetCmd[4] = ADDR_RADIO;
+  packetCmd[5] = 0;
+  packetCmd[6] = 0;
+  packetCmd[7] = crsf_crc8(&packetCmd[2], packetCmd[1]-1);
+}
+
+void CRSF_sendId(uint8_t packetCmd[],uint8_t modelId ) {
+    packetCmd[0] = ELRS_ADDRESS;
+    packetCmd[1] = 8; 
     packetCmd[2] = TYPE_COMMAND_ID;
     packetCmd[3] = ELRS_ADDRESS;
     packetCmd[4] = ADDR_RADIO;
     packetCmd[5] = CRSF_SUBCOMMAND;
     packetCmd[6] = COMMAND_MODEL_SELECT_ID;
-    packetCmd[7] = 0;
-    packetCmd[8] = crsf_crc8_BA(&packetCmd[2], packetCmd[1]-1);
+    packetCmd[7] = modelId;//modelID TODO
+    packetCmd[8] = crsf_crc8_BA(&packetCmd[2], packetCmd[1]-2);
     packetCmd[9] = crsf_crc8(&packetCmd[2], packetCmd[1]-1);
 }
+
+
