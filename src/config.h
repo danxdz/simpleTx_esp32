@@ -37,11 +37,17 @@ int Rudder_OFFSET  = 0;
 static HardwareSerial elrs(1);
 static HardwareSerial db_out(0);
 
+#define _tr_noop(x) x
+
+static const char * const crsf_opts[] = {
+  _tr_noop("Bit Rate"), "400K", "1.87M", "2.25M", NULL,
+  NULL
+};
 
 static void add_param(uint8_t *buffer, uint8_t num_bytes);
 static void elrsWrite (uint8_t crsfPacket[],uint8_t size); 
 
-void sync_crsf();
+void sync_crsf(int32_t add);
 void serialEvent();
 
 #define CRSF_MAX_PARAMS  55   // one extra required, max observed is 47 in Diversity Nano RX
@@ -110,6 +116,7 @@ enum data_type {
     OUT_OF_RANGE   = 127,
 };
 
+
 typedef struct {
     // common fields
     uint8_t device;            // device index of device parameter belongs to
@@ -118,10 +125,10 @@ typedef struct {
     enum data_type type;  // (Parameter type definitions and hidden bit)
     uint8_t hidden;            // set if hidden
     char *name;           // Null-terminated string
-    char *value;          // size depending on data type
+    void *value;          // size depending on data type
 
     // field presence depends on type
-    char *default_value;  // size depending on data type. Not present for COMMAND.
+    void *default_value;  // size depending on data type. Not present for COMMAND.
     int32_t min_value;        // not sent for string type
     int32_t max_value;        // not sent for string type
     int32_t step;             // Step size ( type float only otherwise this entry is not sent )
@@ -161,3 +168,21 @@ typedef enum {
 
 extern crsf_device_t crsf_devices[CRSF_MAX_DEVICES];
 uint8_t protocol_module_is_elrs();
+
+static crsf_param_t *param_by_id(int id);
+
+
+static char *next_string;
+#define TEMPSTRINGLENGTH 400 //This is the max dialog size (80 characters * 5 lines)
+                             //We could reduce this to ~240 on the 128x64 screens
+                             //But only after all sprintf are replaced with snprintf
+                             //Maybe move this to target_defs.h
+extern char tempstring[TEMPSTRINGLENGTH];
+
+static const char *crsf_name_cb(const void *data);
+static const char *crsf_value_cb(const void *data);
+static const char *current_text(crsf_param_t *param);
+static int folder_rows(int folder);
+
+
+static const char *hdr_str_cb(const void *data);

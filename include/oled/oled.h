@@ -33,4 +33,6 @@ void startDisplay() {
   display.setTextColor(SSD1306_WHITE); 
   display.printf("starting...");
   display.display();
+  
+
 }
