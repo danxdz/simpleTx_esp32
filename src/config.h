@@ -45,7 +45,7 @@ static const char * const crsf_opts[] = {
 };
 
 static void add_param(uint8_t *buffer, uint8_t num_bytes);
-static void elrsWrite (uint8_t crsfPacket[],uint8_t size); 
+static void elrsWrite (uint8_t crsfPacket[],uint8_t size,int32_t add_delay); 
 
 void sync_crsf(int32_t add);
 void serialEvent();
@@ -179,10 +179,6 @@ static char *next_string;
                              //Maybe move this to target_defs.h
 extern char tempstring[TEMPSTRINGLENGTH];
 
-static const char *crsf_name_cb(const void *data);
-static const char *crsf_value_cb(const void *data);
-static const char *current_text(crsf_param_t *param);
-static int folder_rows(int folder);
-
-
 static const char *hdr_str_cb(const void *data);
+crsf_param_t *current_param(int absrow);
+

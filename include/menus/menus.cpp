@@ -94,5 +94,5 @@ display.setCursor(0, 0);
     displaySubmenu();
   }
   display.display();
-  delay(200);
+  //delay(200);
 }

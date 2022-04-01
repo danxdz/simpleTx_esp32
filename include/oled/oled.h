@@ -31,7 +31,7 @@ void startDisplay() {
   
   display.setCursor(0,0);             // Start at top-left corner
   display.setTextColor(SSD1306_WHITE); 
-  display.printf("starting...");
+  display.printf("starting display...");
   display.display();
   
 
