@@ -546,8 +546,7 @@ void bt_handle(uint8_t value) {
     //turn on rx wifi, even if missmatch modelId
     //buildElrsPacket(crsfCmdPacket,16,1);
     
-
-    db_out.printf("********hdr : %s\n",(char *) hdr_str_cb(crsf_devices));
+    
       if (crsf_devices[device_idx].number_of_params) {
         if (crsf_devices[device_idx].address == ADDR_RADIO) {
           db_out.println("address:radio");
@@ -611,6 +610,8 @@ void ElrsTask( void * pvParameters ){
   device_idx = 0;
   crsfdevice_init();
   current_folder = 0;
+  crsf_param_t *param = current_param(0);
+  db_out.printf("********hdr : %s\n",(char *) hdr_str_cb(param));
 
   for(;;){
     uint32_t currentMicros = micros();
@@ -1054,7 +1055,7 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
     next_param = 0;
      for (int i=1;i<=params_loaded;i++) {
        crsf_param_t *tmp = param_by_id(i);
-      db_out.printf("i:%i - id:%u:\n",i,tmp->id);
+      db_out.printf("i:%i - id:%u:%s\n",i,tmp->id,tmp->name);
     } 
   //db_out.printf("id:%u:%s\n",crsf_params->id,crsf_params->name);
 
