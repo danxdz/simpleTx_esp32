@@ -96,7 +96,6 @@ struct pagemem {
 
 
 struct pagemem pagemem;
-static struct crsfconfig_page * const mp = &pagemem.u.crsfconfig_page;
 static uint16_t current_selected = 0;
 static uint8_t number_of_devices;    // total known
 
@@ -147,7 +146,6 @@ typedef struct {
     } s;
 } crsf_param_t;
 
-crsf_param_t crsf_params[CRSF_MAX_PARAMS];
 
 typedef struct {
     uint8_t address;
@@ -182,3 +180,6 @@ extern char tempstring[TEMPSTRINGLENGTH];
 static const char *hdr_str_cb(const void *data);
 crsf_param_t *current_param(int absrow);
 
+
+static void crsfdevice_init();
+void bt_handle(uint8_t value);

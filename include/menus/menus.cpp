@@ -22,6 +22,7 @@ void displayMenu(crsf_param_t *crsf_p) {
     if (i == selected) {
       display.setTextColor(SSD1306_BLACK, SSD1306_WHITE);
       display.println(crsf_p[i].name);
+
     } else if (i != selected) {
       display.setTextColor(SSD1306_WHITE);
       display.println(crsf_p[i].name);

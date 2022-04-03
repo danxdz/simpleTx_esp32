@@ -84,8 +84,10 @@ static uint8_t params_displayed;  // if not zero, number displayed so far for cu
 static uint8_t device_idx;   // current device index
 static uint8_t next_param;   // parameter and chunk currently being read
 static uint8_t next_chunk;
-char recv_param_buffer[CRSF_MAX_CHUNKS * CRSF_MAX_CHUNK_SIZE];
-char *recv_param_ptr;
+static char recv_param_buffer[CRSF_MAX_CHUNKS * CRSF_MAX_CHUNK_SIZE];
+static char *recv_param_ptr;
+static struct crsfdevice_page * const mp = &pagemem.u.crsfdevice_page;
+
 char Modelname[24];
 
 crsf_device_t deviation = {
@@ -103,6 +105,7 @@ elrs_info_t local_info;
 elrs_info_t elrs_info;
 crsf_device_t crsf_devices[CRSF_MAX_DEVICES];
 
+crsf_param_t crsf_params[CRSF_MAX_PARAMS];
 
 
 static uint8_t model_id_send;
@@ -460,22 +463,7 @@ void read_ui_buttons () {
       //updated=0;
     }
     //db_out.printf("ent:%i:sel:%i\n",entered, selected);
-    updateDisplay(
-          LinkStatistics.downlink_RSSI,
-          LinkStatistics.downlink_Link_quality,
-          LinkStatistics.rf_Mode,
-          LinkStatistics.uplink_TX_Power,
-          LinkStatistics.uplink_RSSI_1,
-          LinkStatistics.uplink_RSSI_2,
-          LinkStatistics.uplink_Link_quality,
-          batteryVoltage.voltage,
-          local_info.bad_pkts,
-          local_info.good_pkts,
-          crsf_devices->name,
-          module_type,
-          params_loaded,
-          crsf_params,
-          entered);  
+    
     //delay(200);
 }
 
@@ -503,13 +491,36 @@ void OutputTask( void * pvParameters ){
   delay(1000);
           
   startDisplay();
-  delay(2000);
+  delay(5000);
+  bt_handle(1);
   for(;;){
     /* if ((MODULE_IS_ELRS)&&(local_info.good_pkts==0)) {
       CRSF_get_elrs(crsfCmdPacket);
       elrsWrite(crsfCmdPacket,sizeof(crsfCmdPacket),0);
     } */
-    read_ui_buttons();
+    if (params_loaded < crsf_devices->number_of_params) {
+    //  bt_handle(1);
+    }
+    //CRSF_get_elrs(crsfCmdPacket);
+    //elrsWrite(crsfCmdPacket,sizeof(crsfCmdPacket),0);
+    updateDisplay(
+          LinkStatistics.downlink_RSSI,
+          LinkStatistics.downlink_Link_quality,
+          LinkStatistics.rf_Mode,
+          LinkStatistics.uplink_TX_Power,
+          LinkStatistics.uplink_RSSI_1,
+          LinkStatistics.uplink_RSSI_2,
+          LinkStatistics.uplink_Link_quality,
+          batteryVoltage.voltage,
+          local_info.bad_pkts,
+          local_info.good_pkts,
+          crsf_devices->name,
+          module_type,
+          params_loaded,
+          crsf_params,
+          entered); 
+    delay(200);
+
   }
 }
 
@@ -615,6 +626,8 @@ void ElrsTask( void * pvParameters ){
 
   for(;;){
     uint32_t currentMicros = micros();
+    read_ui_buttons();
+
     //read values of rcChannels
     Aileron_value = analogRead(analogInPinAileron); 
     Elevator_value= analogRead(analogInPinElevator); 
@@ -817,7 +830,6 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
     }
     crsf_param_t *parameter = &crsf_params[buffer[3]-1];
     int update = parameter->id == buffer[3];
-    db_out.printf("all chucks:id: %i",update);
     
     parameter->device = device_idx;
     db_out.printf(":device: %u\n",device_idx);
@@ -826,18 +838,23 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
     parameter->parent = *recv_param_ptr++;
 
     parameter->type = static_cast<data_type>(*recv_param_ptr & 0x7f);
-    db_out.println(parameter->type);
-    /* 
-    for (int i=0;i<num_bytes;i++) {
-      db_out.printf("\\x%02x",buffer[i]);
-    } 
-    */
+    db_out.printf("type: %i \n ",(int) parameter->type);
+     
   if (!update) {
         parameter->hidden = *recv_param_ptr++ & 0x80;
-        parameter->name = (char*)recv_param_ptr,
-        CRSF_STRING_BYTES_AVAIL(strlen(recv_param_ptr)+1);
-        //db_out.printf("name: %s\n", parameter->name);
+       
+      /*  char tmp[strlen(recv_param_ptr)+1];
+      memset(tmp, 0, sizeof tmp);
+
+       strlcpy(tmp, (const char *)recv_param_ptr,strlen(recv_param_ptr)+1);
+ */
+        parameter->name = new char[strlen(recv_param_ptr)+1];
+        strlcpy(parameter->name, (const char *)recv_param_ptr,strlen(recv_param_ptr)+1);
+
+        db_out.printf("name: %s:%s:", parameter->name,recv_param_ptr);
         recv_param_ptr += strlen(recv_param_ptr) + 1;
+        db_out.printf("%s\n", recv_param_ptr);
+
     } else {
         db_out.println("not update");
         if (parameter->hidden != (*recv_param_ptr & 0x80))
@@ -869,7 +886,7 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
 
     case TEXT_SELECTION:
         if (!update) {
-      //    db_out.println("text_sel");
+          db_out.println("text_sel");
             parameter->value = ( char *)recv_param_ptr,
                     CRSF_STRING_BYTES_AVAIL(strlen(recv_param_ptr)+1);
             recv_param_ptr += strlen(recv_param_ptr) + 1;
@@ -901,9 +918,16 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
         break;
 
     case INFO:
-        if (!update) {
-            parameter->value = (char *)recv_param_ptr,CRSF_STRING_BYTES_AVAIL(strlen(recv_param_ptr)+1);
-            recv_param_ptr += strlen(recv_param_ptr) + 1;
+        db_out.println("info - ");
+
+        if (!update) {        
+          
+          db_out.printf("recv_param_ptr %s\n", recv_param_ptr);
+          parameter->value = recv_param_ptr;
+            
+          db_out.printf("value: %s\n",parameter->value);
+
+          recv_param_ptr += strlen(recv_param_ptr) + 1;
         }
         break;
 
@@ -935,6 +959,8 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
         break;
 
     case COMMAND:
+        db_out.println("command");
+
         parse_bytes(UINT8, &recv_param_ptr, &parameter->u.status);
         parse_bytes(UINT8, &recv_param_ptr, &parameter->timeout);
         if (!update) parameter->s.info = ( char *)recv_param_ptr, 20;
@@ -943,13 +969,15 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
         command.time = 0;
         switch (parameter->u.status) {
         case PROGRESS:
-            db_out.println("progress case");
+            db_out.println("PROGRESS");
             //command.time = CLOCK_getms();
             // FALLTHROUGH
         case CONFIRMATION_NEEDED:
+            db_out.println("CONFIRMATION_NEEDED");
             command.dialog = 1;
             break;
         case READY:
+            db_out.println("READY");
             command.dialog = 2;
             break;
         }
@@ -1000,9 +1028,8 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
       tmp = "unknow";
       break;
     } 
-  //db_out.printf("%u%c%c%u%u%u-Name:%s;id:%u;dvc:%u;max:%i;min:%i;def:%x;hd:%u;ch:%u;mstr:%u;par:%u;sp:%i;vl:%u;to:%u;status:%u\n",
-  //:%u:%u:%u:%u:%s:%s:%u:%i:%i:%u:%i:%s:%u",
-  /* parameter->type,
+  /* db_out.printf("%u%c%c%u%u%u-Name:%s;id:%u;dvc:%u;max:%i;min:%i;def:%x;hd:%u;ch:%u;mstr:%u;par:%u;sp:%i;vl:%u;to:%u;status:%u\n",
+  parameter->type,
   parameter->s.info,
   parameter->s.unit,
   parameter->u.point,
@@ -1021,12 +1048,8 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
   parameter->step,
   parameter->value,
   parameter->timeout,
-  parameter->u.status
-    );
-  db_out.printf("PL::%u::%u\n",params_loaded,crsf_devices->number_of_params);
-   *//* ,
-  parameter->type,);
- */
+  parameter->u.status);
+   */
 
     recv_param_ptr = recv_param_buffer;
     next_chunk = 0;
@@ -1043,7 +1066,7 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
        // db_out.printf("count_out:%u:%u:%u\n",
      // device_idx,
       //  crsf_devices[device_idx].number_of_params,params_loaded);
-      db_out.printf("id:%u:%s\n",crsf_params->id,crsf_params->name);
+      //db_out.printf("id:%u:%s\n",parameter->id,parameter->name);
 
         CRSF_read_param(crsfCmdPacket, next_param, next_chunk);
         elrsWrite(crsfCmdPacket,8,0);
@@ -1053,10 +1076,9 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
         crsf_devices[device_idx].number_of_params,
         params_loaded);
     next_param = 0;
-     for (int i=1;i<=params_loaded;i++) {
-       crsf_param_t *tmp = param_by_id(i);
-      db_out.printf("i:%i - id:%u:%s\n",i,tmp->id,tmp->name);
-    } 
+      for (int i=0;i<params_loaded;i++) {
+      db_out.printf("ID:%u:%s:%i:%u\n",crsf_params[i].id,crsf_params[i].name,(int)crsf_params[i].type,crsf_params[i].u.status);
+    }  
   //db_out.printf("id:%u:%s\n",crsf_params->id,crsf_params->name);
 
   }
