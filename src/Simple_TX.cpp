@@ -499,8 +499,8 @@ void OutputTask( void * pvParameters ){
   delay(1000);
           
   startDisplay();
-  delay(5000);
-  //bt_handle(1);
+  delay(2000);
+  bt_handle(1);
   for(;;){
     /* if ((MODULE_IS_ELRS)&&(local_info.good_pkts==0)) {
       CRSF_get_elrs(crsfCmdPacket);
@@ -589,8 +589,8 @@ void sync_crsf (int32_t add_delay) {
     if (updated_interval!=20000)
       db_out.printf("%u ; %u ; %i ; %u\n",lastCrsfTime, crsfTime ,offset,updated_interval);
   #endif
-  if (add_delay>0)
-    db_out.printf("delay:%u:%u\n",add_delay,offset);
+  //if (add_delay>0)
+    //db_out.printf("delay:%u:%u\n",add_delay,offset);
   crsfTime += ((updated_interval+add_delay) - offset);//set current micros
   lastCrsfTime = crsfTime; //set time that we send last packet
 }
@@ -723,10 +723,11 @@ static void  elrsWrite (
   duplex_set_TX();
   elrs.write(crsfPacket, size);
   elrs.flush();
+  //if (add_delay>0)
+    //db_out.printf("del:%u\n",add_delay);
+
   //set last time packet send
-  if (add_delay>0)
-    db_out.printf("del:%u\n",add_delay);
-    sync_crsf(add_delay);
+  sync_crsf(add_delay);
 }
 
 
@@ -902,7 +903,7 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
             count = 0;
             for (char *p = (char *)parameter->value; *p; p++) {
                 if (*p == ';') {
-                    *p = '\0';
+                    *p = ';';
                     if (p - start > max_len) {
                         parameter->max_str = start;  // save max to determine gui box size
                         max_len = p - start;
@@ -911,7 +912,9 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
                     count += 1;
                 }
             }
-            parameter->max_value = count;  
+            parameter->max_value = count;   
+
+
             // bug fix for incorrect max from device
            // db_out.printf("value:%s par_max: %i",parameter->value,parameter->max_value);
         } else {
@@ -943,30 +946,26 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
             default_value = recv_param_ptr;
             recv_param_ptr += strlen(default_value) + 1;
             parse_bytes(UINT8, &recv_param_ptr, &parameter->u.string_max_len);
-            
+      
             // No string re-sizing so allocate max length for value
-            
-        if (!update) parameter->value = alloc_string(parameter->u.string_max_len+1);
-            // No string re-sizing so allocate max length for value
-            if (!update) {
-              db_out.println("not update 1");
-              parameter->value = (char *)MIN(parameter->u.string_max_len+1,
-                CRSF_STRING_BYTES_AVAIL((parameter->value)));
-            }
+        if (!update) parameter->value = new char[(parameter->u.string_max_len+1)];
+          strlcpy(parameter->value, value,
+            MIN(parameter->u.string_max_len+1,
+                        CRSF_STRING_BYTES_AVAIL(parameter->value)));
+        if (!update) parameter->default_value = new char[strlen(default_value)+1];
+            strlcpy(parameter->default_value, default_value,
+                    CRSF_STRING_BYTES_AVAIL(parameter->default_value));
+        db_out.printf("STRING - %s:%s \n",parameter->value,parameter->default_value);
 
-            if (!update) {
-              db_out.println("not update 2");
-              parameter->default_value = (char *) default_value,
-                CRSF_STRING_BYTES_AVAIL((parameter->default_value));
-            }
-        }
+      }
         break;
 
     case COMMAND:
-        db_out.println("command");
         parse_bytes(UINT8, &recv_param_ptr, &parameter->u.status);
         parse_bytes(UINT8, &recv_param_ptr, &parameter->timeout);
-        if (!update) parameter->s.info = ( char *)recv_param_ptr, 20;
+        if (!update) parameter->s.info = new char[20];
+        strlcpy(parameter->s.info, (const char *)recv_param_ptr, 20);
+        db_out.printf("command val:%s\n",parameter->s.info);
 
         command.param = parameter;
         command.time = 0;
@@ -992,47 +991,6 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
         break;
     }
 
-  String tmp;
-  switch ((int)parameter->type) {
-    case 0:
-      tmp = "UINT8";
-      break;
-    case 1:
-      tmp = "INT8";
-      break;
-    case 2:
-      tmp = "UINT16";
-      break;
-    case 3:
-      tmp = "INT16";
-      break;
-    case 8:
-      tmp = "FLOAT";
-      break;
-    case 9:
-      tmp = "TEXT_SELECTION";
-      break;
-    case 10:
-      tmp = "STRING";
-      break;
-    case 11:
-      tmp = "FOLDER";
-      break;
-    case 12:
-      tmp = "INFO";
-      break;
-    case 13:
-      tmp = "COMMAND";
-      break;
-    case 127:
-      tmp = "OUT_OF_RANGE";
-      break;
-    default:
-      tmp = "unknow";
-      break;
-    }
-    
-   
    
 
     recv_param_ptr = recv_param_buffer;
@@ -1064,26 +1022,37 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
 
 
       char * tmp1;
+      char * tmp_info;
       for (int i=0;i<params_loaded;i++) {
         if (crsf_params[i].value) {
           tmp1 =  crsf_params[i].value;
         } else {
           tmp1 = crsf_params[i].name;
         }
+        if (crsf_params[i].s.info) {
+          tmp_info = new char[21];
+          strlcpy(tmp_info, (char *) crsf_params[i].s.info,21);
+          //tmp_info = (char *) "not empty";
+        } else {
+          tmp_info= (char *) "empty";
+        }
 
-          db_out.printf("id:%u:%u:%s:%u:%s:%s:%i:%i:%u:%u\n",
-            //:val:%s:%s:%i:%i:%u:%s:%u:%u\n",
+
+          db_out.printf("id:%u:%u:%s:%u:%s:%u:%i:%i:%u:%u:%u:%u:%u:%s\n",
             crsf_params[i].id,
             crsf_params[i].parent,
             crsf_params[i].name,
             crsf_params[i].type,
             tmp1,
-            tmp,
+            crsf_params[i].device,
             crsf_params[i].min_value,
             crsf_params[i].max_value,
             crsf_params[i].changed,
-            crsf_params[i].u.status
-            );
+            crsf_params[i].u.status,
+            crsf_params[i].u.text_sel,
+            crsf_params[i].u.point,
+            crsf_params[i].u.string_max_len,
+            tmp_info);
 
 
 

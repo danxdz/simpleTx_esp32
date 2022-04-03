@@ -127,7 +127,7 @@ typedef struct {
     char *value;          // size depending on data type
 
     // field presence depends on type
-    void *default_value;  // size depending on data type. Not present for COMMAND.
+    char *default_value;  // size depending on data type. Not present for COMMAND.
     int32_t min_value;        // not sent for string type
     int32_t max_value;        // not sent for string type
     int32_t step;             // Step size ( type float only otherwise this entry is not sent )
