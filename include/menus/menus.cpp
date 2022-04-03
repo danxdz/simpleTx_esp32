@@ -9,30 +9,20 @@
 #include "oled.h"
 #include "gpio/gpio.cpp"
 
-int selected = 0;
-int entered = -2;
-int updated = 1;
-bool serial_debug = true;
+ 
 
-
-void displayMenu(crsf_param_t *crsf_p) { 
-  display.println(F("Dsn menu test"));
+void displayMenu(char * name,crsf_param_t *crsf_p) { 
+  display.println(name);
   display.println("");
   char *menu_item;
-  char *menu_options;
-  char submenu[sizeof(menu_options)];
-
-
   for (int i = 0; i < 20; i++) {
     if (crsf_p[i].parent == 0) {
       menu_item = crsf_p[i].name;
-      menu_options = crsf_p[i].value;
-
       if (i == selected)
         display.setTextColor(SSD1306_BLACK, SSD1306_WHITE);
       else if (i != selected)
         display.setTextColor(SSD1306_WHITE);
-      display.printf("%s   <%s>\n",menu_item,(char *) crsf_p[i].u.status);
+      display.printf("%s   <1>\n",menu_item);
     }
   }
 }
@@ -65,16 +55,13 @@ void updateDisplay(
                     crsf_param_t *crsf_params,
                     int entered  ) {
 
-  
-
-
 display.clearDisplay();
 display.setTextSize(1);
 display.setTextColor(SSD1306_WHITE);
 display.setCursor(0, 0);
    
   if (entered == -1) 
-    displayMenu(crsf_params);
+    displayMenu(name,crsf_params);
   else if (entered == -2) {
     //display.println(F("main"));
     //updateDisplay();
@@ -82,8 +69,8 @@ display.setCursor(0, 0);
     display.setTextSize(1);             // Normal 1:1 pixel scale
     display.setTextColor(SSD1306_WHITE);        // Draw white text
     display.setCursor(0,0);             // Start at top-left corner
-    String typeModName;
-      if (typeModule==1) typeModName = "elrs";
+    char * typeModName;
+      if (typeModule==1) typeModName =  (char *)"elrs";
     display.printf("%s:%s",name,typeModName);
     display.println("");
     display.printf("Tx %idBm %i:%i%% ",tx_rssi,rf_mode,tx_lq);

@@ -100,10 +100,7 @@ crsf_device_t deviation = {
 };
 
 
-//button bouncer
 
-int powerButtonPressed=0;
-bool powerChangeHasRun = false;
 //TODO
 // change to get last rate
 uint8_t packetRateSelected = 0;
@@ -431,6 +428,8 @@ void serialEvent() {
     }  
   }
 }
+
+
 void read_ui_buttons () {
     bool up = digitalRead(upBt);
     bool down = digitalRead(downBt);
@@ -438,44 +437,42 @@ void read_ui_buttons () {
     bool back = digitalRead(backBt);
     //db_out.printf("%i%i%i%i\n",up,down,enter,back);
     //db_out.printf("%i:\n",params_loaded);
-    
 
-    //db_out.printf("\nent:%i:sel:%i\n",entered, selected);
-    
     if (up == LOW && down == LOW) {
     };
-    //if inside menus selected => -1
-    if (entered>=-1){
+    
+    //if at main
+     if (entered==-2){ 
+      //db_out.println("main");
+
+      entered = enter ? entered : -1;
+      
+    //if inside menus selected = -1
+    } else if (entered==-1){
+      //db_out.println("menu");
+
       if ((up == LOW) && (entered != selected))
         selected = (selected <= 0) ? 0 : selected-1;
       if ((down == LOW) && (entered != selected))
         selected = (selected >= 5 ) ? 5 : selected+1;
+      if ((enter == LOW))
+        entered = selected;
+      if (back == LOW) entered = -2;
 
-      //enter to submenu select
-      entered = enter ? entered : selected;
-      //need to update screen - set !updated
-      if (entered==selected) {
-        //if we are at menu   
-        if (entered==-1) {
-          //back to main
-          db_out.println("main");
-          entered = back ? entered : -2;
-        }  
-        else 
-          //back to menu   
-          entered = back ? entered : -1;
+    //if at submenu
+    } else if (entered>=0){
+      //db_out.println("submenu");
+      if (back == LOW) {
+        entered = -1;
       }
-    } else {
-      //press enter to go to menu
-      entered = enter ? entered : -1;
-      //updated=0;
+
     }
+
+
     //db_out.printf("ent:%i:sel:%i\n",entered, selected);
     
-    //delay(200);
-
-    powerChangeHasRun=true;
-    clickCurrentMicros = crsfTime + (1*1000000);//2sec
+    //powerChangeHasRun=true;
+    //clickCurrentMicros = crsfTime + (2*1000000);//2sec
 }
 
 void OutputTask( void * pvParameters ){
@@ -503,17 +500,15 @@ void OutputTask( void * pvParameters ){
           
   startDisplay();
   delay(5000);
-  bt_handle(1);
+  //bt_handle(1);
   for(;;){
     /* if ((MODULE_IS_ELRS)&&(local_info.good_pkts==0)) {
       CRSF_get_elrs(crsfCmdPacket);
       elrsWrite(crsfCmdPacket,sizeof(crsfCmdPacket),0);
     } */
-    if (params_loaded < crsf_devices->number_of_params) {
-    //  bt_handle(1);
-    }
+    
     //CRSF_get_elrs(crsfCmdPacket);
-    //elrsWrite(crsfCmdPacket,sizeof(crsfCmdPacket),0);
+    //elrsWrite(crsfCmdPacket,sizeof(crsfCmdPacket),2000000);
     updateDisplay(
           LinkStatistics.downlink_RSSI,
           LinkStatistics.downlink_Link_quality,
@@ -530,29 +525,33 @@ void OutputTask( void * pvParameters ){
           params_loaded,
           crsf_params,
           entered); 
-    delay(200);
+    delay(500);
+    read_ui_buttons();
 
   }
 }
 
   
 void bt_handle(uint8_t value) {
+  db_out.println("bt_handle");
+ 
         if(packetRateSelected>=6) {
             packetRateSelected = 0;
         } else {
             packetRateSelected++;
         }
+
+
+    powerChangeHasRun=true;   
+    clickCurrentMicros = crsfTime + 500000;//0.5sec
+    db_out.printf("times: %u:%u\n", clickCurrentMicros/1000, crsfTime/1000);
+    //powerChangeHasRun=true;
+    //clickCurrentMicros = crsfTime + (2*1000000);//2sec
     //buildElrsPacket(crsfCmdPacket,value,packetRateSelected);
-    //CRSF_read_param(crsfCmdPacket,0,0);
-    //elrsWrite(crsfCmdPacket,CRSF_CMD_PACKET_SIZE);
-    
     
     //CRSF_read_param(crsfCmdPacket,1,next_chunk);
     //elrsWrite(crsfCmdPacket,8,0);
     
-    
-    //delay(4);
-
     //buildElrsPingPacket(crsfCmdPacket);
     //db_out.println(CRSF_send_model_id(2));
     
@@ -562,9 +561,7 @@ void bt_handle(uint8_t value) {
 
     //turn on rx wifi, even if missmatch modelId
     //buildElrsPacket(crsfCmdPacket,16,1);
-    
-    
-      if (crsf_devices[device_idx].number_of_params) {
+    if (crsf_devices[device_idx].number_of_params) {
         if (crsf_devices[device_idx].address == ADDR_RADIO) {
           db_out.println("address:radio");
           protocol_read_param(device_idx, &crsf_params[0]);    // only one param now
@@ -575,14 +572,11 @@ void bt_handle(uint8_t value) {
           elrsWrite(crsfCmdPacket,8,200000);
         }
       }
-
+ 
 
     
 
     //serialEvent();
-    powerButtonPressed =1;
-    powerChangeHasRun=true;
-    clickCurrentMicros = crsfTime + (2*1000000);//2sec
 
     }
 
@@ -597,7 +591,7 @@ void sync_crsf (int32_t add_delay) {
   #endif
   if (add_delay>0)
     db_out.printf("delay:%u:%u\n",add_delay,offset);
-  crsfTime += (updated_interval - offset)+add_delay;//set current micros
+  crsfTime += ((updated_interval+add_delay) - offset);//set current micros
   lastCrsfTime = crsfTime; //set time that we send last packet
 }
 
@@ -633,7 +627,6 @@ void ElrsTask( void * pvParameters ){
 
   for(;;){
     uint32_t currentMicros = micros();
-    read_ui_buttons();
 
     //read values of rcChannels
     Aileron_value = analogRead(analogInPinAileron); 
@@ -654,22 +647,22 @@ void ElrsTask( void * pvParameters ){
     rcChannels[5] = FlightMode ? RC_CHANNEL_MIN : RC_CHANNEL_MAX;   
     //Additional switch add here.
     //rcChannels[6] = CH6 ? RC_CHANNEL_MIN : RC_CHANNEL_MAX;   
-    
-
-
-
+      
+      
+    testButtonPressed = digitalRead(DigitalInPinPowerChange);
+  
     if (currentMicros >= crsfTime) {
-      if (powerChangeHasRun==true && 
-          clickCurrentMicros < crsfTime) {
-            powerChangeHasRun = false;
-            clickCurrentMicros = currentMicros;
+        //db_out.printf("loop: %i %i :%u:%u \n",
+      if (powerChangeHasRun==true && clickCurrentMicros < currentMicros) 
+      {
+        //db_out.println("reset");
+        powerChangeHasRun = false;
+        clickCurrentMicros = currentMicros;
       }
-      powerButtonPressed = digitalRead(DigitalInPinPowerChange);
-      //if((powerButtonPressed==0) && (powerChangeHasRun==false)){
-      if((powerButtonPressed==0) && (powerChangeHasRun==false)){
+      if((testButtonPressed==0) && (powerChangeHasRun==false)){
           db_out.println("click");
           bt_handle(1);//TODO
-      } else {
+      } else { //send channels packets
           #if defined(DEBUG_CH)
             char buf [64];
             sprintf (buf, "A:%i:%i;E:%i:%i;T:%i:%i;R:%i:%i;arm:%i;fm:%i\r\n", 
@@ -1000,7 +993,7 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
     }
 
   String tmp;
-  switch (parameter->type) {
+  switch ((int)parameter->type) {
     case 0:
       tmp = "UINT8";
       break;
@@ -1070,21 +1063,27 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
 
 
 
- 
+      char * tmp1;
       for (int i=0;i<params_loaded;i++) {
         if (crsf_params[i].value) {
-          db_out.printf("id:%u:%u:%s:%s:%i:%i:%u:%u\n",
+          tmp1 =  crsf_params[i].value;
+        } else {
+          tmp1 = crsf_params[i].name;
+        }
+
+          db_out.printf("id:%u:%u:%s:%u:%s:%s:%i:%i:%u:%u\n",
             //:val:%s:%s:%i:%i:%u:%s:%u:%u\n",
             crsf_params[i].id,
             crsf_params[i].parent,
             crsf_params[i].name,
-            crsf_params[i].value,
+            crsf_params[i].type,
+            tmp1,
+            tmp,
             crsf_params[i].min_value,
             crsf_params[i].max_value,
-            crsf_params[i].max_str,
-            crsf_params[i].s.info
+            crsf_params[i].changed,
+            crsf_params[i].u.status
             );
-        }
 
 
 

@@ -164,6 +164,10 @@ typedef enum {
 } module_type_t;
 
 
+int selected = 0;
+int entered = -2;
+int updated = 1; 
+
 extern crsf_device_t crsf_devices[CRSF_MAX_DEVICES];
 uint8_t protocol_module_is_elrs();
 
