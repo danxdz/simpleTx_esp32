@@ -124,7 +124,7 @@ typedef struct {
     enum data_type type;  // (Parameter type definitions and hidden bit)
     uint8_t hidden;            // set if hidden
     char *name;           // Null-terminated string
-    void *value;          // size depending on data type
+    char *value;          // size depending on data type
 
     // field presence depends on type
     void *default_value;  // size depending on data type. Not present for COMMAND.

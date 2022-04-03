@@ -100,6 +100,14 @@ crsf_device_t deviation = {
 };
 
 
+//button bouncer
+
+int powerButtonPressed=0;
+bool powerChangeHasRun = false;
+//TODO
+// change to get last rate
+uint8_t packetRateSelected = 0;
+
 elrs_info_t local_info;
 
 elrs_info_t elrs_info;
@@ -465,6 +473,9 @@ void read_ui_buttons () {
     //db_out.printf("ent:%i:sel:%i\n",entered, selected);
     
     //delay(200);
+
+    powerChangeHasRun=true;
+    clickCurrentMicros = crsfTime + (1*1000000);//2sec
 }
 
 void OutputTask( void * pvParameters ){
@@ -524,11 +535,6 @@ void OutputTask( void * pvParameters ){
   }
 }
 
-int powerButtonPressed=0;
-bool powerChangeHasRun = false;
-//TODO
-// change to get last rate
-uint8_t packetRateSelected = 0;
   
 void bt_handle(uint8_t value) {
         if(packetRateSelected>=6) {
@@ -566,7 +572,7 @@ void bt_handle(uint8_t value) {
 
           db_out.printf("address: 0x%x - num par: %u",crsf_devices[device_idx].address, crsf_devices[device_idx].number_of_params);
           CRSF_read_param(crsfCmdPacket,next_param,next_chunk);
-          elrsWrite(crsfCmdPacket,8,20000);
+          elrsWrite(crsfCmdPacket,8,200000);
         }
       }
 
@@ -574,6 +580,7 @@ void bt_handle(uint8_t value) {
     
 
     //serialEvent();
+    powerButtonPressed =1;
     powerChangeHasRun=true;
     clickCurrentMicros = crsfTime + (2*1000000);//2sec
 
@@ -589,7 +596,7 @@ void sync_crsf (int32_t add_delay) {
       db_out.printf("%u ; %u ; %i ; %u\n",lastCrsfTime, crsfTime ,offset,updated_interval);
   #endif
   if (add_delay>0)
-    db_out.printf("delay:%u\n",add_delay);
+    db_out.printf("delay:%u:%u\n",add_delay,offset);
   crsfTime += (updated_interval - offset)+add_delay;//set current micros
   lastCrsfTime = crsfTime; //set time that we send last packet
 }
@@ -658,6 +665,7 @@ void ElrsTask( void * pvParameters ){
             clickCurrentMicros = currentMicros;
       }
       powerButtonPressed = digitalRead(DigitalInPinPowerChange);
+      //if((powerButtonPressed==0) && (powerChangeHasRun==false)){
       if((powerButtonPressed==0) && (powerChangeHasRun==false)){
           db_out.println("click");
           bt_handle(1);//TODO
@@ -814,7 +822,7 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
         } else {
             next_chunk += 1;
             CRSF_read_param(crsfCmdPacket,next_param, next_chunk);
-            elrsWrite(crsfCmdPacket,8,0);
+            elrsWrite(crsfCmdPacket,8,20000);
 
         }
         return;
@@ -832,12 +840,10 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
     int update = parameter->id == buffer[3];
     
     parameter->device = device_idx;
-    db_out.printf(":device: %u\n",device_idx);
-
     parameter->id = buffer[3];
     parameter->parent = *recv_param_ptr++;
-
     parameter->type = static_cast<data_type>(*recv_param_ptr & 0x7f);
+    
     db_out.printf("type: %i \n ",(int) parameter->type);
      
   if (!update) {
@@ -851,9 +857,9 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
         parameter->name = new char[strlen(recv_param_ptr)+1];
         strlcpy(parameter->name, (const char *)recv_param_ptr,strlen(recv_param_ptr)+1);
 
-        db_out.printf("name: %s:%s:", parameter->name,recv_param_ptr);
+      ///  db_out.printf("name: %s:%s:", parameter->name,recv_param_ptr);
         recv_param_ptr += strlen(recv_param_ptr) + 1;
-        db_out.printf("%s\n", recv_param_ptr);
+      //db_out.printf("%s\n", recv_param_ptr);
 
     } else {
         db_out.println("not update");
@@ -886,12 +892,18 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
 
     case TEXT_SELECTION:
         if (!update) {
-          db_out.println("text_sel");
-            parameter->value = ( char *)recv_param_ptr,
-                    CRSF_STRING_BYTES_AVAIL(strlen(recv_param_ptr)+1);
-            recv_param_ptr += strlen(recv_param_ptr) + 1;
-            // put null between selection options
-            // find max choice string length to adjust textselectplate size
+          db_out.println("text_sel: ");
+  
+          parameter->value = new char[strlen(recv_param_ptr)+1];
+          strlcpy(parameter->value, (const char *)recv_param_ptr,strlen(recv_param_ptr)+1);
+
+          
+          db_out.printf("val: %s\n",(char*)parameter->value);
+
+          recv_param_ptr += strlen(recv_param_ptr) + 1;
+          
+          // put null between selection options
+          // find max choice string length to adjust textselectplate size
             char *start = (char *)parameter->value;
             int max_len = 0;
             count = 0;
@@ -906,7 +918,8 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
                     count += 1;
                 }
             }
-            parameter->max_value = count;   // bug fix for incorrect max from device
+            parameter->max_value = count;  
+            // bug fix for incorrect max from device
            // db_out.printf("value:%s par_max: %i",parameter->value,parameter->max_value);
         } else {
             recv_param_ptr += strlen(recv_param_ptr) + 1;
@@ -920,17 +933,15 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
     case INFO:
         db_out.println("info - ");
 
-        if (!update) {        
+         if (!update) {
           
-          db_out.printf("recv_param_ptr %s\n", recv_param_ptr);
-          parameter->value = recv_param_ptr;
-            
-          db_out.printf("value: %s\n",parameter->value);
+          parameter->value = new char[strlen(recv_param_ptr)+1];
+          strlcpy(parameter->value, (const char *)recv_param_ptr,strlen(recv_param_ptr)+1);
 
+          db_out.printf("info val: %s\n",(char*)parameter->value);
           recv_param_ptr += strlen(recv_param_ptr) + 1;
         }
         break;
-
     case STRING:
         {
             const char *value, *default_value;
@@ -960,7 +971,6 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
 
     case COMMAND:
         db_out.println("command");
-
         parse_bytes(UINT8, &recv_param_ptr, &parameter->u.status);
         parse_bytes(UINT8, &recv_param_ptr, &parameter->timeout);
         if (!update) parameter->s.info = ( char *)recv_param_ptr, 20;
@@ -1027,29 +1037,10 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
     default:
       tmp = "unknow";
       break;
-    } 
-  /* db_out.printf("%u%c%c%u%u%u-Name:%s;id:%u;dvc:%u;max:%i;min:%i;def:%x;hd:%u;ch:%u;mstr:%u;par:%u;sp:%i;vl:%u;to:%u;status:%u\n",
-  parameter->type,
-  parameter->s.info,
-  parameter->s.unit,
-  parameter->u.point,
-  parameter->u.string_max_len,
-  parameter->u.text_sel,
-  parameter->name,
-  parameter->id,
-  parameter->device,
-  parameter->max_value,
-  parameter->min_value,
-  parameter->default_value,
-  parameter->hidden,
-  parameter->changed,
-  parameter->max_str,
-  parameter->parent,
-  parameter->step,
-  parameter->value,
-  parameter->timeout,
-  parameter->u.status);
-   */
+    }
+    
+   
+   
 
     recv_param_ptr = recv_param_buffer;
     next_chunk = 0;
@@ -1069,16 +1060,42 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
       //db_out.printf("id:%u:%s\n",parameter->id,parameter->name);
 
         CRSF_read_param(crsfCmdPacket, next_param, next_chunk);
-        elrsWrite(crsfCmdPacket,8,0);
+        elrsWrite(crsfCmdPacket,8,20000);
   } else {
     db_out.printf("0_count_out:%u:%u:%u\n",
         device_idx,
         crsf_devices[device_idx].number_of_params,
         params_loaded);
-    next_param = 0;
+      next_param = 0;
+
+
+
+ 
       for (int i=0;i<params_loaded;i++) {
-      db_out.printf("ID:%u:%s:%i:%u\n",crsf_params[i].id,crsf_params[i].name,(int)crsf_params[i].type,crsf_params[i].u.status);
+        if (crsf_params[i].value) {
+          db_out.printf("id:%u:%u:%s:%s:%i:%i:%u:%u\n",
+            //:val:%s:%s:%i:%i:%u:%s:%u:%u\n",
+            crsf_params[i].id,
+            crsf_params[i].parent,
+            crsf_params[i].name,
+            crsf_params[i].value,
+            crsf_params[i].min_value,
+            crsf_params[i].max_value,
+            crsf_params[i].max_str,
+            crsf_params[i].s.info
+            );
+        }
+
+
+
+      /*
+      crsf_params[i].changed,
+      crsf_params[i].max_str,
+      crsf_params[i].u.text_sel,
+      crsf_params[i].u.status); */
     }  
+
+
   //db_out.printf("id:%u:%s\n",crsf_params->id,crsf_params->name);
 
   }

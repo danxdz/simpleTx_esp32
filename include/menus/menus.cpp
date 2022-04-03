@@ -18,14 +18,21 @@ bool serial_debug = true;
 void displayMenu(crsf_param_t *crsf_p) { 
   display.println(F("Dsn menu test"));
   display.println("");
-  for (int i = 0; i < 6; i++) {
-    if (i == selected) {
-      display.setTextColor(SSD1306_BLACK, SSD1306_WHITE);
-      display.println(crsf_p[i].name);
+  char *menu_item;
+  char *menu_options;
+  char submenu[sizeof(menu_options)];
 
-    } else if (i != selected) {
-      display.setTextColor(SSD1306_WHITE);
-      display.println(crsf_p[i].name);
+
+  for (int i = 0; i < 20; i++) {
+    if (crsf_p[i].parent == 0) {
+      menu_item = crsf_p[i].name;
+      menu_options = crsf_p[i].value;
+
+      if (i == selected)
+        display.setTextColor(SSD1306_BLACK, SSD1306_WHITE);
+      else if (i != selected)
+        display.setTextColor(SSD1306_WHITE);
+      display.printf("%s   <%s>\n",menu_item,(char *) crsf_p[i].u.status);
     }
   }
 }
