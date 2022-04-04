@@ -11,6 +11,7 @@
         "iomanip": "cpp",
         "istream": "cpp",
         "ostream": "cpp",
-        "new": "cpp"
+        "new": "cpp",
+        "typeinfo": "cpp"
     }
 }

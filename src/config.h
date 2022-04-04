@@ -157,6 +157,17 @@ typedef struct {
     char name[CRSF_MAX_NAME_LEN];
 } crsf_device_t;
 
+typedef struct {
+    uint8_t id;
+    char *name;
+    char *value;
+    uint8_t parent;
+    char * opt_list[50];
+    uint8_t opt_count;
+} menu_items;
+
+extern menu_items mItems[50];
+
 typedef enum {
     MODULE_UNKNOWN,
     MODULE_ELRS,

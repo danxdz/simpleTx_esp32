@@ -470,7 +470,7 @@ void read_ui_buttons () {
     }
 
 
-    //db_out.printf("ent:%i:sel:%i\n",entered, selected);
+    db_out.printf("ent:%i:sel:%i\n",entered, selected);
     
     //powerChangeHasRun=true;
     //clickCurrentMicros = crsfTime + (2*1000000);//2sec
@@ -501,11 +501,13 @@ void OutputTask( void * pvParameters ){
   startDisplay();
   bt_handle(1);
   delay(5000);
-  crsf_param_t menu_parents[CRSF_MAX_PARAMS];
-  memset(menu_parents, 0, sizeof menu_parents);
+
   int num_menu_item=0;
-  char *opt_list[20];
   int count = 0;
+
+  bool menu_loaded = false;
+  menu_items mItems[params_loaded];
+  memset(mItems, 0, sizeof mItems);
 
   for(;;){
     /* if ((MODULE_IS_ELRS)&&(local_info.good_pkts==0)) {
@@ -515,8 +517,76 @@ void OutputTask( void * pvParameters ){
     
     //CRSF_get_elrs(crsfCmdPacket);
     //elrsWrite(crsfCmdPacket,sizeof(crsfCmdPacket),2000000);
-    if (params_loaded==crsf_devices[0].number_of_params) {
 
+
+    if (params_loaded==crsf_devices[0].number_of_params) {
+      if (!menu_loaded) {
+        menu_items *mItemsP;
+      for (int i = 0; i < 20; i++) {
+        if (crsf_params[i].parent == 0) {
+          //set pointer
+          mItemsP = &mItems[num_menu_item];
+          //copy id
+          mItemsP->id = crsf_params[i].id;
+          //copy name
+          mItemsP->name = new char[strlen(crsf_params[i].name)+1];
+          strlcpy(mItemsP->name,
+          crsf_params[i].name,strlen(crsf_params[i].name)+1);
+         
+          //copy value
+          if (crsf_params[i].value) {
+            mItemsP->value = new char[strlen(crsf_params[i].value)+1];
+            strlcpy(mItemsP->value,
+            crsf_params[i].value,strlen(crsf_params[i].value)+1);
+       
+            //divise value options
+            char *start = (char *) mItems[num_menu_item].value;
+            char *box_size;
+            int max_len = 0;
+            db_out.printf("mItemsP->value: %s\n",mItems[num_menu_item].value);
+            count = 0;
+            for (char *p = (char *)mItems[num_menu_item].value; *p; p++) {
+              if (*p == ';') {
+                *p = '\n';//changed to maintain ;
+                if (p - start > max_len) {
+                  box_size = start;  // save max to determine gui box size
+                  max_len = p - start;
+                }
+            
+              int len = (strlen(start)-strlen(p));
+              // new
+              mItemsP->opt_list[count] = new char[len+1];
+              strlcpy(mItemsP->opt_list[count],start,len+1);
+
+              ///db_out.printf("len: %i:%s\n", len,opt_list[count]);
+                
+              //db_out.printf("p: %i\n - cv:%s\n::p:%s\n::str:%s\n::box:%s\n",
+              //count,menu_parents[selected].value,p,start,box_size); 
+              start = p+1;
+              count += 1;
+              } 
+            } // end for - divise value string
+            mItemsP->opt_count = count;
+            db_out.printf("count: %i\n",count);
+
+            //db_out.printf("num_params: %i",num_menu_item);
+          } else {  // end value 
+            mItemsP->value = new char[2];
+            mItemsP->value = (char *) "0";
+            mItemsP->opt_count = 0;
+
+          }
+          db_out.printf("mItems_all:%u:%s:%s:%u\n",
+          mItems[num_menu_item].id,
+          mItems[num_menu_item].name,
+          mItems[num_menu_item].value,
+          mItems[num_menu_item].opt_count);
+          num_menu_item++;
+         
+        }
+      }  // end for    
+    menu_loaded = true;
+    } else {
     updateDisplay(
           LinkStatistics.downlink_RSSI,
           LinkStatistics.downlink_Link_quality,
@@ -531,81 +601,17 @@ void OutputTask( void * pvParameters ){
           crsf_devices->name,
           module_type,
           num_menu_item,
-          menu_parents,
-          opt_list,
-          count,
+          mItems,
           entered); 
     delay(500);
     read_ui_buttons();
+    }
     } else {
       bt_handle(1);
       delay(2000);
 
-      crsf_param_t *menu_parents_pointer;
-
-      for (int i = 0; i < 20; i++) {
-        if (crsf_params[i].parent == 0) {
-          menu_parents_pointer = &menu_parents[num_menu_item];
-          //copy id
-          menu_parents_pointer->id = crsf_params[i].id;
-          //copy name
-          menu_parents_pointer->name = new char[strlen(crsf_params[i].name)+1];
-          strlcpy(menu_parents_pointer->name,
-          crsf_params[i].name,strlen(crsf_params[i].name)+1);
-          //copy values
-          if (crsf_params[i].value) {
-            menu_parents_pointer->value = new char[strlen(crsf_params[i].value)+1];
-            strlcpy(menu_parents_pointer->value,
-            crsf_params[i].value,strlen(crsf_params[i].value)+1);
-          } else {
-            menu_parents_pointer->value = new char[1];
-            menu_parents_pointer->value = (char *) "0";
-          }
-
-          db_out.printf("menu_parents_pointer:%u:%s:%s\n",
-          menu_parents[num_menu_item].id,
-          menu_parents[num_menu_item].name,
-          menu_parents[num_menu_item].value);
-          num_menu_item++;
- 
-        }
-
-      }
-
-      char *start = (char *) menu_parents[selected].value;
-      char *box_size;
-      int max_len = 0;
-      for (char *p = (char *)menu_parents[selected].value; *p; p++) {
-        if (*p == ';') {
-          *p = '\n';//changed to maintain ;
-          if (p - start > max_len) {
-            box_size = start;  // save max to determine gui box size
-            max_len = p - start;
-          }
-        int len = (strlen(start)-strlen(p));
-    
-        opt_list[count] = new char[len+1];
-        strlcpy(opt_list[count],start,len+1);
-        db_out.printf("len: %i:%s\n", len,opt_list[count]);
-          
-        db_out.printf("p: %i\n - cv:%s\n::p:%s\n::str:%s\n::box:%s\n",
-        count,menu_parents[selected].value,p,start,box_size); 
-        start = p+1;
-        count += 1;
-      
-        db_out.printf("list: %i\n",count);
-
-        for (int i = 0;i<count;i++) {
-          if (opt_list[i])
-            db_out.printf("%i:%s\n",
-            i,opt_list[i]);
-            display.printf("< %s >\n",opt_list[i]);
-            }
-        }
-      }
-      //db_out.printf("num_params: %i",num_menu_item);
-    }
-  }
+    } // end else (if not all parameters)
+  } // end main loop
 }
 
   
