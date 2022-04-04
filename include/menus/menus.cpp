@@ -35,27 +35,28 @@ void displayMenu(char * name,crsf_param_t *crsf_p,int num) {
     
     menu_item = crsf_p[i].name;
     menu_item_id = crsf_p[i].id;
-
     //TODO options
-    display.printf("%s<1>\n",menu_item);
+    display.printf("%s\n",menu_item);
   }
    if (offset>0) {
     display.setTextColor(SSD1306_WHITE);
     display.printf("... \n");
   } 
 }
-
-void displaySubmenu() { 
-    display.println("test");
-    display.printf("Menu option %i\n",selected+1);
+void displaySubmenu(crsf_param_t *cv, int num_items,char *opt_list[20],int count) { 
+    display.println("CRSF config");
+    display.printf("%s options:\n",cv[selected].name);
     display.println("");
-    if (updated==0){
-      updated=1;
-      for (int i=0;i<=3;i++) {
-        //Serial.printf("%i:%i\n",selected,i);
-        display.println("submenu");
-      }
-    }
+    
+  for (int i = 0; i < count; i++)
+  {    
+    db_out.printf("lines %s\n",opt_list[i]);
+    display.printf("%s\n",opt_list[i]);
+
+  }
+  
+    
+
 }
 void updateDisplay(
                     int8_t tx_rssi,
@@ -72,6 +73,8 @@ void updateDisplay(
                     module_type_t typeModule,
                     int num_menu_item,
                     crsf_param_t *cv,
+                    char *opt_list[20],
+                    int count,
                     int entered  ) {
 
 display.clearDisplay();
@@ -80,7 +83,6 @@ display.setTextColor(SSD1306_WHITE);
 display.setCursor(0, 0);
      
   if (entered == -1) {
-    db_out.printf("hnum::%i\n",num_menu_item);
     displayMenu(name,cv,num_menu_item);
   }
   else if (entered == -2) {
@@ -107,7 +109,7 @@ display.setCursor(0, 0);
     display.setTextSize(1);             // Normal 1:1 pixel scale
     display.printf("%u:%u",bpkts,gpkts);
   } else {
-    displaySubmenu();
+    displaySubmenu(cv,num_menu_item,opt_list,count);
   }
   display.display();
   //delay(200);

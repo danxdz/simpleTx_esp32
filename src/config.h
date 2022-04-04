@@ -165,7 +165,7 @@ typedef enum {
 
 //setup menus
 int selected = 0;
-int entered = -1;
+int entered = 0;
 int updated = 1; 
 
 extern crsf_device_t crsf_devices[CRSF_MAX_DEVICES];

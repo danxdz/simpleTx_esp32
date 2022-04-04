@@ -504,6 +504,8 @@ void OutputTask( void * pvParameters ){
   crsf_param_t menu_parents[CRSF_MAX_PARAMS];
   memset(menu_parents, 0, sizeof menu_parents);
   int num_menu_item=0;
+  char *opt_list[20];
+  int count = 0;
 
   for(;;){
     /* if ((MODULE_IS_ELRS)&&(local_info.good_pkts==0)) {
@@ -530,6 +532,8 @@ void OutputTask( void * pvParameters ){
           module_type,
           num_menu_item,
           menu_parents,
+          opt_list,
+          count,
           entered); 
     delay(500);
     read_ui_buttons();
@@ -542,28 +546,65 @@ void OutputTask( void * pvParameters ){
       for (int i = 0; i < 20; i++) {
         if (crsf_params[i].parent == 0) {
           menu_parents_pointer = &menu_parents[num_menu_item];
-
+          //copy id
           menu_parents_pointer->id = crsf_params[i].id;
-          //menu_parents_pointer->name = crsf_params[i].name;
-          menu_parents_pointer->name = new char[strlen(crsf_params[i].name)];
-         
+          //copy name
+          menu_parents_pointer->name = new char[strlen(crsf_params[i].name)+1];
           strlcpy(menu_parents_pointer->name,
           crsf_params[i].name,strlen(crsf_params[i].name)+1);
-          db_out.printf("menu_parents_pointer:%u:%s\n",
+          //copy values
+          if (crsf_params[i].value) {
+            menu_parents_pointer->value = new char[strlen(crsf_params[i].value)+1];
+            strlcpy(menu_parents_pointer->value,
+            crsf_params[i].value,strlen(crsf_params[i].value)+1);
+          } else {
+            menu_parents_pointer->value = new char[1];
+            menu_parents_pointer->value = (char *) "0";
+          }
+
+          db_out.printf("menu_parents_pointer:%u:%s:%s\n",
           menu_parents[num_menu_item].id,
-          menu_parents[num_menu_item].name);
+          menu_parents[num_menu_item].name,
+          menu_parents[num_menu_item].value);
           num_menu_item++;
+ 
+        }
 
+      }
 
-/* 
-           menu_parents_pointer->id = crsf_params[i].id;
-            menu_parents_pointer->name = crsf_params[i].name;
-            menu_parents_pointer->parent = crsf_params[i].parent; */
+      char *start = (char *) menu_parents[selected].value;
+      char *box_size;
+      int max_len = 0;
+      for (char *p = (char *)menu_parents[selected].value; *p; p++) {
+        if (*p == ';') {
+          *p = '\n';//changed to maintain ;
+          if (p - start > max_len) {
+            box_size = start;  // save max to determine gui box size
+            max_len = p - start;
+          }
+        int len = (strlen(start)-strlen(p));
+    
+        opt_list[count] = new char[len+1];
+        strlcpy(opt_list[count],start,len+1);
+        db_out.printf("len: %i:%s\n", len,opt_list[count]);
+          
+        db_out.printf("p: %i\n - cv:%s\n::p:%s\n::str:%s\n::box:%s\n",
+        count,menu_parents[selected].value,p,start,box_size); 
+        start = p+1;
+        count += 1;
+      
+        db_out.printf("list: %i\n",count);
+
+        for (int i = 0;i<count;i++) {
+          if (opt_list[i])
+            db_out.printf("%i:%s\n",
+            i,opt_list[i]);
+            display.printf("< %s >\n",opt_list[i]);
+            }
         }
       }
-      db_out.printf("num_params: %i",num_menu_item);
+      //db_out.printf("num_params: %i",num_menu_item);
     }
-
   }
 }
 
@@ -939,7 +980,7 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
             count = 0;
             for (char *p = (char *)parameter->value; *p; p++) {
                 if (*p == ';') {
-                    *p = ';';
+                    *p = ';';//changed to maintain ;
                     if (p - start > max_len) {
                         parameter->max_str = start;  // save max to determine gui box size
                         max_len = p - start;
