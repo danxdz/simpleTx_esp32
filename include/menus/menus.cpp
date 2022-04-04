@@ -11,21 +11,40 @@
 
  
 
-void displayMenu(char * name,crsf_param_t *crsf_p) { 
+void displayMenu(char * name,crsf_param_t *crsf_p,int num) { 
   display.println(name);
-  display.println("");
-  char *menu_item;
-  for (int i = 0; i < 20; i++) {
-    if (crsf_p[i].parent == 0) {
-      menu_item = crsf_p[i].name;
-      if (i == selected)
-        display.setTextColor(SSD1306_BLACK, SSD1306_WHITE);
-      else if (i != selected)
-        display.setTextColor(SSD1306_WHITE);
-      display.printf("%s   <1>\n",menu_item);
-    }
+
+  char * menu_item;
+  uint8_t menu_item_id;
+  int page_off = num%5;
+
+  int page = (selected/5);
+  int offset = num-5;
+  int start = page*5;
+  int max = (num-offset)*(page+1);
+  if (max>num) max = num;
+  if (selected>=num) selected = 0;
+  display.printf("%i:%i:%i:%i:%i:%i \n",
+  selected,offset,page_off,max,page,start);
+  
+  for (int i = start; i < max; i++) {
+    if (i == selected)
+      display.setTextColor(SSD1306_BLACK, SSD1306_WHITE);
+    else if (i != selected)
+      display.setTextColor(SSD1306_WHITE);
+    
+    menu_item = crsf_p[i].name;
+    menu_item_id = crsf_p[i].id;
+
+    //TODO options
+    display.printf("%s<1>\n",menu_item);
   }
+   if (offset>0) {
+    display.setTextColor(SSD1306_WHITE);
+    display.printf("... \n");
+  } 
 }
+
 void displaySubmenu() { 
     display.println("test");
     display.printf("Menu option %i\n",selected+1);
@@ -51,17 +70,19 @@ void updateDisplay(
                     uint16_t gpkts,
                     char * name,
                     module_type_t typeModule,
-                    int params_loaded,
-                    crsf_param_t *crsf_params,
+                    int num_menu_item,
+                    crsf_param_t *cv,
                     int entered  ) {
 
 display.clearDisplay();
 display.setTextSize(1);
 display.setTextColor(SSD1306_WHITE);
 display.setCursor(0, 0);
-   
-  if (entered == -1) 
-    displayMenu(name,crsf_params);
+     
+  if (entered == -1) {
+    db_out.printf("hnum::%i\n",num_menu_item);
+    displayMenu(name,cv,num_menu_item);
+  }
   else if (entered == -2) {
     //display.println(F("main"));
     //updateDisplay();

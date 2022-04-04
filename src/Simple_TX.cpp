@@ -454,7 +454,8 @@ void read_ui_buttons () {
       if ((up == LOW) && (entered != selected))
         selected = (selected <= 0) ? 0 : selected-1;
       if ((down == LOW) && (entered != selected))
-        selected = (selected >= 5 ) ? 5 : selected+1;
+        //selected = (selected >= 4 ) ? 4 : selected+1;
+        selected++;
       if ((enter == LOW))
         entered = selected;
       if (back == LOW) entered = -2;
@@ -497,10 +498,13 @@ void OutputTask( void * pvParameters ){
   display.printf("simpleTX");
   display.display();
   delay(1000);
-          
   startDisplay();
-  delay(2000);
   bt_handle(1);
+  delay(5000);
+  crsf_param_t menu_parents[CRSF_MAX_PARAMS];
+  memset(menu_parents, 0, sizeof menu_parents);
+  int num_menu_item=0;
+
   for(;;){
     /* if ((MODULE_IS_ELRS)&&(local_info.good_pkts==0)) {
       CRSF_get_elrs(crsfCmdPacket);
@@ -509,6 +513,8 @@ void OutputTask( void * pvParameters ){
     
     //CRSF_get_elrs(crsfCmdPacket);
     //elrsWrite(crsfCmdPacket,sizeof(crsfCmdPacket),2000000);
+    if (params_loaded==crsf_devices[0].number_of_params) {
+
     updateDisplay(
           LinkStatistics.downlink_RSSI,
           LinkStatistics.downlink_Link_quality,
@@ -522,11 +528,41 @@ void OutputTask( void * pvParameters ){
           local_info.good_pkts,
           crsf_devices->name,
           module_type,
-          params_loaded,
-          crsf_params,
+          num_menu_item,
+          menu_parents,
           entered); 
     delay(500);
     read_ui_buttons();
+    } else {
+      bt_handle(1);
+      delay(2000);
+
+      crsf_param_t *menu_parents_pointer;
+
+      for (int i = 0; i < 20; i++) {
+        if (crsf_params[i].parent == 0) {
+          menu_parents_pointer = &menu_parents[num_menu_item];
+
+          menu_parents_pointer->id = crsf_params[i].id;
+          //menu_parents_pointer->name = crsf_params[i].name;
+          menu_parents_pointer->name = new char[strlen(crsf_params[i].name)];
+         
+          strlcpy(menu_parents_pointer->name,
+          crsf_params[i].name,strlen(crsf_params[i].name)+1);
+          db_out.printf("menu_parents_pointer:%u:%s\n",
+          menu_parents[num_menu_item].id,
+          menu_parents[num_menu_item].name);
+          num_menu_item++;
+
+
+/* 
+           menu_parents_pointer->id = crsf_params[i].id;
+            menu_parents_pointer->name = crsf_params[i].name;
+            menu_parents_pointer->parent = crsf_params[i].parent; */
+        }
+      }
+      db_out.printf("num_params: %i",num_menu_item);
+    }
 
   }
 }
@@ -622,7 +658,7 @@ void ElrsTask( void * pvParameters ){
   device_idx = 0;
   crsfdevice_init();
   current_folder = 0;
-  crsf_param_t *param = current_param(0);
+  crsf_param_t *param;// = current_param(0);
   db_out.printf("********hdr : %s\n",(char *) hdr_str_cb(param));
 
   for(;;){

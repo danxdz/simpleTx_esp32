@@ -163,9 +163,9 @@ typedef enum {
     MODULE_OTHER,
 } module_type_t;
 
-
+//setup menus
 int selected = 0;
-int entered = -2;
+int entered = -1;
 int updated = 1; 
 
 extern crsf_device_t crsf_devices[CRSF_MAX_DEVICES];
