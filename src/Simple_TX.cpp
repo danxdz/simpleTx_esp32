@@ -111,7 +111,7 @@ elrs_info_t elrs_info;
 crsf_device_t crsf_devices[CRSF_MAX_DEVICES];
 
 crsf_param_t crsf_params[CRSF_MAX_PARAMS];
-
+menu_items mItems[CRSF_MAX_PARAMS];
 
 static uint8_t model_id_send;
 static uint32_t elrs_info_time;
@@ -470,7 +470,7 @@ void read_ui_buttons () {
     }
 
 
-    db_out.printf("ent:%i:sel:%i\n",entered, selected);
+    //db_out.printf("ent:%i:sel:%i\n",entered, selected);
     
     //powerChangeHasRun=true;
     //clickCurrentMicros = crsfTime + (2*1000000);//2sec
@@ -506,8 +506,6 @@ void OutputTask( void * pvParameters ){
   int count = 0;
 
   bool menu_loaded = false;
-  menu_items mItems[params_loaded];
-  memset(mItems, 0, sizeof mItems);
 
   for(;;){
     /* if ((MODULE_IS_ELRS)&&(local_info.good_pkts==0)) {
@@ -519,7 +517,9 @@ void OutputTask( void * pvParameters ){
     //elrsWrite(crsfCmdPacket,sizeof(crsfCmdPacket),2000000);
 
 
-    if (params_loaded==crsf_devices[0].number_of_params) {
+     if (params_loaded==crsf_devices[0].number_of_params) {
+
+       /* 
       if (!menu_loaded) {
         menu_items *mItemsP;
       for (int i = 0; i < 20; i++) {
@@ -584,9 +584,10 @@ void OutputTask( void * pvParameters ){
           num_menu_item++;
          
         }
-      }  // end for    
-    menu_loaded = true;
+      }  // end for     
+    menu_loaded = true; 
     } else {
+      */
     updateDisplay(
           LinkStatistics.downlink_RSSI,
           LinkStatistics.downlink_Link_quality,
@@ -600,12 +601,12 @@ void OutputTask( void * pvParameters ){
           local_info.good_pkts,
           crsf_devices->name,
           module_type,
-          num_menu_item,
+          params_loaded,
           mItems,
           entered); 
     delay(500);
     read_ui_buttons();
-    }
+    //}
     } else {
       bt_handle(1);
       delay(2000);
@@ -686,6 +687,7 @@ static void crsfdevice_init() {
     params_displayed = 0;
     next_string = mp->strings;
     memset(crsf_params, 0, sizeof crsf_params);
+    memset(mItems, 0, sizeof mItems);
     //CBUF_Init(send_buf);
 }
 
@@ -705,7 +707,7 @@ void ElrsTask( void * pvParameters ){
   device_idx = 0;
   crsfdevice_init();
   current_folder = 0;
-  crsf_param_t *param;// = current_param(0);
+  crsf_param_t *param;
   db_out.printf("********hdr : %s\n",(char *) hdr_str_cb(param));
 
   for(;;){
@@ -858,7 +860,7 @@ static char *alloc_string(int32_t bytes) {
 static uint8_t count_params_loaded() {
     int i;
     for (i=0; i < CRSF_MAX_PARAMS; i++) {
-        if (crsf_params[i].id == 0) break;
+        if (mItems[i].id == 0) break;
         //db_out.printf("count_in: %i:%u\n",i,crsf_params[i].id);
     }
     return i;
@@ -866,7 +868,6 @@ static uint8_t count_params_loaded() {
 
 static crsf_param_t *param_by_id(int id) {
     crsf_param_t *param = crsf_params;
-
     while (param->id) {
         if (param->id == id)
             return param;
@@ -913,55 +914,48 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
         next_param = 0;
         return;
     }
-    crsf_param_t *parameter = &crsf_params[buffer[3]-1];
-    int update = parameter->id == buffer[3];
+    //** menu item struct
+
+    menu_items *mItemP = &mItems[buffer[3]-1]; 
+    int update = mItemP->id == buffer[3];
+    mItemP->device = device_idx;
+    mItemP->id = buffer[3];
+    mItemP->parent = *recv_param_ptr++;
+    mItemP->type = static_cast<data_type>(*recv_param_ptr & 0x7f);
     
-    parameter->device = device_idx;
-    parameter->id = buffer[3];
-    parameter->parent = *recv_param_ptr++;
-    parameter->type = static_cast<data_type>(*recv_param_ptr & 0x7f);
-    
-    db_out.printf("type: %i \n ",(int) parameter->type);
+    db_out.printf("type: %i \n ",(int) mItemP->type);
      
   if (!update) {
-        parameter->hidden = *recv_param_ptr++ & 0x80;
-       
-      /*  char tmp[strlen(recv_param_ptr)+1];
-      memset(tmp, 0, sizeof tmp);
+        mItemP->hidden = *recv_param_ptr++ & 0x80;
 
-       strlcpy(tmp, (const char *)recv_param_ptr,strlen(recv_param_ptr)+1);
- */
-        parameter->name = new char[strlen(recv_param_ptr)+1];
-        strlcpy(parameter->name, (const char *)recv_param_ptr,strlen(recv_param_ptr)+1);
-
-      ///  db_out.printf("name: %s:%s:", parameter->name,recv_param_ptr);
-        recv_param_ptr += strlen(recv_param_ptr) + 1;
-      //db_out.printf("%s\n", recv_param_ptr);
-
+        mItemP->name = new char[strlen(recv_param_ptr)+1];
+        strlcpy(mItemP->name, (const char *)recv_param_ptr,strlen(recv_param_ptr)+1);
+       recv_param_ptr += strlen(recv_param_ptr) + 1;
+      
     } else {
         db_out.println("not update");
-        if (parameter->hidden != (*recv_param_ptr & 0x80))
+        if (mItemP->hidden != (*recv_param_ptr & 0x80))
             params_loaded = 0;   // if item becomes hidden others may also, so reload all params
-        parameter->hidden = *recv_param_ptr++ & 0x80;
+        mItemP->hidden = *recv_param_ptr++ & 0x80;
         recv_param_ptr += strlen(recv_param_ptr) + 1;
     }
     int count;
-    switch (parameter->type) {
+    switch (mItemP->type) {
     case UINT8:
     case INT8:
     case UINT16:
     case INT16:
     case FLOAT:
-        parse_bytes(parameter->type, &recv_param_ptr, &parameter->value);
-        parse_bytes(parameter->type, &recv_param_ptr, &parameter->min_value);
-        parse_bytes(parameter->type, &recv_param_ptr, &parameter->max_value);
-        parse_bytes(parameter->type, &recv_param_ptr, &parameter->default_value);
-        if (parameter->type == FLOAT) {
-            parse_bytes(UINT8, &recv_param_ptr, &parameter->u.point);
-            parse_bytes(FLOAT, &recv_param_ptr, &parameter->step);
+        parse_bytes(mItemP->type, &recv_param_ptr, &mItemP->value);
+        parse_bytes(mItemP->type, &recv_param_ptr, &mItemP->min_value);
+        parse_bytes(mItemP->type, &recv_param_ptr, &mItemP->max_value);
+        parse_bytes(mItemP->type, &recv_param_ptr, &mItemP->default_value);
+        if (mItemP->type == FLOAT) {
+            parse_bytes(UINT8, &recv_param_ptr, &mItemP->u.point);
+            parse_bytes(FLOAT, &recv_param_ptr, &mItemP->step);
         } else if (*recv_param_ptr) {
           db_out.println("eeerrr");
-            if (!update) parameter->s.unit = ( char *)recv_param_ptr,
+            if (!update) mItemP->s.unit = ( char *)recv_param_ptr,
                     CRSF_STRING_BYTES_AVAIL(strlen(recv_param_ptr)+1);
 
         }
@@ -971,31 +965,35 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
         if (!update) {
           db_out.println("text_sel: ");
   
-          parameter->value = new char[strlen(recv_param_ptr)+1];
-          strlcpy(parameter->value, (const char *)recv_param_ptr,strlen(recv_param_ptr)+1);
+          mItemP->value = new char[strlen(recv_param_ptr)+1];
+          strlcpy(mItemP->value, (const char *)recv_param_ptr,strlen(recv_param_ptr)+1);
 
           
-          db_out.printf("val: %s\n",(char*)parameter->value);
+          db_out.printf("val: %s\n",(char*)mItemP->value);
 
           recv_param_ptr += strlen(recv_param_ptr) + 1;
           
           // put null between selection options
           // find max choice string length to adjust textselectplate size
-            char *start = (char *)parameter->value;
-            int max_len = 0;
+            char *start = (char *)mItemP->value;
+            
             count = 0;
-            for (char *p = (char *)parameter->value; *p; p++) {
+            for (char *p = (char *)mItemP->value; *p; p++) {
                 if (*p == ';') {
-                    *p = ';';//changed to maintain ;
-                    if (p - start > max_len) {
-                        parameter->max_str = start;  // save max to determine gui box size
-                        max_len = p - start;
-                    }
+                    int len = (strlen(start)-strlen(p));
+                    mItemP->opt_list[count] = new char[len+1];
+                    strlcpy(mItemP->opt_list[count],start,len+1);
+                    db_out.printf("%i:%i\np:%s:\ns:%s\no:%s\n",count,len,p,start,mItemP->opt_list[count]);
                     start = p+1;
                     count += 1;
                 }
             }
-            parameter->max_value = count;   
+            int len = strlen(start);
+            mItemP->opt_list[count] = new char[len+1];
+            strlcpy(mItemP->opt_list[count],start,len+1);
+                   
+            mItemP->max_value = count;   
+            db_out.printf("%i:%i\ns:%s:\no:%s\n",count,len,start,mItemP->opt_list[count]);
 
 
             // bug fix for incorrect max from device
@@ -1003,10 +1001,10 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
         } else {
             recv_param_ptr += strlen(recv_param_ptr) + 1;
         }
-        parse_bytes(UINT8, &recv_param_ptr, &parameter->u.text_sel);
-        parse_bytes(UINT8, &recv_param_ptr, &parameter->min_value);
+        parse_bytes(UINT8, &recv_param_ptr, &mItemP->u.text_sel);
+        parse_bytes(UINT8, &recv_param_ptr, &mItemP->min_value);
         parse_bytes(UINT8, &recv_param_ptr, &count);  // don't use incorrect parameter->max_value
-        parse_bytes(UINT8, &recv_param_ptr, &parameter->default_value);
+        parse_bytes(UINT8, &recv_param_ptr, &mItemP->default_value);
         break;
 
     case INFO:
@@ -1014,11 +1012,11 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
 
          if (!update) {
           
-          parameter->value = new char[strlen(recv_param_ptr)+1];
-          strlcpy(parameter->value, (const char *)recv_param_ptr,strlen(recv_param_ptr)+1);
+          mItemP->value = new char[strlen(recv_param_ptr)+1];
+          strlcpy(mItemP->value, (const char *)recv_param_ptr,strlen(recv_param_ptr)+1);
 
-          db_out.printf("info val: %s\n",(char*)parameter->value);
-          recv_param_ptr += strlen(recv_param_ptr) + 1;
+          db_out.printf("info val: %s\n",(char*)mItemP->value);
+          mItemP += strlen(recv_param_ptr) + 1;
         }
         break;
     case STRING:
@@ -1028,31 +1026,31 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
             recv_param_ptr += strlen(value) + 1;
             default_value = recv_param_ptr;
             recv_param_ptr += strlen(default_value) + 1;
-            parse_bytes(UINT8, &recv_param_ptr, &parameter->u.string_max_len);
+            parse_bytes(UINT8, &recv_param_ptr, &mItemP->u.string_max_len);
       
             // No string re-sizing so allocate max length for value
-        if (!update) parameter->value = new char[(parameter->u.string_max_len+1)];
-          strlcpy(parameter->value, value,
-            MIN(parameter->u.string_max_len+1,
-                        CRSF_STRING_BYTES_AVAIL(parameter->value)));
-        if (!update) parameter->default_value = new char[strlen(default_value)+1];
-            strlcpy(parameter->default_value, default_value,
-                    CRSF_STRING_BYTES_AVAIL(parameter->default_value));
-        db_out.printf("STRING - %s:%s \n",parameter->value,parameter->default_value);
+        if (!update) mItemP->value = new char[(mItemP->u.string_max_len+1)];
+          strlcpy(mItemP->value, value,
+            MIN(mItemP->u.string_max_len+1,
+                        CRSF_STRING_BYTES_AVAIL(mItemP->value)));
+        if (!update) mItemP->default_value = new char[strlen(default_value)+1];
+            strlcpy(mItemP->default_value, default_value,
+                    CRSF_STRING_BYTES_AVAIL(mItemP->default_value));
+        db_out.printf("STRING - %s:%s \n",mItemP->value,mItemP->default_value);
 
       }
         break;
 
     case COMMAND:
-        parse_bytes(UINT8, &recv_param_ptr, &parameter->u.status);
-        parse_bytes(UINT8, &recv_param_ptr, &parameter->timeout);
-        if (!update) parameter->s.info = new char[20];
-        strlcpy(parameter->s.info, (const char *)recv_param_ptr, 20);
-        db_out.printf("command val:%s\n",parameter->s.info);
+        parse_bytes(UINT8, &recv_param_ptr, &mItemP->u.status);
+        parse_bytes(UINT8, &recv_param_ptr, &mItemP->timeout);
+        if (!update) mItemP->s.info = new char[20];
+        strlcpy(mItemP->s.info, (const char *)recv_param_ptr, 20);
+        db_out.printf("command val:%s\n",mItemP->s.info);
 
-        command.param = parameter;
+        //command.param = mItemP;
         command.time = 0;
-        switch (parameter->u.status) {
+        switch (mItemP->u.status) {
         case PROGRESS:
             db_out.println("PROGRESS");
             //command.time = CLOCK_getms();
@@ -1107,50 +1105,36 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
       char * tmp1;
       char * tmp_info;
       for (int i=0;i<params_loaded;i++) {
-        if (crsf_params[i].value) {
-          tmp1 =  crsf_params[i].value;
+        if (mItems[i].value) {
+          tmp1 =  mItems[i].value;
         } else {
-          tmp1 = crsf_params[i].name;
+          tmp1 = mItems[i].name;
         }
-        if (crsf_params[i].s.info) {
+        if (mItems[i].s.info) {
           tmp_info = new char[21];
-          strlcpy(tmp_info, (char *) crsf_params[i].s.info,21);
+          strlcpy(tmp_info, (char *) mItems[i].s.info,21);
           //tmp_info = (char *) "not empty";
         } else {
           tmp_info= (char *) "empty";
         }
 
-
           db_out.printf("id:%u:%u:%s:%u:%s:%u:%i:%i:%u:%u:%u:%u:%u:%s\n",
-            crsf_params[i].id,
-            crsf_params[i].parent,
-            crsf_params[i].name,
-            crsf_params[i].type,
+            mItems[i].id,
+            mItems[i].parent,
+            mItems[i].name,
+            mItems[i].type,
             tmp1,
-            crsf_params[i].device,
-            crsf_params[i].min_value,
-            crsf_params[i].max_value,
-            crsf_params[i].changed,
-            crsf_params[i].u.status,
-            crsf_params[i].u.text_sel,
-            crsf_params[i].u.point,
-            crsf_params[i].u.string_max_len,
+            mItems[i].device,
+            mItems[i].min_value,
+            mItems[i].max_value,
+            mItems[i].changed,
+            mItems[i].u.status,
+            mItems[i].u.text_sel,
+            mItems[i].u.point,
+            mItems[i].u.string_max_len,
             tmp_info);
-
-
-
-      /*
-      crsf_params[i].changed,
-      crsf_params[i].max_str,
-      crsf_params[i].u.text_sel,
-      crsf_params[i].u.status); */
     }  
-
-
-  //db_out.printf("id:%u:%s\n",crsf_params->id,crsf_params->name);
-
   }
-
 }
 
 static const char *hdr_str_cb(const void *data) {
@@ -1175,25 +1159,8 @@ static const char *hdr_str_cb(const void *data) {
     }
     return tempstring;
 }
-crsf_param_t *current_param(int absrow) {
-    int idx = 0;
-    db_out.printf("current param: %u :",idx);
-    for (int i=0; i < crsf_devices[device_idx].number_of_params; i++) {
-        if (!crsf_params[i].id) break;
-        if (crsf_params[i].parent != current_folder || crsf_params[i].hidden) continue;
-        if (idx++ == absrow) return &crsf_params[i];
 
 
-    }
-    return NULL;
-}
-
-static const char *current_text(crsf_param_t *param) {
-    const char *p = (const char *)param->value;
-    int i = param->u.text_sel;
-    while (i--) while (*p++) {}
-    return p;
-}
 // ESP32 Team900
         // buildElrsPacket(crsfCmdPacket,X,3);
         // 0 : ELRS status request => ??

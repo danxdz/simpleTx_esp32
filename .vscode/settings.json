@@ -12,6 +12,7 @@
         "istream": "cpp",
         "ostream": "cpp",
         "new": "cpp",
-        "typeinfo": "cpp"
+        "typeinfo": "cpp",
+        "algorithm": "cpp"
     }
 }

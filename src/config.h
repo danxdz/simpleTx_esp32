@@ -158,15 +158,39 @@ typedef struct {
 } crsf_device_t;
 
 typedef struct {
-    uint8_t id;
-    char *name;
-    char *value;
-    uint8_t parent;
-    char * opt_list[50];
-    uint8_t opt_count;
+        // common fields
+    uint8_t device;            // device index of device parameter belongs to
+    uint8_t id;                // Parameter number (starting from 1)
+    uint8_t parent;            // Parent folder parameter number of the parent folder, 0 means root
+    enum data_type type;  // (Parameter type definitions and hidden bit)
+    uint8_t hidden;            // set if hidden
+    char *name;           // Null-terminated string
+    char *value;          // size depending on data type
+
+    char *opt_list[20];
+    int opt_count;
+
+    // field presence depends on type
+    char *default_value;  // size depending on data type. Not present for COMMAND.
+    int32_t min_value;        // not sent for string type
+    int32_t max_value;        // not sent for string type
+    int32_t step;             // Step size ( type float only otherwise this entry is not sent )
+    uint8_t timeout;           // COMMAND timeout (100ms/count)
+    uint8_t changed;           // flag if set needed when edit element is de-selected
+    char *max_str;        // Longest choice length for text select
+    union {
+        uint8_t point;             // Decimal point ( type float only otherwise this entry is not sent )
+        uint8_t text_sel;          // current value index for TEXT_SELECTION type
+        uint8_t string_max_len;    // String max length ( for string type only )
+        uint8_t status;            // Status for COMMANDs
+    } u;
+    union {
+        char *info;
+        char *unit;         // Unit ( Null-terminated string / not sent for type string and folder )
+    } s;
 } menu_items;
 
-extern menu_items mItems[50];
+extern menu_items mItems[55];
 
 typedef enum {
     MODULE_UNKNOWN,
@@ -176,7 +200,7 @@ typedef enum {
 
 //setup menus
 int selected = 0;
-int entered = 0;
+int entered = -1;
 int updated = 1; 
 
 extern crsf_device_t crsf_devices[CRSF_MAX_DEVICES];

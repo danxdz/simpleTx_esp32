@@ -83,6 +83,7 @@ display.setTextColor(SSD1306_WHITE);
 display.setCursor(0, 0);
      
   if (entered == -1) {
+    db_out.printf("name:%s,num_menu_item:%i",name,num_menu_item);
     displayMenu(name,mItems,num_menu_item);
   }
   else if (entered == -2) {
