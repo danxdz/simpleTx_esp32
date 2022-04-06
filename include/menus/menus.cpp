@@ -44,17 +44,19 @@ void displayMenu(char * name,menu_items *mItems,int num) {
   } 
 }
 void displaySubmenu(menu_items *mItems) { 
-  db_out.printf("display submenu\n");
+ //db_out.printf("display submenu\n");
 
   display.println("CRSF config");
   display.printf("%s: %u\n",mItems[selected].name,mItems[selected].opt_count);
-  db_out.printf("%s: %u\n",mItems[selected].name,mItems[selected].opt_count);
+  //db_out.printf("%s: %u\n",mItems[selected].name,mItems[selected].opt_count);
   display.println("");
     
-  for (int i = 0; i <= mItems[selected].opt_count; i++)
+  for (int i = 0; i < mItems[selected].opt_count; i++)
   {
-    db_out.printf("%i lines %s\n",mItems[selected].opt_count ,mItems[selected].opt_list[i]);
-    display.printf("%s\n",mItems[selected].opt_list[i]);
+    if (mItems[selected].opt_list[i] && mItems[selected].opt_count ) {
+      //db_out.printf("%i:%i lines %s\n",i,mItems[selected].opt_count ,mItems[selected].opt_list[i]);
+      display.printf("%s\n",mItems[selected].opt_list[i]);
+    }
   }
 }
 
