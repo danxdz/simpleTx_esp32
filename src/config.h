@@ -166,7 +166,7 @@ typedef struct {
     uint8_t hidden;            // set if hidden
     char *name;           // Null-terminated string
     char *value;          // size depending on data type
-
+    
     char *opt_list[20];
     int opt_count;
 
@@ -200,14 +200,11 @@ typedef enum {
 
 //setup menus
 int selected = 0;
-int entered = -1;
-int updated = 1; 
+int subSelected = -1;
+int entered = 0; 
 
 extern crsf_device_t crsf_devices[CRSF_MAX_DEVICES];
 uint8_t protocol_module_is_elrs();
-
-static crsf_param_t *param_by_id(int id);
-
 
 static char *next_string;
 #define TEMPSTRINGLENGTH 400 //This is the max dialog size (80 characters * 5 lines)

@@ -11,12 +11,11 @@
 
  
 
-void displayMenu(char * name,menu_items *mItems,int num) { 
+void displayMenu(char * name,menu_items *mItem,int num) { 
   display.println(name);
 
+  
   char * menu_item;
-  uint8_t menu_item_id;
-  int page_off = num%5;
 
   int page = (selected/5);
   int offset = num-5;
@@ -24,39 +23,55 @@ void displayMenu(char * name,menu_items *mItems,int num) {
   int max = (num-offset)*(page+1);
   if (max>num) max = num;
   if (selected>=num) selected = 0;
-  display.printf("%i:%i:%i:%i:%i:%i \n",
-  selected,offset,page_off,max,page,start);
+
+  //db_out.printf("zerzer");
+
+  display.printf("%i:%i:%i:%i:%i \n",
+  selected,offset,max,page,start);
   
   for (int i = start; i < max; i++) {
-    if (i == selected)
-      display.setTextColor(SSD1306_BLACK, SSD1306_WHITE);
-    else if (i != selected)
-      display.setTextColor(SSD1306_WHITE);
+      if (i == selected)
+        display.setTextColor(SSD1306_BLACK, SSD1306_WHITE);
+      else if (i != selected)
+        display.setTextColor(SSD1306_WHITE);
     
-    menu_item = mItems[i].name;
-    menu_item_id = mItems[i].id;
-    //TODO options
-    display.printf("%s\n",menu_item);
+      menu_item = mItem[i].name;
+      //TODO options
+      //db_out.printf("%s:%i:%u\n",menu_item,i,mItem[i].id);
+      display.printf("%s\n",menu_item,i,mItem[i].id);
+    
   }
-   if (offset>0) {
+  if (offset>0) {
     display.setTextColor(SSD1306_WHITE);
     display.printf("... \n");
   } 
 }
 void displaySubmenu(menu_items *mItems) { 
  //db_out.printf("display submenu\n");
-
+  
   display.println("CRSF config");
-  display.printf("%s: %u\n",mItems[selected].name,mItems[selected].opt_count);
+  display.printf("%s:%u\n",mItems[selected].name,mItems[selected].opt_count);
   //db_out.printf("%s: %u\n",mItems[selected].name,mItems[selected].opt_count);
-  display.println("");
-    
-  for (int i = 0; i < mItems[selected].opt_count; i++)
+
+  for (int i = 0; i < 20; i++)
   {
-    if (mItems[selected].opt_list[i] && mItems[selected].opt_count ) {
-      //db_out.printf("%i:%i lines %s\n",i,mItems[selected].opt_count ,mItems[selected].opt_list[i]);
+    //db_out.printf("%u\n",mItems[selected].opt_list[i]);
+  
+    if (mItems[selected].opt_list[i]) {  // && mItems[selected].opt_count ) {
+     // db_out.printf("%i:%s:%u:%i:%i\n",i,
+     // mItems[selected].opt_list[i],mItems[selected].u.status,selected,subSelected);
+      if (subSelected==-1) subSelected = mItems[selected].u.status;
+      
+
+      if (i == subSelected)
+        display.setTextColor(SSD1306_BLACK, SSD1306_WHITE);
+      else if (i != subSelected)
+        display.setTextColor(SSD1306_WHITE);
+    
+    
       display.printf("%s\n",mItems[selected].opt_list[i]);
     }
+    
   }
 }
 
@@ -83,7 +98,7 @@ display.setTextColor(SSD1306_WHITE);
 display.setCursor(0, 0);
      
   if (entered == -1) {
-    db_out.printf("name:%s,num_menu_item:%i",name,num_menu_item);
+    //db_out.printf("name:%s,mItems:%u,num_menu_item%i\n",name,mItems[0].name,num_menu_item);
     displayMenu(name,mItems,num_menu_item);
   }
   else if (entered == -2) {
@@ -113,5 +128,5 @@ display.setCursor(0, 0);
     displaySubmenu(mItems);
   }
   display.display();
-  //delay(200);
+  delay(200);
 }
