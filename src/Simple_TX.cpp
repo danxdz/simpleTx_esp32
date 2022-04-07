@@ -79,7 +79,6 @@ static int32_t correction;
 
 static int32_t read_timeout;
 static uint8_t current_folder = 0;
-static uint8_t params_loaded;     // if not zero, number received so far for current device
 static uint8_t params_displayed;  // if not zero, number displayed so far for current device
 static uint8_t device_idx;   // current device index
 static uint8_t next_param;   // parameter and chunk currently being read
@@ -463,15 +462,21 @@ void read_ui_buttons () {
     } else if (entered>=0){
       //db_out.println("submenu");
       if (enter == LOW) {
-        db_out.printf("qsdqsdqsdqsdqd");
+        db_out.printf("send cmd");
         buildElrsPacket(crsfCmdPacket,selected+1,subSelected);
         elrsWrite(crsfCmdPacket,8,0);
         params_loaded = 0;
-        memset(mItems, 0, 0);
-        delay(2000);
+        ////////////////////////////////////
+        //memset(mItems[1], 0, sizeof mItems);
+
+        menu_loaded= false;
         next_param = selected+1;
-        CRSF_read_param(crsfCmdPacket,next_param,0);
-        elrsWrite(crsfCmdPacket,8,0);
+        next_chunk = 0;
+        delay(2000);
+        
+        
+        //CRSF_read_param(crsfCmdPacket,1,0);
+        //elrsWrite(crsfCmdPacket,8,0);
     
       }
       if (back == LOW) {
@@ -519,7 +524,6 @@ void OutputTask( void * pvParameters ){
   bt_handle(1);
   delay(2000);
 
-  bool menu_loaded = false;
   
   menu_items mItem[55];
   int count = 0;
@@ -535,6 +539,7 @@ void OutputTask( void * pvParameters ){
     if (entered > -2) {
       if (params_loaded==crsf_devices[0].number_of_params) {
         if (menu_loaded) {
+          //db_out.println("menu loaded...");
           updateDisplay(
             LinkStatistics.downlink_RSSI,
             LinkStatistics.downlink_Link_quality,
@@ -556,19 +561,32 @@ void OutputTask( void * pvParameters ){
       } else {
         db_out.println("menu");
         int subm = 0;
+       // memset(mItem,0,sizeof mItem);
+       count=0;
         for (size_t i = 0; i < params_loaded; i++)
         {        
           if (mItems[i].parent == 0) {
-            mItem[count] = mItems[i];
-            //db_out.printf("%i:%i:%s:%s\n",i,count,mItems[i].name,mItem[count].name);
+            memcpy ( &mItem[count], &mItems[i], sizeof(mItems[i]) );
+
+            //mItem[count] = mItems[i];
+            db_out.printf("%i:%i:max:%i:sts:%u:%s:%s\n",
+            i,count,
+            mItems[i].max_value,
+            mItems[i].u.status,            
+            mItems[i].name,
+            mItem[count].name);
             count++;
             
             subm=0;
           } else {
             count--;
             mItem[count].opt_list[subm] = mItems[i].name;
-            //db_out.printf("id have parent: %i:%i:%i:%i\nitems:%s\nitem:%s\n",
-            //mItems[i].id,i,count,subm,mItems[i].name,mItem[count].opt_list[subm]);
+            db_out.printf("id have parent: %i:%i:%i:%i:max:%i:sts:%u\nitems:%s\nitem:%s\n",
+            mItems[i].id,i,count,subm,mItems[i].max_value,
+            mItems[i].u.status,
+            mItems[i].name,
+
+            mItem[count].opt_list[subm]);
             subm++;
             count++;
             //db_out.printf("subm:%i",subm);      
@@ -976,11 +994,7 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
                    
             mItemP->max_value = count;   
             //db_out.printf("%i:%i\ns:%s:\no:%s\n",
-            //count,len,start,mItemP->opt_list[count]);
-            mItemP->opt_count = count;
-            //db_out.printf("mItemCount:%i\n",mItemP->opt_count);
-
-
+           
             // bug fix for incorrect max from device
            // db_out.printf("value:%s par_max: %i",parameter->value,parameter->max_value);
         } else {

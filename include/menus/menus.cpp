@@ -16,18 +16,22 @@ void displayMenu(char * name,menu_items *mItem,int num) {
 
   
   char * menu_item;
+  for (int i=0; i<num ; i++) {
+    if (mItem[i].name)
+    db_out.printf("item:%i:%s:%u\n",
+    mItem[i].id,mItem[i].name,mItem[i].parent);
+  }
+  db_out.printf("end:\n");
 
-  int page = (selected/5);
-  int offset = num-5;
-  int start = page*5;
-  int max = (num-offset)*(page+1);
+  int start = (selected/5)*5;
+  int max = (num-(num-5))*((selected/5)+1);
   if (max>num) max = num;
   if (selected>=num) selected = 0;
 
   //db_out.printf("zerzer");
 
-  display.printf("%i:%i:%i:%i:%i \n",
-  selected,offset,max,page,start);
+  display.printf("%i:%i:%i: \n",
+  selected,max,start);
   
   for (int i = start; i < max; i++) {
       if (i == selected)
@@ -37,30 +41,46 @@ void displayMenu(char * name,menu_items *mItem,int num) {
     
       menu_item = mItem[i].name;
       //TODO options
-      //db_out.printf("%s:%i:%u\n",menu_item,i,mItem[i].id);
+      //db_out.printf("%s:%i:%u:%s:%u\n",menu_item,i,mItem[i].id,mItem[i].name,mItem[i].parent);
       display.printf("%s\n",menu_item,i,mItem[i].id);
     
   }
-  if (offset>0) {
+  if ((num-5)>0) {
     display.setTextColor(SSD1306_WHITE);
     display.printf("... \n");
   } 
 }
-void displaySubmenu(menu_items *mItems) { 
+void displaySubmenu(menu_items *mItem) { 
  //db_out.printf("display submenu\n");
   
   display.println("CRSF config");
-  display.printf("%s:%u\n",mItems[selected].name,mItems[selected].opt_count);
-  //db_out.printf("%s: %u\n",mItems[selected].name,mItems[selected].opt_count);
+  display.printf("%s:%u\n",
+  mItem[selected].name,
+  mItem[selected].max_value);
+  db_out.printf("%s: %u\n",
+  mItem[selected].name,
+  mItem[selected].max_value);
 
-  for (int i = 0; i < 20; i++)
+  int max = mItem[selected].max_value;
+  if (max == 0) {
+    max++;
+  }
+
+  for (int i = 0; i <= max; i++)
   {
     //db_out.printf("%u\n",mItems[selected].opt_list[i]);
   
-    if (mItems[selected].opt_list[i]) {  // && mItems[selected].opt_count ) {
-     // db_out.printf("%i:%s:%u:%i:%i\n",i,
-     // mItems[selected].opt_list[i],mItems[selected].u.status,selected,subSelected);
-      if (subSelected==-1) subSelected = mItems[selected].u.status;
+    if (mItem[selected].opt_list[i]) {  // && mItems[selected].opt_count ) {
+       db_out.printf("%i:%s:st:%u:par:%u:%i:%i:%i\n",
+      i,
+      mItem[selected].opt_list[i],
+      mItem[selected].u.status,
+      mItem[selected].parent,
+      mItem[selected].max_value,
+      selected,
+      subSelected); 
+
+      if (subSelected==-1) subSelected = mItem[selected].u.status;
       
 
       if (i == subSelected)
@@ -69,7 +89,7 @@ void displaySubmenu(menu_items *mItems) {
         display.setTextColor(SSD1306_WHITE);
     
     
-      display.printf("%s\n",mItems[selected].opt_list[i]);
+      display.printf("%s\n",mItem[selected].opt_list[i]);
     }
     
   }
@@ -89,7 +109,7 @@ void updateDisplay(
                     char * name,
                     module_type_t typeModule,
                     int num_menu_item,
-                    menu_items *mItems,
+                    menu_items *mItem,
                     int entered  ) {
 
 display.clearDisplay();
@@ -99,7 +119,7 @@ display.setCursor(0, 0);
      
   if (entered == -1) {
     //db_out.printf("name:%s,mItems:%u,num_menu_item%i\n",name,mItems[0].name,num_menu_item);
-    displayMenu(name,mItems,num_menu_item);
+    displayMenu(name,mItem,num_menu_item);
   }
   else if (entered == -2) {
     //display.println(F("main"));
@@ -125,7 +145,8 @@ display.setCursor(0, 0);
     display.setTextSize(1);             // Normal 1:1 pixel scale
     display.printf("%u:%u",bpkts,gpkts);
   } else {
-    displaySubmenu(mItems);
+    //db_out.printf("mItem:%u\n",mItem[0].u.status);
+    displaySubmenu(mItem);
   }
   display.display();
   delay(200);

@@ -168,7 +168,6 @@ typedef struct {
     char *value;          // size depending on data type
     
     char *opt_list[20];
-    int opt_count;
 
     // field presence depends on type
     char *default_value;  // size depending on data type. Not present for COMMAND.
@@ -198,10 +197,13 @@ typedef enum {
     MODULE_OTHER,
 } module_type_t;
 
+static uint8_t params_loaded;     // if not zero, number received so far for current device
+
 //setup menus
 int selected = 0;
 int subSelected = -1;
-int entered = 0; 
+int entered = -1; 
+bool menu_loaded = false;
 
 extern crsf_device_t crsf_devices[CRSF_MAX_DEVICES];
 uint8_t protocol_module_is_elrs();
