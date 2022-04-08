@@ -61,20 +61,7 @@ void serialEvent();
 #ifndef NUM_ELEMS
     #define NUM_ELEMS (6 + 8 + 8 + 4 + 1)
 #endif
-struct buttonAction {
-    uint32_t button;
-    uint8_t flags;
-    unsigned (*callback)(uint32_t button, unsigned flags, void *data);
-    void *data;
-    struct buttonAction *next;
-};
-struct main_page {
-    struct buttonAction action;
-    uint8_t ignore_release;
-    int16_t battery;
-    int32_t elem[NUM_ELEMS];
-    uint32_t time;
-};
+
 struct crsfconfig_page {
     char strings[CRSF_MAX_STRING_BYTES];
 
@@ -85,7 +72,7 @@ struct crsfdevice_page {
 
 struct pagemem {
     union {
-        struct main_page main_page;
+        //struct main_page main_page;
         struct crsfconfig_page crsfconfig_page;
         struct crsfdevice_page crsfdevice_page;
     } u;
@@ -157,6 +144,8 @@ typedef struct {
     char name[CRSF_MAX_NAME_LEN];
 } crsf_device_t;
 
+
+
 typedef struct {
         // common fields
     uint8_t device;            // device index of device parameter belongs to
@@ -167,7 +156,9 @@ typedef struct {
     char *name;           // Null-terminated string
     char *value;          // size depending on data type
     
-    char *opt_list[20];
+    char *submenuItems[20];
+
+    uint8_t sub_parent;
 
     // field presence depends on type
     char *default_value;  // size depending on data type. Not present for COMMAND.

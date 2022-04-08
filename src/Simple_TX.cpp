@@ -99,7 +99,6 @@ crsf_device_t deviation = {
 };
 
 
-
 //TODO
 // change to get last rate
 uint8_t packetRateSelected = 0;
@@ -446,7 +445,7 @@ void read_ui_buttons () {
 
       entered = enter ? entered : -1;
       
-    //if inside menus selected = -1
+    //if inside menu - selected = -1
     } else if (entered==-1){
       //db_out.println("menu");
 
@@ -492,7 +491,7 @@ void read_ui_buttons () {
     }
 
 
-    //db_out.printf("ent:%i:sel:%isSel:%i\n",entered, selected,subSelected);
+    db_out.printf("ent:%i:sel:%isSel:%i\n",entered, selected,subSelected);
     
     //powerChangeHasRun=true;
     //clickCurrentMicros = crsfTime + (2*1000000);//2sec
@@ -526,10 +525,14 @@ void OutputTask( void * pvParameters ){
 
   
   menu_items mItem[55];
+
   int count = 0;
 
   for(;;){
-    /* if ((MODULE_IS_ELRS)&&(local_info.good_pkts==0)) {
+
+
+    /* if ((MODULE_IS
+    _ELRS)&&(local_info.good_pkts==0)) {
       CRSF_get_elrs(crsfCmdPacket);
       elrsWrite(crsfCmdPacket,sizeof(crsfCmdPacket),0);
     } */
@@ -553,15 +556,15 @@ void OutputTask( void * pvParameters ){
             local_info.good_pkts,
             crsf_devices->name,
             module_type,
-            count,
-            mItem,
+            params_loaded,
+            mItems,
             entered); 
           delay(250);
           read_ui_buttons();
       } else {
         db_out.println("menu");
-        int subm = 0;
-       // memset(mItem,0,sizeof mItem);
+       /*  int subm = 0;
+        memset(mItem,0,sizeof mItem);
        count=0;
         for (size_t i = 0; i < params_loaded; i++)
         {        
@@ -580,19 +583,19 @@ void OutputTask( void * pvParameters ){
             subm=0;
           } else {
             count--;
-            mItem[count].opt_list[subm] = mItems[i].name;
-            db_out.printf("id have parent: %i:%i:%i:%i:max:%i:sts:%u\nitems:%s\nitem:%s\n",
-            mItems[i].id,i,count,subm,mItems[i].max_value,
+            mItem[count].submenu_item[subm] = mItems[i].name;
+            db_out.printf("parent:%i:%i:max:%i:sts:%u:%s:%s\n",
+            i,count,
+            mItems[i].max_value,
             mItems[i].u.status,
             mItems[i].name,
-
-            mItem[count].opt_list[subm]);
+            mItem[count].name);
             subm++;
             count++;
             //db_out.printf("subm:%i",subm);      
           }
         }
-
+ */
         menu_loaded = true;
       }
     // end else (if not all parameters) ask elrs tx module for then
@@ -914,6 +917,7 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
     }
     //** menu item struct
 
+
     menu_items *mItemP = &mItems[buffer[3]-1]; 
     db_out.printf("id:%i:bf:%x\n",mItemP->id,buffer[3]);
     int update = mItemP->id == buffer[3];
@@ -976,21 +980,22 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
           // put null between selection options
           // find max choice string length to adjust textselectplate size
             char *start = (char *)mItemP->value;
+             
             
             count = 0;
             for (char *p = (char *)mItemP->value; *p; p++) {
                 if (*p == ';') {
                     int len = (strlen(start)-strlen(p));
-                    mItemP->opt_list[count] = new char[len+1];
-                    strlcpy(mItemP->opt_list[count],start,len+1);
-                    //db_out.printf("%i:%i\np:%s:\ns:%s\no:%s\n",count,len,p,start,mItemP->opt_list[count]);
+                    mItemP->submenuItems[count] = new char[len+1];
+                    strlcpy(mItemP->submenuItems[count],start,len+1);
+                    db_out.printf("%i:%i\np:%s:\ns:%s\no:%s\n",count,len,p,start,mItemP->submenuItems[count]);
                     start = p+1;
                     count += 1;
                 }
             }
             int len = strlen(start);
-            mItemP->opt_list[count] = new char[len+1];
-            strlcpy(mItemP->opt_list[count],start,len+1);
+            mItemP->submenuItems[count] = new char[len+1];
+            strlcpy(mItemP->submenuItems[count],start,len+1);
                    
             mItemP->max_value = count;   
             //db_out.printf("%i:%i\ns:%s:\no:%s\n",
@@ -1130,7 +1135,7 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
           tmp_info= (char *) "empty";
         }
 
-          db_out.printf("id:%u:%u:%s:%u:%s:d:%u:%i:%i:c:%u:status:%u:sel:%u:%u:%u:%u:%s\n",
+          db_out.printf("id;%u;%u;%s;%u;%s;d:%u;%i;%i;c:%u;status:%u;sel:%u;%u;%u;%u;%s\n",
             mItems[i].id,
             mItems[i].parent,
             mItems[i].name,

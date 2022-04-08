@@ -13,42 +13,56 @@
 
 void displayMenu(char * name,menu_items *mItem,int num) { 
   display.println(name);
+  db_out.printf("display Menu\n");
 
+  db_out.printf("name:%s,num_menu_item: %i\n",name,num);
   
   char * menu_item;
+  int menu_item_num = 20;
+
+  //menu_items valid_items[55]; 
+  //memset(valid_items,0,sizeof valid_items);
+
   for (int i=0; i<num ; i++) {
-    if (mItem[i].name)
-    db_out.printf("item:%i:%s:%u\n",
+    
+  //  menu_items *vItem = &valid_items[menu_item_num];
+    if (mItem[i].parent == 0 ) {
+      //memcpy ( &vItem, &mItems[i], sizeof(mItems[i]) );
+      //menu_item_num++;
+      db_out.printf("item:%i:%s:%u\n",
     mItem[i].id,mItem[i].name,mItem[i].parent);
-  }
-  db_out.printf("end:\n");
+    }
+  }  
+  //db_out.printf("end:\n");
 
   int start = (selected/5)*5;
-  int max = (num-(num-5))*((selected/5)+1);
-  if (max>num) max = num;
-  if (selected>=num) selected = 0;
+  int max = (menu_item_num-(menu_item_num-5))*((selected/5)+1);
+  if (max>menu_item_num) max = menu_item_num;
+  if (selected>=menu_item_num) selected = 0;
 
-  //db_out.printf("zerzer");
 
-  display.printf("%i:%i:%i: \n",
-  selected,max,start);
+  display.printf("%i:%i:%i:%i:%i \n",
+  selected,max,start,menu_item_num,num);
   
   for (int i = start; i < max; i++) {
-      if (i == selected)
+    if (mItem[i].parent == 0 ) {
+      if (i == selected) 
         display.setTextColor(SSD1306_BLACK, SSD1306_WHITE);
-      else if (i != selected)
+        else if (i != selected)
         display.setTextColor(SSD1306_WHITE);
-    
-      menu_item = mItem[i].name;
-      //TODO options
-      //db_out.printf("%s:%i:%u:%s:%u\n",menu_item,i,mItem[i].id,mItem[i].name,mItem[i].parent);
-      display.printf("%s\n",menu_item,i,mItem[i].id);
-    
+      
+        menu_item = mItem[i].name;
+        //TODO options
+        db_out.printf("%s:%i:%u:%s:%u\n",menu_item,i,mItem[i].id,mItem[i].name,mItem[i].parent);
+        display.printf("%s\n",menu_item);
+    } else {
+      i++;
+    }
   }
-  if ((num-5)>0) {
-    display.setTextColor(SSD1306_WHITE);
-    display.printf("... \n");
-  } 
+  if ((menu_item_num-5)>0) {
+      display.setTextColor(SSD1306_WHITE);
+      display.printf("... \n");
+  }  
 }
 void displaySubmenu(menu_items *mItem) { 
  //db_out.printf("display submenu\n");
@@ -57,10 +71,10 @@ void displaySubmenu(menu_items *mItem) {
   display.printf("%s:%u\n",
   mItem[selected].name,
   mItem[selected].max_value);
-  db_out.printf("%s: %u\n",
+  /* db_out.printf("%s: %u\n",
   mItem[selected].name,
   mItem[selected].max_value);
-
+ */
   int max = mItem[selected].max_value;
   if (max == 0) {
     max++;
@@ -70,15 +84,15 @@ void displaySubmenu(menu_items *mItem) {
   {
     //db_out.printf("%u\n",mItems[selected].opt_list[i]);
   
-    if (mItem[selected].opt_list[i]) {  // && mItems[selected].opt_count ) {
-       db_out.printf("%i:%s:st:%u:par:%u:%i:%i:%i\n",
+  //  if (mItem[selected].submenu_item[i]) {  // && mItems[selected].opt_count ) {
+     /*  db_out.printf("%i:%s:st:%u:par:%u:%i:%i:%i\n",
       i,
       mItem[selected].opt_list[i],
       mItem[selected].u.status,
       mItem[selected].parent,
       mItem[selected].max_value,
       selected,
-      subSelected); 
+      subSelected);   */
 
       if (subSelected==-1) subSelected = mItem[selected].u.status;
       
@@ -89,8 +103,8 @@ void displaySubmenu(menu_items *mItem) {
         display.setTextColor(SSD1306_WHITE);
     
     
-      display.printf("%s\n",mItem[selected].opt_list[i]);
-    }
+      display.printf("%s\n",mItem[selected].submenuItems[i]);
+   // }
     
   }
 }
@@ -118,7 +132,6 @@ display.setTextColor(SSD1306_WHITE);
 display.setCursor(0, 0);
      
   if (entered == -1) {
-    //db_out.printf("name:%s,mItems:%u,num_menu_item%i\n",name,mItems[0].name,num_menu_item);
     displayMenu(name,mItem,num_menu_item);
   }
   else if (entered == -2) {
@@ -145,7 +158,6 @@ display.setCursor(0, 0);
     display.setTextSize(1);             // Normal 1:1 pixel scale
     display.printf("%u:%u",bpkts,gpkts);
   } else {
-    //db_out.printf("mItem:%u\n",mItem[0].u.status);
     displaySubmenu(mItem);
   }
   display.display();
