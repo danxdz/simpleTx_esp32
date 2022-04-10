@@ -157,8 +157,7 @@ typedef struct {
     char *value;          // size depending on data type
     
     char *submenuItems[20];
-
-    uint8_t sub_parent;
+    int submenuType;
 
     // field presence depends on type
     char *default_value;  // size depending on data type. Not present for COMMAND.
@@ -180,7 +179,9 @@ typedef struct {
     } s;
 } menu_items;
 
+
 extern menu_items mItems[55];
+extern menu_items smItems[55];
 
 typedef enum {
     MODULE_UNKNOWN,
@@ -195,6 +196,11 @@ int selected = 0;
 int subSelected = -1;
 int entered = -1; 
 bool menu_loaded = false;
+uint8_t menu_item_id = 0;
+uint8_t submenu_item_id = 0;
+
+menu_items get_all_params_from_buffer(menu_items *mItemP, uint8_t *buffer ) ;
+void get_divided_submenu_options(menu_items *mItemP );
 
 extern crsf_device_t crsf_devices[CRSF_MAX_DEVICES];
 uint8_t protocol_module_is_elrs();

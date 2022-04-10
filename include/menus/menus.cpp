@@ -10,61 +10,62 @@
 #include "gpio/gpio.cpp"
 
  
-
-void displayMenu(char * name,menu_items *mItem,int num) { 
+int num_lines = 5;
+void displayMenu(char * name,menu_items *mItem,int menu_item_num) { 
   display.println(name);
-  db_out.printf("display Menu\n");
-
-  db_out.printf("name:%s,num_menu_item: %i\n",name,num);
-  
+ 
   char * menu_item;
-  int menu_item_num = 20;
-
-  //menu_items valid_items[55]; 
-  //memset(valid_items,0,sizeof valid_items);
-
-  for (int i=0; i<num ; i++) {
-    
-  //  menu_items *vItem = &valid_items[menu_item_num];
-    if (mItem[i].parent == 0 ) {
-      //memcpy ( &vItem, &mItems[i], sizeof(mItems[i]) );
-      //menu_item_num++;
-      db_out.printf("item:%i:%s:%u\n",
-    mItem[i].id,mItem[i].name,mItem[i].parent);
-    }
-  }  
-  //db_out.printf("end:\n");
-
-  int start = (selected/5)*5;
-  int max = (menu_item_num-(menu_item_num-5))*((selected/5)+1);
+   
+  int start = (selected/num_lines)*num_lines;
+  int max = (menu_item_num-(menu_item_num-num_lines))*((selected/num_lines)+1);
   if (max>menu_item_num) max = menu_item_num;
   if (selected>=menu_item_num) selected = 0;
 
 
-  display.printf("%i:%i:%i:%i:%i \n",
-  selected,max,start,menu_item_num,num);
+  display.printf("%i:%i:%i:%i\n",
+  selected,max,start,menu_item_num);
   
   for (int i = start; i < max; i++) {
-    if (mItem[i].parent == 0 ) {
       if (i == selected) 
         display.setTextColor(SSD1306_BLACK, SSD1306_WHITE);
         else if (i != selected)
         display.setTextColor(SSD1306_WHITE);
-      
-        menu_item = mItem[i].name;
+        
         //TODO options
-        db_out.printf("%s:%i:%u:%s:%u\n",menu_item,i,mItem[i].id,mItem[i].name,mItem[i].parent);
-        display.printf("%s\n",menu_item);
-    } else {
-      i++;
-    }
-  }
-  if ((menu_item_num-5)>0) {
+       // db_out.printf("%s:%i:%u:%s:%u\n",menu_item,i,mItem[i].id,mItem[i].name,mItem[i].parent);
+            //menu_item = strndup(menu_item,6);
+            //menu_item = (char *)"12345678";
+        
+        if ((mItem[i].submenuItems[0])&&(mItem[i].submenuType==0)) {
+          if ((strlen(mItem[i].name)+strlen(mItem[i].submenuItems[mItem[i].u.status])) > 20) 
+             {
+             //  int len = 20-strlen(mItem[i].submenuItems[mItem[i].u.status]); 
+              //db_out.printf("llenn: %i\n", len);
+             // menu_item = new char(len);
+            //  strncpy(menu_item , mItem[i].name, len-1);
+            //  menu_item[len-1] = '\0' ;
+            
+              //display.printf("%s",menu_item);
+              display.printf("%s\n",mItem[i].name);
+
+             } else display.printf("%s",mItem[i].name);
+
+          int tmp = 128-(strlen(mItem[i].submenuItems[mItem[i].u.status])*6);
+            //db_out.printf("%s:%i\n",mItem[i].submenuItems[mItem[i].u.status],tmp);
+          display.setCursor(tmp,display.getCursorY());
+          display.printf("%s\n",mItem[i].submenuItems[mItem[i].u.status]);
+
+        } else {
+          display.printf("%s\n",mItem[i].name);
+        }
+  } 
+  
+  if ((menu_item_num-num_lines)>0) {
       display.setTextColor(SSD1306_WHITE);
       display.printf("... \n");
   }  
 }
-void displaySubmenu(menu_items *mItem) { 
+void displaySubmenu(menu_items *mItem,menu_items *smItem) { 
  //db_out.printf("display submenu\n");
   
   display.println("CRSF config");
@@ -75,38 +76,41 @@ void displaySubmenu(menu_items *mItem) {
   mItem[selected].name,
   mItem[selected].max_value);
  */
-  int max = mItem[selected].max_value;
-  if (max == 0) {
-    max++;
-  }
-
-  for (int i = 0; i <= max; i++)
-  {
-    //db_out.printf("%u\n",mItems[selected].opt_list[i]);
-  
-  //  if (mItem[selected].submenu_item[i]) {  // && mItems[selected].opt_count ) {
-     /*  db_out.printf("%i:%s:st:%u:par:%u:%i:%i:%i\n",
-      i,
-      mItem[selected].opt_list[i],
-      mItem[selected].u.status,
-      mItem[selected].parent,
-      mItem[selected].max_value,
-      selected,
-      subSelected);   */
-
-      if (subSelected==-1) subSelected = mItem[selected].u.status;
+    int count_item = 0;
+    int min_item = 20;
+    for (int i = 0 ; smItem[i].parent != 0 ; i++){
+      if (smItem[i].parent == mItem[selected].id) {
+        if (min_item>i ) min_item = i;
+        if (subSelected==-1) {
+          subSelected = i;
+          //min_item = i;
+          }
+        if (i == subSelected)
+          display.setTextColor(SSD1306_BLACK, SSD1306_WHITE);
+        else if (i != subSelected)
+          display.setTextColor(SSD1306_WHITE);
       
+      
+      /*   db_out.printf("%i:%i:%i:%s:%i:%i:%i\n",
+        i,
+        selected,
+        subSelected,
+        smItem[i].name,
+        smItem[i].max_value,
+        count_item,
+        min_item); */
 
-      if (i == subSelected)
-        display.setTextColor(SSD1306_BLACK, SSD1306_WHITE);
-      else if (i != subSelected)
-        display.setTextColor(SSD1306_WHITE);
-    
-    
-      display.printf("%s\n",mItem[selected].submenuItems[i]);
-   // }
-    
-  }
+      display.printf("%s",smItem[i].name);
+      display.setCursor(80,display.getCursorY());
+     
+      display.printf("%u\n",smItem[i].u.text_sel);
+      count_item++;
+      }
+
+    }
+    if (subSelected>count_item+1 ) subSelected = min_item;
+    if (subSelected<min_item ) subSelected = count_item+1;
+ 
 }
 
 void updateDisplay(
@@ -124,6 +128,7 @@ void updateDisplay(
                     module_type_t typeModule,
                     int num_menu_item,
                     menu_items *mItem,
+                    menu_items *smItem,
                     int entered  ) {
 
 display.clearDisplay();
@@ -158,8 +163,8 @@ display.setCursor(0, 0);
     display.setTextSize(1);             // Normal 1:1 pixel scale
     display.printf("%u:%u",bpkts,gpkts);
   } else {
-    displaySubmenu(mItem);
+    displaySubmenu(mItem,smItem);
   }
   display.display();
-  delay(200);
+  delay(50);
 }
