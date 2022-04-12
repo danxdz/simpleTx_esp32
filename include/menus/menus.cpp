@@ -11,10 +11,12 @@
 
  
 int num_lines = 5;
+
 void displayMenu(char * name,menu_items *mItem,int menu_item_num) { 
   display.println(name);
  
   char * menu_item;
+  char * option_items;
    
   int start = (selected/num_lines)*num_lines;
   int max = (menu_item_num-(menu_item_num-num_lines))*((selected/num_lines)+1);
@@ -39,14 +41,20 @@ void displayMenu(char * name,menu_items *mItem,int menu_item_num) {
         if ((mItem[i].submenuItems[0])&&(mItem[i].submenuType==0)) {
           if ((strlen(mItem[i].name)+strlen(mItem[i].submenuItems[mItem[i].u.status])) > 20) 
              {
-             //  int len = 20-strlen(mItem[i].submenuItems[mItem[i].u.status]); 
-              //db_out.printf("llenn: %i\n", len);
-             // menu_item = new char(len);
-            //  strncpy(menu_item , mItem[i].name, len-1);
-            //  menu_item[len-1] = '\0' ;
-            
-              //display.printf("%s",menu_item);
-              display.printf("%s\n",mItem[i].name);
+              char *start = mItem[i].name;
+              for (char *p = (char *)mItem[i].name; *p; p++) {
+                if (*p == ' ') {
+                    int len = (strlen(start)-strlen(p));
+                    menu_item = new char[len+3];
+                    strncpy(menu_item,start,len+3);
+                    menu_item[len+2] = '.' ;
+                    menu_item[len+3] = '\0' ;
+                    //db_out.printf("llenn: %i:%s:%i\n", len,menu_item,strlen(menu_item));
+
+                }
+                   // strlcpy(mItemP->submenuItems[count],start,len+1);
+              }
+              display.printf("%s",menu_item);
 
              } else display.printf("%s",mItem[i].name);
 
@@ -56,13 +64,47 @@ void displayMenu(char * name,menu_items *mItem,int menu_item_num) {
           display.printf("%s\n",mItem[i].submenuItems[mItem[i].u.status]);
 
         } else {
-          display.printf("%s\n",mItem[i].name);
+          if (strlen(mItem[i].name) > 20) {
+            char *start = mItem[i].name;
+            for (char *p = (char *)mItem[i].name; *p; p++) {
+              if (*p == ' ') {
+                int len = (strlen(start)-strlen(p));
+                menu_item = new char[len+3];
+                strncpy(menu_item,start,len+3);
+                menu_item[len+2] = '.' ;
+                menu_item[len+3] = '\0' ;
+                //db_out.printf("llenn: %i:%s:%i:%s:%s\n", len,menu_item,strlen(menu_item),start,p);
+                // strlcpy(mItemP->submenuItems[count],start,len+1);
+                start = p+1;
+                break;
+              }
+            }
+            display.printf("%s",menu_item);
+
+            for (char *p = (char *)start; *p; p++) {
+              if (*p == ' ') {
+                start = p+1;
+              }
+            }     
+            int len = strlen(start);
+            option_items = new char[len+1];
+            strncpy(option_items,start,len+1);
+         
+            int tmp = (128-(strlen(option_items)+strlen(menu_item))*4)-5;
+           /*  db_out.printf("ln: %s:%i:%i:%i\n",
+            option_items,strlen(option_items),strlen(menu_item),tmp);
+             */
+            display.setCursor(tmp,display.getCursorY());
+         
+            display.printf("%s\n",option_items);
+
+          } else display.printf("%s\n",mItem[i].name);
         }
-  } 
-  
+   
+  }
   if ((menu_item_num-num_lines)>0) {
-      display.setTextColor(SSD1306_WHITE);
-      display.printf("... \n");
+    display.setTextColor(SSD1306_WHITE);
+    display.printf("... \n");
   }  
 }
 void displaySubmenu(menu_items *mItem,menu_items *smItem) { 
@@ -76,41 +118,49 @@ void displaySubmenu(menu_items *mItem,menu_items *smItem) {
   mItem[selected].name,
   mItem[selected].max_value);
  */
-    int count_item = 0;
-    int min_item = 20;
-    for (int i = 0 ; smItem[i].parent != 0 ; i++){
-      if (smItem[i].parent == mItem[selected].id) {
-        if (min_item>i ) min_item = i;
-        if (subSelected==-1) {
-          subSelected = i;
-          //min_item = i;
-          }
-        if (i == subSelected)
-          display.setTextColor(SSD1306_BLACK, SSD1306_WHITE);
-        else if (i != subSelected)
-          display.setTextColor(SSD1306_WHITE);
-      
-      
-      /*   db_out.printf("%i:%i:%i:%s:%i:%i:%i\n",
-        i,
-        selected,
-        subSelected,
-        smItem[i].name,
-        smItem[i].max_value,
-        count_item,
-        min_item); */
-
-      display.printf("%s",smItem[i].name);
-      display.setCursor(80,display.getCursorY());
+  int count_item = 0;
+  int start_item_index = 20;
+  for (int i = 0 ; smItem[i].parent != 0 ; i++){
+    if (smItem[i].parent == mItem[selected].id) {
+      if (start_item_index>i ) 
+        start_item_index = i;
      
-      display.printf("%u\n",smItem[i].u.text_sel);
-      count_item++;
+      if (i == subSelected)
+        display.setTextColor(SSD1306_BLACK, SSD1306_WHITE);
+      else if (i != subSelected)
+        display.setTextColor(SSD1306_WHITE);
+    
+      display.printf("%s",smItem[i].name);
+      if (smItem[i].submenuItems[0]) {
+        display.setCursor(80,display.getCursorY());
+        display.printf("%s\n",smItem[i].submenuItems[smItem[i].u.status]);
+      } else {
+        display.println("");
       }
-
+      count_item++;
     }
-    if (subSelected>count_item+1 ) subSelected = min_item;
-    if (subSelected<min_item ) subSelected = count_item+1;
- 
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+ /*  db_out.printf("%i:%i:%i:%i\n",
+      selected,
+      subSelected,
+      count_item,
+      start_item_index);  */
+  if ((subSelected-start_item_index)+1 > count_item) subSelected = start_item_index;
+  if ((subSelected) < start_item_index ) subSelected = (start_item_index+count_item)-1;
 }
 
 void updateDisplay(
@@ -167,4 +217,20 @@ display.setCursor(0, 0);
   }
   display.display();
   delay(50);
+}
+
+
+void set_display_loading(char *load) {
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(0, 0);
+  display.printf("%s",load);
+  display.display();
+  delay(500);
+}
+
+void check_too_big (char *tmp) {
+
+  
 }

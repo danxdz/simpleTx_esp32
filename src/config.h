@@ -40,7 +40,7 @@ static HardwareSerial db_out(0);
 #define _tr_noop(x) x
 
 static const char * const crsf_opts[] = {
-  _tr_noop("Bit Rate"), "400K", "1.87M", "2.25M", NULL,
+  _tr_noop("Bit Rate"), "400K", "1.87M", "2.25M","3.75M", NULL,
   NULL
 };
 

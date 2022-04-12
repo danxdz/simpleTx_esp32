@@ -234,15 +234,19 @@ static void parse_elrs_info(uint8_t *buffer) {
 }
 
 void CRSF_serial_rcv(uint8_t *buffer, uint8_t num_bytes) {
+/*    for (int i=0;i<num_bytes;i++) {
+        db_out.printf("0x%x:",buffer[i]);
+      }
+      db_out.println(""); */
   if ((buffer[0]!=CRSF_FRAMETYPE_RADIO_ID) && (buffer[0]!=CRSF_FRAMETYPE_LINK_STATISTICS)){
       //db_out.printf("CRSF FRAMETYPE: 0x%x : L:%u : ",buffer[0],num_bytes);
   } else {
-    if (buffer[0]!=CRSF_FRAMETYPE_RADIO_ID) {
+   /*  if (buffer[0]!=CRSF_FRAMETYPE_RADIO_ID) {
       for (int i=0;i<num_bytes;i++) {
         db_out.printf("0x%x:",buffer[i]);
       }
       db_out.println("");
-    }
+    } */
   }
   switch (buffer[0]) {
     case CRSF_FRAMETYPE_DEVICE_INFO:
@@ -357,7 +361,7 @@ void serialEvent() {
 
 
           if (id == CRSF_FRAMETYPE_BATTERY_SENSOR) {
-            //db_out.print("battery");
+            db_out.print("battery");
             if (getCrossfireTelemetryValue(3, &value, 2)) {
               batteryVoltage.voltage = value;
               }
@@ -477,9 +481,9 @@ void read_ui_buttons () {
           menu_loaded= false;
           next_param = selected+1;
           next_chunk = 0;
-          delay(200);
+          delay(500);
           CRSF_read_param(crsfCmdPacket,next_param,0);
-          elrsWrite(crsfCmdPacket,8,0);
+          elrsWrite(crsfCmdPacket,8,200000);
         } else {
           subSelected = -1;
           entered = selected;
@@ -491,25 +495,42 @@ void read_ui_buttons () {
     } else if (entered>=0){
       //db_out.println("submenu");
       if (enter == LOW) {
-        db_out.println("click submenu");
+        db_out.printf("send cmd submenu \n %i:%i:%u:%u:%u:%u\n",
+        selected,
+        subSelected,
+        mItems[selected].id,
+        smItems[subSelected].id,
+        smItems[subSelected].u.status,
+        smItems[subSelected].type
+        );
+        next_param = smItems[subSelected].id;
 
-        /* db_out.printf("send cmd\n");
-        buildElrsPacket(crsfCmdPacket,selected+1,subSelected);
-        elrsWrite(crsfCmdPacket,8,0);
         params_loaded = 0;
-
-        ////////////////////////////////////
-   
         menu_loaded= false;
-        next_param = selected+1;
         next_chunk = 0;
-        delay(2000);
-        
-        
+        int cmd;
+       
+ 
+        if (smItems[subSelected].u.status<smItems[subSelected].max_value)
+          cmd = smItems[subSelected].u.status + 1 ;
+        else
+          cmd = 0;
+        if (smItems[subSelected].type == 13) 
+          cmd = 4;
+        buildElrsPacket(crsfCmdPacket,
+        next_param,
+        cmd);
+        elrsWrite(crsfCmdPacket,8,200000);
+        delay(500);
+       
+        CRSF_read_param(crsfCmdPacket,mItems[selected].id,0);
+        elrsWrite(crsfCmdPacket,8,200000); 
+        delay(500);
+       
         CRSF_read_param(crsfCmdPacket,next_param,0);
-        elrsWrite(crsfCmdPacket,8,2000000);
-     */
-      }
+        elrsWrite(crsfCmdPacket,8,200000);
+        
+     }
       if (back == LOW) {
         entered = -1;
         subSelected = -1;
@@ -527,8 +548,8 @@ void read_ui_buttons () {
     
     //powerChangeHasRun=true;
     //clickCurrentMicros = crsfTime + (2*1000000);//2sec
+    delay(200);
 }
-
 void OutputTask( void * pvParameters ){
   
 
@@ -590,7 +611,7 @@ void OutputTask( void * pvParameters ){
             mItems,
             smItems,
             entered); 
-          delay(250);
+          delay(50);
           read_ui_buttons();
       } else {
         db_out.println("menu!!!!!!!!!");
@@ -598,15 +619,18 @@ void OutputTask( void * pvParameters ){
       }
     // end else (if not all parameters) ask elrs tx module for then
     } else {
+      char *load = (char *)hdr_str_cb(mItems);
+      db_out.printf("hdr:%s\n",load);
+      set_display_loading(load);
       if (crsf_devices[device_idx].number_of_params) {
         if (crsf_devices[device_idx].address == ADDR_RADIO) {
           db_out.println("address:radio");
           protocol_read_param(device_idx, &crsf_params[0]);    // only one param now
         } else {
-
           //db_out.printf("Menu address: 0x%x - num par: %u:%u\n",crsf_devices[device_idx].address, crsf_devices[device_idx].number_of_params,submenu_item_id);
           CRSF_read_param(crsfCmdPacket,next_param,next_chunk);
-          elrsWrite(crsfCmdPacket,8,0);
+          elrsWrite(crsfCmdPacket,8,200000);
+
         }
       }
       delay(2000);
@@ -851,9 +875,9 @@ static void parse_bytes(enum data_type type, char **buffer, char *dest) {
 
 static uint8_t count_params_loaded() {
     int i;
-    for (i=0; i < CRSF_MAX_PARAMS; i++) {
-        if (mItems[i].id == 0) break;
-        //db_out.printf("count_in: %i:%u\n",i,crsf_params[i].id);
+    for (i=0; i < crsf_devices[0].number_of_params; i++) {
+        //db_out.printf("count_params_loaded: %i:%u\n",i,mItems[i].id);
+        if (menu_item_id+submenu_item_id<crsf_devices[0].number_of_params) break;
     }
     return i;
 }
@@ -919,12 +943,28 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
         submenu_item_id++;
         get_all_params_from_buffer(smItemP,buffer);
       }
-    } else {
-       //db_out.printf("MI:%u\n", menu_item_id-1);
-        //menu_items *mItemP = &mItems[buffer[3]-1]; 
-        menu_items *mItemP = &mItems[next_param-1]; 
-        mItemP->parent = *recv_param_ptr++;
-        get_all_params_from_buffer(mItemP,buffer);
+    } else { 
+      
+        db_out.printf("UPDATE :%u:%u:%u:%i:%i:%u\n", 
+        menu_item_id,
+        submenu_item_id,
+        next_param,
+        selected,
+        subSelected,
+        mItems[next_param-1].id);
+        if (next_param == mItems[next_param-1].id) {
+          menu_items *mItemP = &mItems[next_param-1]; 
+          mItemP->parent = *recv_param_ptr++;
+          get_all_params_from_buffer(mItemP,buffer);
+        } else {
+
+          menu_items *mItemP = &smItems[subSelected]; 
+          mItemP->parent = *recv_param_ptr++;
+          get_all_params_from_buffer(mItemP,buffer);
+        }
+        //smItems[subSelected].id
+        //menu_items *mItemP = &mItems[smItems[subSelected].id];
+       
     }
     
 
@@ -1203,10 +1243,10 @@ void get_divided_submenu_options(menu_items *mItemP ) {
 static const char *hdr_str_cb(const void *data) {
     
     (void)data;
-        db_out.printf("not all params: %u: %i\n",count_params_loaded(), device_idx);
+     //   db_out.printf("call params: %u: %i\n",count_params_loaded(), device_idx);
 
     if (count_params_loaded() != crsf_devices[device_idx].number_of_params) {
-        db_out.printf("not all params: %u: %i\n",count_params_loaded(), device_idx);
+   //     db_out.printf("not all params: %u: %i\n",count_params_loaded(), device_idx);
     
         snprintf(tempstring, sizeof tempstring, "%s %s", crsf_devices[device_idx].name, "LOADING");
     
