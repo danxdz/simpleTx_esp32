@@ -14,7 +14,9 @@
         "new": "cpp",
         "typeinfo": "cpp",
         "algorithm": "cpp",
-        "string": "cpp"
+        "string": "cpp",
+        "array": "cpp",
+        "utility": "cpp"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

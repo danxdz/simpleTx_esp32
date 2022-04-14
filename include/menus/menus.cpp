@@ -6,6 +6,8 @@
 //instagram: dsnmechanics
 
 #include <Arduino.h>
+#include "menus.h"
+
 #include "oled.h"
 #include "gpio/gpio.cpp"
 
@@ -164,13 +166,7 @@ void displaySubmenu(menu_items *mItem,menu_items *smItem) {
 }
 
 void updateDisplay(
-                    int8_t tx_rssi,
-                    uint8_t tx_lq,
-                    uint8_t rf_mode,
-                    uint8_t tx_pwr,
-                    int8_t rx_rssi_1,
-                    int8_t rx_rssi_2,
-                    uint8_t rx_lq, 
+                    crsfPayloadLinkstatistics_s LinkStatistics, 
                     uint8_t batteryVoltage,
                     uint8_t bpkts,
                     uint16_t gpkts,
@@ -200,13 +196,19 @@ display.setCursor(0, 0);
       if (typeModule==1) typeModName =  (char *)"elrs";
     display.printf("%s:%s",name,typeModName);
     display.println("");
-    display.printf("Tx %idBm %i:%i%% ",tx_rssi,rf_mode,tx_lq);
+    display.printf("Tx %idBm %i:%i%% ",
+                      LinkStatistics.uplink_RSSI_1,
+                      LinkStatistics.rf_Mode,
+                      LinkStatistics.uplink_Link_quality);
     display.println("");
     display.println("");
-    display.printf("Rx %idBm %i:%i%% ",rx_rssi_1,rf_mode,rx_lq);
+    display.printf("Rx %idBm %i:%i%% ",
+                      LinkStatistics.downlink_RSSI,
+                      LinkStatistics.rf_Mode,
+                      LinkStatistics.downlink_Link_quality);
     display.setTextSize(2);
     display.println("");
-    display.printf("%imW", tx_pwr);
+    display.printf("%imW", LinkStatistics.uplink_TX_Power);
     float vBat = (float)batteryVoltage/10;
     display.printf("%4.1fv",vBat);
     display.println();             // Start at top-left corner

@@ -213,8 +213,29 @@ static char *next_string;
 extern char tempstring[TEMPSTRINGLENGTH];
 
 static const char *hdr_str_cb(const void *data);
-crsf_param_t *current_param(int absrow);
 
 
 static void crsfdevice_init();
 void bt_handle(uint8_t value);
+
+
+
+/*
+	Student st[5];
+	for( int i=0; i<5; i++ )
+	{
+		cout << "Student " << i + 1 << endl;
+		cout << "Enter name" << endl;
+		st[i].getName();
+		cout << "Enter marks" << endl;
+		st[i].getMarks();
+	}
+
+	for( int i=0; i<5; i++ )
+	{
+		cout << "Student " << i + 1 << endl;
+		st[i].displayInfo();
+	}
+	return 0;
+}
+*/

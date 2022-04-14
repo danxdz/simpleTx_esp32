@@ -86,8 +86,6 @@ static char recv_param_buffer[CRSF_MAX_CHUNKS * CRSF_MAX_CHUNK_SIZE];
 static char *recv_param_ptr;
 static struct crsfdevice_page * const mp = &pagemem.u.crsfdevice_page;
 
-char Modelname[24];
-
 crsf_device_t deviation = {
     .address = ADDR_RADIO,
     .number_of_params = 1,
@@ -234,23 +232,24 @@ static void parse_elrs_info(uint8_t *buffer) {
 }
 
 void CRSF_serial_rcv(uint8_t *buffer, uint8_t num_bytes) {
-/*    for (int i=0;i<num_bytes;i++) {
-        db_out.printf("0x%x:",buffer[i]);
-      }
-      db_out.println(""); */
+  /*for (int i=0;i<num_bytes;i++) {
+    db_out.printf("0x%x:",buffer[i]);
+    }
+  db_out.println(""); */
+
   if ((buffer[0]!=CRSF_FRAMETYPE_RADIO_ID) && (buffer[0]!=CRSF_FRAMETYPE_LINK_STATISTICS)){
       //db_out.printf("CRSF FRAMETYPE: 0x%x : L:%u : ",buffer[0],num_bytes);
   } else {
-   /*  if (buffer[0]!=CRSF_FRAMETYPE_RADIO_ID) {
+     if (buffer[0]!=CRSF_FRAMETYPE_RADIO_ID) {
       for (int i=0;i<num_bytes;i++) {
         db_out.printf("0x%x:",buffer[i]);
       }
       db_out.println("");
-    } */
+    } 
   }
   switch (buffer[0]) {
     case CRSF_FRAMETYPE_DEVICE_INFO:
-        db_out.printf("DEVICE_INFO\n");
+       // db_out.printf("DEVICE_INFO\n");
 
         add_device(buffer);
         CRSF_sendId(crsfSetIdPacket,0);
@@ -259,13 +258,12 @@ void CRSF_serial_rcv(uint8_t *buffer, uint8_t num_bytes) {
 
     case CRSF_FRAMETYPE_ELRS_STATUS:
         parse_elrs_info(buffer);
-        db_out.printf("FRAMETYPE_ELRS_STATUS\n");
+       // db_out.printf("FRAMETYPE_ELRS_STATUS\n");
     
         break;
 
     case CRSF_FRAMETYPE_PARAMETER_SETTINGS_ENTRY:
-        //db_out.printf("PARAMETER_SETTINGS_ENTRY\n");
-        read_timeout = 0;
+     //   db_out.printf("PARAMETER_SETTINGS_ENTRY\n");
         add_param(buffer, num_bytes);
         break;
 
@@ -495,14 +493,14 @@ void read_ui_buttons () {
     } else if (entered>=0){
       //db_out.println("submenu");
       if (enter == LOW) {
-        db_out.printf("send cmd submenu \n %i:%i:%u:%u:%u:%u\n",
+       /*  db_out.printf("send cmd submenu \n %i:%i:%u:%u:%u:%u\n",
         selected,
         subSelected,
         mItems[selected].id,
         smItems[subSelected].id,
         smItems[subSelected].u.status,
         smItems[subSelected].type
-        );
+        ); */
         next_param = smItems[subSelected].id;
 
         params_loaded = 0;
@@ -521,12 +519,19 @@ void read_ui_buttons () {
         next_param,
         cmd);
         elrsWrite(crsfCmdPacket,8,200000);
-        delay(500);
+        delay(1000);
+        //db_out.printf("next_param changed: %u\n",next_param);
        
-        CRSF_read_param(crsfCmdPacket,mItems[selected].id,0);
-        elrsWrite(crsfCmdPacket,8,200000); 
-        delay(500);
-       
+        next_param = smItems[subSelected].id;
+        
+        CRSF_read_param(crsfCmdPacket,next_param,0);
+        elrsWrite(crsfCmdPacket,8,200000);
+        delay(1000); 
+        //db_out.printf("next_param read %u\n", next_param);
+        
+        next_param = mItems[selected].id;
+        //db_out.printf("next_param ask: %u\n", next_param);
+
         CRSF_read_param(crsfCmdPacket,next_param,0);
         elrsWrite(crsfCmdPacket,8,200000);
         
@@ -582,26 +587,17 @@ void OutputTask( void * pvParameters ){
   for(;;){
 
 
-    /* if ((MODULE_IS
-    _ELRS)&&(local_info.good_pkts==0)) {
+     if ((MODULE_IS_ELRS)&&(local_info.good_pkts==0)) {
       CRSF_get_elrs(crsfCmdPacket);
       elrsWrite(crsfCmdPacket,sizeof(crsfCmdPacket),0);
-    } */
+    } 
     
-    //CRSF_get_elrs(crsfCmdPacket);
-    //elrsWrite(crsfCmdPacket,sizeof(crsfCmdPacket),2000000);
     if (entered > -2) {
       if (menu_item_id>10) {
         if (menu_loaded) {
           //db_out.println("menu loaded...");
           updateDisplay(
-            LinkStatistics.downlink_RSSI,
-            LinkStatistics.downlink_Link_quality,
-            LinkStatistics.rf_Mode,
-            LinkStatistics.uplink_TX_Power,
-            LinkStatistics.uplink_RSSI_1,
-            LinkStatistics.uplink_RSSI_2,
-            LinkStatistics.uplink_Link_quality,
+            LinkStatistics,
             batteryVoltage.voltage,
             local_info.bad_pkts,
             local_info.good_pkts,
@@ -637,13 +633,7 @@ void OutputTask( void * pvParameters ){
     }
     } else {
       updateDisplay(
-            LinkStatistics.downlink_RSSI,
-            LinkStatistics.downlink_Link_quality,
-            LinkStatistics.rf_Mode,
-            LinkStatistics.uplink_TX_Power,
-            LinkStatistics.uplink_RSSI_1,
-            LinkStatistics.uplink_RSSI_2,
-            LinkStatistics.uplink_Link_quality,
+            LinkStatistics,
             batteryVoltage.voltage,
             local_info.bad_pkts,
             local_info.good_pkts,
@@ -784,6 +774,14 @@ void ElrsTask( void * pvParameters ){
             Arm,FlightMode);//batteryVoltage);
             delay(1000); 
           #else
+            //char buf [64];
+       /*      db_out.printf(buf, "A:%i:%i;E:%i:%i;T:%i:%i;R:%i:%i;arm:%i;fm:%i\r\n", 
+            Aileron_value,rcChannels[0],
+            Elevator_value,rcChannels[1],
+            Throttle_value,rcChannels[2],
+            Rudder_value,rcChannels[3],
+            Arm,FlightMode); */
+
             //send crsf packet
             crsfPreparePacket(crsfPacket, rcChannels);
             elrsWrite(crsfPacket, CRSF_PACKET_SIZE,0);
@@ -886,7 +884,10 @@ static uint8_t count_params_loaded() {
 
 static void add_param(uint8_t *buffer, uint8_t num_bytes) {
   // abort if wrong device, or not enough buffer space
-  //db_out.printf("add_param:%u:%u:0x%x\n",buffer[3],crsf_devices[0].number_of_params,crsf_devices[device_idx].address);
+
+
+
+  db_out.printf("add_param:%u:%u:0x%x\n",buffer[3],crsf_devices[0].number_of_params,crsf_devices[device_idx].address);
   //CRSF_ADDRESS_CRSF_TRANSMITTER 
   if (buffer[2] != crsf_devices[device_idx].address
        || ((int)((sizeof recv_param_buffer) - (recv_param_ptr - recv_param_buffer)) < (num_bytes-4))) {
@@ -923,10 +924,17 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
         next_param = 0;
         return;
     }
+
+    //db_out.printf("bf3: %x _ ",buffer[3]);
+    menuItems[menu_item_id].getParams(recv_param_ptr,buffer[3]);
+    menuItems[menu_item_id].displayInfo();
+
     //** menu item struct
     if ((menu_item_id+submenu_item_id)<crsf_devices[0].number_of_params) {
       if (*recv_param_ptr == 0) {
-        //db_out.printf("MI:%u\n", menu_item_id);
+
+
+       // db_out.printf("MI:%u\n", menu_item_id);
         //menu_items *mItemP = &mItems[buffer[3]-1]; 
         menu_items *mItemP = &mItems[menu_item_id]; 
         menu_item_id++;
@@ -934,7 +942,7 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
         mItemP->submenuType = 0;
         get_all_params_from_buffer(mItemP,buffer);
       } else {
-        //db_out.printf("SMI:%u\n", submenu_item_id);
+       // db_out.printf("SMI:%u\n", submenu_item_id);
         menu_items *mItemP = &mItems[menu_item_id-1];
         mItemP->submenuType = 1;
         menu_items *smItemP = &smItems[submenu_item_id]; 
@@ -945,20 +953,31 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
       }
     } else { 
       
-        db_out.printf("UPDATE :%u:%u:%u:%i:%i:%u\n", 
-        menu_item_id,
-        submenu_item_id,
-        next_param,
-        selected,
-        subSelected,
-        mItems[next_param-1].id);
-        if (next_param == mItems[next_param-1].id) {
-          menu_items *mItemP = &mItems[next_param-1]; 
+     /*    db_out.printf("UPDATE :%u:%u:%u:%i:%i:%u:%u:%u\n", 
+        menu_item_id,//11
+        submenu_item_id,//9
+        next_param,//10
+        selected,//5
+        subSelected,//3
+        mItems[selected].id,//8
+        smItems[subSelected].id, //10
+        buffer[3]);//10 */
+        // if parameters changed = parent means id = selected
+        if (next_param == mItems[selected].id) {
+          menu_items *mItemP = &mItems[selected]; 
           mItemP->parent = *recv_param_ptr++;
           get_all_params_from_buffer(mItemP,buffer);
         } else {
-
-          menu_items *mItemP = &smItems[subSelected]; 
+          uint8_t index=0;
+          for (size_t i = 0; i < next_param; i++)
+          {
+              if (smItems[i].id == buffer[3]) {
+                index = i;
+                break;
+              }
+          }
+        //  db_out.printf("index:%u:%i\n",buffer[3],index);
+          menu_items *mItemP = &smItems[index]; 
           mItemP->parent = *recv_param_ptr++;
           get_all_params_from_buffer(mItemP,buffer);
         }
@@ -1064,49 +1083,51 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
   
 }
 
-menu_items get_all_params_from_buffer(menu_items *mItemP,uint8_t *buffer) {
+menu_items get_all_params_from_buffer(menu_items *mItemTmp,uint8_t *buffer) {
 
-    //db_out.printf("id:%i:bf:%x\n",mItemP->id,buffer[3]);
-    int update = mItemP->id == buffer[3];
-    mItemP->device = device_idx;
-    mItemP->id = buffer[3];
+  //  db_out.printf("id:%i:bf:%x\n",mItemTmp->id,buffer[3]);
+    int update = mItemTmp->id == buffer[3];
+    mItemTmp->device = device_idx;
+    mItemTmp->id = buffer[3];
 
-    mItemP->type = static_cast<data_type>(*recv_param_ptr & 0x7f);
+    mItemTmp->type = static_cast<data_type>(*recv_param_ptr & 0x7f);
     
     //db_out.printf("type: %i \n ",(int) mItemP->type);
      
   if (!update) {
-        mItemP->hidden = *recv_param_ptr++ & 0x80;
+        mItemTmp->hidden = *recv_param_ptr++ & 0x80;
 
-        mItemP->name = new char[strlen(recv_param_ptr)+1];
-        strlcpy(mItemP->name, (const char *)recv_param_ptr,strlen(recv_param_ptr)+1);
+        mItemTmp->name = new char[strlen(recv_param_ptr)+1];
+        strlcpy(mItemTmp->name, (const char *)recv_param_ptr,strlen(recv_param_ptr)+1);
        recv_param_ptr += strlen(recv_param_ptr) + 1;
       
     } else {
-        if (mItemP->hidden != (*recv_param_ptr & 0x80))
+        if (mItemTmp->hidden != (*recv_param_ptr & 0x80))
             params_loaded = 0;   // if item becomes hidden others may also, so reload all params
-        mItemP->hidden = *recv_param_ptr++ & 0x80;
-        db_out.printf("not update :hidden:%u\n",mItemP->hidden);
-
+        mItemTmp->hidden = *recv_param_ptr++ & 0x80;
+        mItemTmp->name = new char[strlen(recv_param_ptr)+1];
+        strlcpy(mItemTmp->name, (const char *)recv_param_ptr,strlen(recv_param_ptr)+1);
+    //    db_out.printf("not update :hidden:%s:%u\n",mItemTmp->name,mItemTmp->hidden);
+     
         recv_param_ptr += strlen(recv_param_ptr) + 1;
     }
     int count;
-    switch (mItemP->type) {
+    switch (mItemTmp->type) {
     case UINT8:
     case INT8:
     case UINT16:
     case INT16:
     case FLOAT:
-        parse_bytes(mItemP->type, &recv_param_ptr,  (char *) &mItemP->value);
-        parse_bytes(mItemP->type, &recv_param_ptr, (char *) &mItemP->min_value);
-        parse_bytes(mItemP->type, &recv_param_ptr, (char *) &mItemP->max_value);
-        parse_bytes(mItemP->type, &recv_param_ptr, (char *) &mItemP->default_value);
-        if (mItemP->type == FLOAT) {
-            parse_bytes(UINT8, &recv_param_ptr, (char *) &mItemP->u.point);
-            parse_bytes(FLOAT, &recv_param_ptr, (char *) &mItemP->step);
+        parse_bytes(mItemTmp->type, &recv_param_ptr,  (char *) &mItemTmp->value);
+        parse_bytes(mItemTmp->type, &recv_param_ptr, (char *) &mItemTmp->min_value);
+        parse_bytes(mItemTmp->type, &recv_param_ptr, (char *) &mItemTmp->max_value);
+        parse_bytes(mItemTmp->type, &recv_param_ptr, (char *) &mItemTmp->default_value);
+        if (mItemTmp->type == FLOAT) {
+            parse_bytes(UINT8, &recv_param_ptr, (char *) &mItemTmp->u.point);
+            parse_bytes(FLOAT, &recv_param_ptr, (char *) &mItemTmp->step);
         } else if (*recv_param_ptr) {
           db_out.println("eeerrr");
-            if (!update) mItemP->s.unit = ( char *)recv_param_ptr,
+            if (!update) mItemTmp->s.unit = ( char *)recv_param_ptr,
                     CRSF_STRING_BYTES_AVAIL(strlen(recv_param_ptr)+1);
 
         }
@@ -1116,8 +1137,8 @@ menu_items get_all_params_from_buffer(menu_items *mItemP,uint8_t *buffer) {
         if (!update) {
           //db_out.println("text_sel: ");
   
-          mItemP->value = new char[strlen(recv_param_ptr)+1];
-          strlcpy(mItemP->value, (const char *)recv_param_ptr,strlen(recv_param_ptr)+1);
+          mItemTmp->value = new char[strlen(recv_param_ptr)+1];
+          strlcpy(mItemTmp->value, (const char *)recv_param_ptr,strlen(recv_param_ptr)+1);
 
           
          // db_out.printf("val: %s\n",(char*)mItemP->value);
@@ -1127,16 +1148,16 @@ menu_items get_all_params_from_buffer(menu_items *mItemP,uint8_t *buffer) {
           // put null between selection options
           // find max choice string length to adjust textselectplate size
           
-          get_divided_submenu_options(mItemP);
+          get_divided_submenu_options(mItemTmp);
       
          } else {
             recv_param_ptr += strlen(recv_param_ptr) + 1;
         }
-        parse_bytes(UINT8, &recv_param_ptr, (char *) &mItemP->u.text_sel);
+        parse_bytes(UINT8, &recv_param_ptr, (char *) &mItemTmp->u.text_sel);
         //db_out.printf("uvalue:%u\n",mItemP->u.text_sel);
-        parse_bytes(UINT8, &recv_param_ptr, (char *) &mItemP->min_value);
+        parse_bytes(UINT8, &recv_param_ptr, (char *) &mItemTmp->min_value);
         parse_bytes(UINT8, &recv_param_ptr, (char *) &count);  // don't use incorrect parameter->max_value
-        parse_bytes(UINT8, &recv_param_ptr, (char *) &mItemP->default_value);
+        parse_bytes(UINT8, &recv_param_ptr, (char *) &mItemTmp->default_value);
         break;
 
     case INFO:
@@ -1144,8 +1165,8 @@ menu_items get_all_params_from_buffer(menu_items *mItemP,uint8_t *buffer) {
          //if (!update) {
          // db_out.printf("id:%i:bf:%x\n",mItemP->id,buffer[3]);
           
-          mItemP->value = new char[strlen(recv_param_ptr)+1];
-          strlcpy(mItemP->value, (const char *)recv_param_ptr,CRSF_STRING_BYTES_AVAIL(mItemP->value));
+          mItemTmp->value = new char[strlen(recv_param_ptr)+1];
+          strlcpy(mItemTmp->value, (const char *)recv_param_ptr,CRSF_STRING_BYTES_AVAIL(mItemTmp->value));
 
           //db_out.printf("info val: %s\n",(char*)mItemP->value);
           recv_param_ptr += strlen(recv_param_ptr) + 1;
@@ -1161,27 +1182,27 @@ menu_items get_all_params_from_buffer(menu_items *mItemP,uint8_t *buffer) {
             recv_param_ptr += strlen(value) + 1;
             default_value = recv_param_ptr;
             recv_param_ptr += strlen(default_value) + 1;
-            parse_bytes(UINT8, &recv_param_ptr, (char *) &mItemP->u.string_max_len);
+            parse_bytes(UINT8, &recv_param_ptr, (char *) &mItemTmp->u.string_max_len);
       
             // No string re-sizing so allocate max length for value
-        if (!update) mItemP->value = new char[(mItemP->u.string_max_len+1)];
-          strlcpy(mItemP->value, value,
-            MIN(mItemP->u.string_max_len+1,
-                        CRSF_STRING_BYTES_AVAIL(mItemP->value)));
-        if (!update) mItemP->default_value = new char[strlen(default_value)+1];
-            strlcpy(mItemP->default_value, default_value,
-                    CRSF_STRING_BYTES_AVAIL(mItemP->default_value));
-        db_out.printf("STRING - %s:%s \n",mItemP->value,mItemP->default_value);
+        if (!update) mItemTmp->value = new char[(mItemTmp->u.string_max_len+1)];
+          strlcpy(mItemTmp->value, value,
+            MIN(mItemTmp->u.string_max_len+1,
+                        CRSF_STRING_BYTES_AVAIL(mItemTmp->value)));
+        if (!update) mItemTmp->default_value = new char[strlen(default_value)+1];
+            strlcpy(mItemTmp->default_value, default_value,
+                    CRSF_STRING_BYTES_AVAIL(mItemTmp->default_value));
+        db_out.printf("STRING - %s:%s \n",mItemTmp->value,mItemTmp->default_value);
 
       }
         break;
 
     case COMMAND:
       
-        parse_bytes(UINT8, &recv_param_ptr, (char *)  &mItemP->u.status);
-        parse_bytes(UINT8, &recv_param_ptr, (char *) &mItemP->timeout);
-        if (!update) mItemP->s.info = new char[20];
-        strlcpy(mItemP->s.info, (const char *)recv_param_ptr, 20);
+        parse_bytes(UINT8, &recv_param_ptr, (char *)  &mItemTmp->u.status);
+        parse_bytes(UINT8, &recv_param_ptr, (char *) &mItemTmp->timeout);
+        if (!update) mItemTmp->s.info = new char[20];
+        strlcpy(mItemTmp->s.info, (const char *)recv_param_ptr, 20);
         /* db_out.printf("command val:i%s:s:%u:%u\n",
         (char*)mItemP->s.info,
         mItemP->u.status,
@@ -1192,7 +1213,7 @@ menu_items get_all_params_from_buffer(menu_items *mItemP,uint8_t *buffer) {
 
         //command.param = mItemP;
         command.time = 0;
-        switch (mItemP->u.status) {
+        switch (mItemTmp->u.status) {
         case PROGRESS:
             db_out.println("PROGRESS");
             //command.time = CLOCK_getms();
@@ -1213,29 +1234,29 @@ menu_items get_all_params_from_buffer(menu_items *mItemP,uint8_t *buffer) {
     default:
         break;
     }
- return *mItems;
+ return *mItemTmp;
 }
 
-void get_divided_submenu_options(menu_items *mItemP ) {
+void get_divided_submenu_options(menu_items *mItemTmp ) {
 
-          char *start = (char *)mItemP->value;
+          char *start = (char *)mItemTmp->value;
           
             int count = 0;
-            for (char *p = (char *)mItemP->value; *p; p++) {
+            for (char *p = (char *)mItemTmp->value; *p; p++) {
                 if (*p == ';') {
                     int len = (strlen(start)-strlen(p));
-                    mItemP->submenuItems[count] = new char[len+1];
-                    strlcpy(mItemP->submenuItems[count],start,len+1);
+                    mItemTmp->submenuItems[count] = new char[len+1];
+                    strlcpy(mItemTmp->submenuItems[count],start,len+1);
                 
                     start = p+1;
                     count += 1;
                 }
             }
             int len = strlen(start);
-            mItemP->submenuItems[count] = new char[len+1];
-            strlcpy(mItemP->submenuItems[count],start,len+1);
+            mItemTmp->submenuItems[count] = new char[len+1];
+            strlcpy(mItemTmp->submenuItems[count],start,len+1);
                    
-            mItemP->max_value = count;   
+            mItemTmp->max_value = count;   
             
      
 }
@@ -1257,8 +1278,11 @@ static const char *hdr_str_cb(const void *data) {
                  crsf_devices[device_idx].name, elrs_info.bad_pkts, elrs_info.good_pkts,
                  (elrs_info.flags & 1) ? 'C' : '-');
     } else  {
-        db_out.printf("idx_dev: %i\n",device_idx);
-        return crsf_devices[device_idx].name;
+        db_out.printf("tx module \n not detected: %i\n");
+        //return crsf_devices[device_idx].name;
+        snprintf(tempstring, sizeof tempstring, "%s  %d/%d  %c",
+                 crsf_devices[device_idx].name, elrs_info.bad_pkts, elrs_info.good_pkts,
+                 (elrs_info.flags & 1) ? 'C' : '-');
     }
     return tempstring;
 }
