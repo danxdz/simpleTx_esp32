@@ -41,17 +41,14 @@
 #include "config.h"
 #include "crsf.c"
 #include "led.h"
-//#include "battery.h"
 #include "tlm.h"
 #include "model.h"
-//#include "gpio/gpio.cpp"
-
 #include "CrsfProtocol/crsf_protocol.h"
-
-//#include "oled.h"
 #include "halfduplex.h"
 #include "uart.h"
 #include "menus/menus.cpp"
+#include "ui_buttons/ui_buttons.cpp"
+
 char tempstring[TEMPSTRINGLENGTH];
 
 TaskHandle_t elrsTaskHandler;
@@ -76,17 +73,15 @@ static int32_t correction;
 
 #define constrain(amt,low,high) ((amt)<(low)?(low):((amt)>(high)?(high):(amt)))
 
-static int32_t read_timeout;
 static uint8_t current_folder = 0;
 static uint8_t params_displayed;  // if not zero, number displayed so far for current device
 static uint8_t device_idx;   // current device index
-static uint8_t next_param;   // parameter and chunk currently being read
-static uint8_t next_chunk;
+
 static char recv_param_buffer[CRSF_MAX_CHUNKS * CRSF_MAX_CHUNK_SIZE];
 static char *recv_param_ptr;
 static struct crsfdevice_page * const mp = &pagemem.u.crsfdevice_page;
 
-crsf_device_t deviation = {
+crsf_device_t radio = {
     .address = ADDR_RADIO,
     .number_of_params = 1,
     .params_version = 0,
@@ -97,8 +92,6 @@ crsf_device_t deviation = {
 
 
 //TODO
-// change to get last rate
-uint8_t packetRateSelected = 0;
 
 elrs_info_t local_info;
 
@@ -249,9 +242,11 @@ void CRSF_serial_rcv(uint8_t *buffer, uint8_t num_bytes) {
   }
   switch (buffer[0]) {
     case CRSF_FRAMETYPE_DEVICE_INFO:
-       // db_out.printf("DEVICE_INFO\n");
+       db_out.printf("DEVICE_INFO\n");
 
         add_device(buffer);
+        db_out.printf("send model id\n");
+
         CRSF_sendId(crsfSetIdPacket,0);
         elrsWrite(crsfSetIdPacket,LinkStatisticsFrameLength,0);
         break;
@@ -436,232 +431,61 @@ void serialEvent() {
 }
 
 
-void read_ui_buttons () {
-    bool up = digitalRead(upBt);
-    bool down = digitalRead(downBt);
-    bool enter = digitalRead(enterBt);
-    bool back = digitalRead(backBt);
-    //db_out.printf("%i%i%i%i\n",up,down,enter,back);
-    //db_out.printf("%i:\n",params_loaded);
 
-    if (up == LOW && down == LOW) {
-    };
-    
-    //if at main
-     if (entered==-2){ 
-      //db_out.println("main");
-
-      entered = enter ? entered : -1;
-      
-    //if inside menu - selected = -1
-    } else if (entered==-1){
-      //db_out.println("menu");
-
-      if ((up == LOW) && (entered != selected))
-        selected = (selected <= 0) ? 0 : selected-1;
-      if ((down == LOW) && (entered != selected))
-        selected++;
-      if ((enter == LOW)) {
-        int new_param = 0;
-        db_out.printf("click:%i:%i:%s\n",
-        selected,
-        mItems[selected].id,
-        mItems[selected].name);
-
-        if (mItems[selected].submenuType == 0) {
-          if ((int)mItems[selected].u.status < (int)mItems[selected].max_value) {
-            new_param = mItems[selected].u.status+1;
-          } 
-          buildElrsPacket(crsfCmdPacket,mItems[selected].id,new_param);
-          elrsWrite(crsfCmdPacket,8,0);
-          params_loaded = 0;
-          ////////////////////////////////////
-          menu_loaded= false;
-          next_param = selected+1;
-          next_chunk = 0;
-          delay(500);
-          CRSF_read_param(crsfCmdPacket,next_param,0);
-          elrsWrite(crsfCmdPacket,8,200000);
-        } else {
-          subSelected = -1;
-          entered = selected;
-        }
-      }
-      if (back == LOW) entered = -2;
-
-    //if at submenu
-    } else if (entered>=0){
-      //db_out.println("submenu");
-      if (enter == LOW) {
-       /*  db_out.printf("send cmd submenu \n %i:%i:%u:%u:%u:%u\n",
-        selected,
-        subSelected,
-        mItems[selected].id,
-        smItems[subSelected].id,
-        smItems[subSelected].u.status,
-        smItems[subSelected].type
-        ); */
-        next_param = smItems[subSelected].id;
-
-        params_loaded = 0;
-        menu_loaded= false;
-        next_chunk = 0;
-        int cmd;
-       
- 
-        if (smItems[subSelected].u.status<smItems[subSelected].max_value)
-          cmd = smItems[subSelected].u.status + 1 ;
-        else
-          cmd = 0;
-        if (smItems[subSelected].type == 13) 
-          cmd = 4;
-        buildElrsPacket(crsfCmdPacket,
-        next_param,
-        cmd);
-        elrsWrite(crsfCmdPacket,8,200000);
-        delay(1000);
-        //db_out.printf("next_param changed: %u\n",next_param);
-       
-        next_param = smItems[subSelected].id;
-        
-        CRSF_read_param(crsfCmdPacket,next_param,0);
-        elrsWrite(crsfCmdPacket,8,200000);
-        delay(1000); 
-        //db_out.printf("next_param read %u\n", next_param);
-        
-        next_param = mItems[selected].id;
-        //db_out.printf("next_param ask: %u\n", next_param);
-
-        CRSF_read_param(crsfCmdPacket,next_param,0);
-        elrsWrite(crsfCmdPacket,8,200000);
-        
-     }
-      if (back == LOW) {
-        entered = -1;
-        subSelected = -1;
-      }
-      if ((up == LOW)) // && (entered != selected))
-        subSelected--;
-      if ((down == LOW)) // && (entered != subSelected))
-        subSelected++;
-
-
-    }
-
-
-    //db_out.printf("ent:%i:sel:%isSel:%i\n",entered, selected,subSelected);
-    
-    //powerChangeHasRun=true;
-    //clickCurrentMicros = crsfTime + (2*1000000);//2sec
-    delay(200);
-}
 void OutputTask( void * pvParameters ){
-  
-
-  // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
-  if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
-    Serial.println(F("SSD1306 allocation failed"));
-    for(;;); // Don't proceed, loop forever
-  }
-  // Clear the buffer
-  display.clearDisplay();
-  display.display();
-  display.invertDisplay(false);
-  delay(500);
-  display.setTextSize(1);             // Normal 1:1 pixel scale
-  display.setTextColor(SSD1306_WHITE);        // Draw white text
-  display.setCursor(0,0);             // Start at top-left corner
-  display.printf("ELRS");
-  display.setTextSize(2);             
-  display.println("");
-  display.printf("simpleTX");
-  display.display();
-  delay(2000);
-  startDisplay();
-  //bt_handle(1);
-  delay(500);
-
-  
-  int count = 0;
+  Oled::init();
 
   for(;;){
-
+    read_ui_buttons();
 
      if ((MODULE_IS_ELRS)&&(local_info.good_pkts==0)) {
       CRSF_get_elrs(crsfCmdPacket);
       elrsWrite(crsfCmdPacket,sizeof(crsfCmdPacket),0);
     } 
     
-    if (entered > -2) {
-      if (menu_item_id>10) {
-        if (menu_loaded) {
-          //db_out.println("menu loaded...");
-          updateDisplay(
-            LinkStatistics,
-            batteryVoltage.voltage,
-            local_info.bad_pkts,
-            local_info.good_pkts,
-            crsf_devices->name,
-            module_type,
-            menu_item_id,
-            mItems,
-            smItems,
-            entered); 
-          delay(50);
-          read_ui_buttons();
-      } else {
-        db_out.println("menu!!!!!!!!!");
-        menu_loaded = true;
-      }
-    // end else (if not all parameters) ask elrs tx module for then
-    } else {
-      char *load = (char *)hdr_str_cb(mItems);
-      db_out.printf("hdr:%s\n",load);
-      set_display_loading(load);
-      if (crsf_devices[device_idx].number_of_params) {
-        if (crsf_devices[device_idx].address == ADDR_RADIO) {
-          db_out.println("address:radio");
-          protocol_read_param(device_idx, &crsf_params[0]);    // only one param now
-        } else {
-          //db_out.printf("Menu address: 0x%x - num par: %u:%u\n",crsf_devices[device_idx].address, crsf_devices[device_idx].number_of_params,submenu_item_id);
-          CRSF_read_param(crsfCmdPacket,next_param,next_chunk);
-          elrsWrite(crsfCmdPacket,8,200000);
-
+    if (entered == -1) {
+      if (params_loaded<crsf_devices[0].number_of_params) {
+        char *load = (char *)hdr_str_cb(mItems);
+        //db_out.printf("hdr:%s\n",load);
+        Menu::loadMainMenu(load);
+        if (crsf_devices[device_idx].number_of_params) {
+          if (crsf_devices[device_idx].address == ADDR_RADIO) {
+            //db_out.println("address:radio");
+            protocol_read_param(device_idx, &crsf_params[0]);    // only one param now
+          } else {
+            //db_out.printf("Menu address: 0x%x - num par: %u\n",crsf_devices[device_idx].address, crsf_devices[device_idx].number_of_params);
+            if (next_param ==1) {
+              CRSF_read_param(crsfCmdPacket,next_param,0);
+              elrsWrite(crsfCmdPacket,8,200000);
+            }
+          }
         }
+        delay(2000);
+      // end not all params
+      } else { //else (if all parameters) load main menu      
+        //db_out.println("main menu loaded...");
+        Oled::setMainMenuItems();
       }
-      delay(2000);
+    } else if (entered== -2) { //show idle screen
+      Oled::setMainScreen(
+              crsf_devices[0].name,
+              LinkStatistics,
+              local_info.bad_pkts,
+              local_info.good_pkts);
+    } //end idle screen
+    else {
+      Oled::setSubMenuItems();
     }
-    } else {
-      updateDisplay(
-            LinkStatistics,
-            batteryVoltage.voltage,
-            local_info.bad_pkts,
-            local_info.good_pkts,
-            crsf_devices->name,
-            module_type,
-            count,
-            mItems,
-            smItems,
-            entered); 
-          delay(250);
-          read_ui_buttons();
-    } //end  if in main menu (-2)
-  } // end main loop
-}
+  } // end main loop for
+} // end output task
   
 void bt_handle(uint8_t value) {
   db_out.println("bt_handle");
-  if(packetRateSelected>=6) {
-    packetRateSelected = 0;
-  } else {
-    packetRateSelected++;
-  }
+  
   powerChangeHasRun=true;   
   clickCurrentMicros = crsfTime + 500000;//0.5sec
   db_out.printf("times: %u:%u\n", clickCurrentMicros/1000, crsfTime/1000);
   //powerChangeHasRun=true;
-  //clickCurrentMicros = crsfTime + (2*1000000);//2sec
-  //buildElrsPacket(crsfCmdPacket,value,packetRateSelected);
   
   //CRSF_read_param(crsfCmdPacket,1,next_chunk);
   //elrsWrite(crsfCmdPacket,8,0);
@@ -839,54 +663,19 @@ static void  elrsWrite (
   sync_crsf(add_delay);
 }
 
-
 #define MIN(a, b) ((a) < (b) ? a : b)
-
-static void parse_bytes(enum data_type type, char **buffer, char *dest) {
-    switch (type) {
-    case UINT8:
-        *(uint8_t *)dest = (uint8_t) (*buffer)[0];
-        *buffer += 1;
-        break;
-    case INT8:
-        *(int8_t *)dest = (int8_t) (*buffer)[0];
-        *buffer += 1;
-        break;
-    case UINT16:
-        *(uint16_t *)dest = (uint16_t) (((*buffer)[0] << 8) | (*buffer)[1]);
-        *buffer += 2;
-        break;
-    case INT16:
-        *(int16_t *)dest = (int16_t) (((*buffer)[0] << 8) | (*buffer)[1]);
-        *buffer += 2;
-        break;
-    case FLOAT:
-        *(int32_t *)dest = (int32_t) (((*buffer)[0] << 24) | ((*buffer)[1] << 16)
-                     |        ((*buffer)[2] << 8)  |  (*buffer)[3]);
-        *buffer += 4;
-        break;
-    default:
-        break;
-    }
-}
-
 
 static uint8_t count_params_loaded() {
     int i;
     for (i=0; i < crsf_devices[0].number_of_params; i++) {
-        //db_out.printf("count_params_loaded: %i:%u\n",i,mItems[i].id);
-        if (menu_item_id+submenu_item_id<crsf_devices[0].number_of_params) break;
+        //db_out.printf("count_params_loaded: %i:%u\n",i,crsf_devices[0].number_of_params);
+        if (menuItems[i].id == 0) break;
     }
     return i;
 }
 
-
-
 static void add_param(uint8_t *buffer, uint8_t num_bytes) {
   // abort if wrong device, or not enough buffer space
-
-
-
   db_out.printf("add_param:%u:%u:0x%x\n",buffer[3],crsf_devices[0].number_of_params,crsf_devices[device_idx].address);
   //CRSF_ADDRESS_CRSF_TRANSMITTER 
   if (buffer[2] != crsf_devices[device_idx].address
@@ -924,76 +713,18 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
         next_param = 0;
         return;
     }
+    menuItems[(int)buffer[3]-1].getParams(recv_param_ptr,buffer[3]);
+    //debug
+    //menuItems[buffer[3]-1].displayInfo();
 
-    //db_out.printf("bf3: %x _ ",buffer[3]);
-    menuItems[menu_item_id].getParams(recv_param_ptr,buffer[3]);
-    menuItems[menu_item_id].displayInfo();
-
-    //** menu item struct
-    if ((menu_item_id+submenu_item_id)<crsf_devices[0].number_of_params) {
-      if (*recv_param_ptr == 0) {
-
-
-       // db_out.printf("MI:%u\n", menu_item_id);
-        //menu_items *mItemP = &mItems[buffer[3]-1]; 
-        menu_items *mItemP = &mItems[menu_item_id]; 
-        menu_item_id++;
-        mItemP->parent = *recv_param_ptr++;
-        mItemP->submenuType = 0;
-        get_all_params_from_buffer(mItemP,buffer);
-      } else {
-       // db_out.printf("SMI:%u\n", submenu_item_id);
-        menu_items *mItemP = &mItems[menu_item_id-1];
-        mItemP->submenuType = 1;
-        menu_items *smItemP = &smItems[submenu_item_id]; 
-        smItemP->parent = *recv_param_ptr++;//menu_item_id-1;
-        //char qsd = *recv_param_ptr++;
-        submenu_item_id++;
-        get_all_params_from_buffer(smItemP,buffer);
-      }
-    } else { 
-      
-     /*    db_out.printf("UPDATE :%u:%u:%u:%i:%i:%u:%u:%u\n", 
-        menu_item_id,//11
-        submenu_item_id,//9
-        next_param,//10
-        selected,//5
-        subSelected,//3
-        mItems[selected].id,//8
-        smItems[subSelected].id, //10
-        buffer[3]);//10 */
-        // if parameters changed = parent means id = selected
-        if (next_param == mItems[selected].id) {
-          menu_items *mItemP = &mItems[selected]; 
-          mItemP->parent = *recv_param_ptr++;
-          get_all_params_from_buffer(mItemP,buffer);
-        } else {
-          uint8_t index=0;
-          for (size_t i = 0; i < next_param; i++)
-          {
-              if (smItems[i].id == buffer[3]) {
-                index = i;
-                break;
-              }
-          }
-        //  db_out.printf("index:%u:%i\n",buffer[3],index);
-          menu_items *mItemP = &smItems[index]; 
-          mItemP->parent = *recv_param_ptr++;
-          get_all_params_from_buffer(mItemP,buffer);
-        }
-        //smItems[subSelected].id
-        //menu_items *mItemP = &mItems[smItems[subSelected].id];
-       
-    }
-    
 
     recv_param_ptr = recv_param_buffer;
     next_chunk = 0;
     params_loaded = count_params_loaded();
     // read all params when needed
-    //db_out.printf("pL:%u:%i:%i\n",params_loaded,menu_item_id,submenu_item_id);
-    if ((params_loaded < crsf_devices[device_idx].number_of_params) 
-        && (menu_item_id+submenu_item_id <  crsf_devices[device_idx].number_of_params))
+   /// db_out.printf("pL:%u:%i:%i\n",params_loaded,menu_item_id,submenu_item_id);
+    if (params_loaded < crsf_devices[device_idx].number_of_params)
+       // && (menu_item_id+submenu_item_id <  crsf_devices[device_idx].number_of_params))
     {
       if (next_param < crsf_devices[device_idx].number_of_params)
       {
@@ -1007,259 +738,17 @@ static void add_param(uint8_t *buffer, uint8_t num_bytes) {
       //db_out.printf("id:%u:%s\n",parameter->id,parameter->name);
 
         CRSF_read_param(crsfCmdPacket, next_param, next_chunk);
-        elrsWrite(crsfCmdPacket,8,0);
+        elrsWrite(crsfCmdPacket,8,0); 
   } else {
-   /*  db_out.printf("0_count_out:%u:%u:%u\n",
+    /*  db_out.printf("0_count_out:%u:%u:%u\n",
         device_idx,
         crsf_devices[device_idx].number_of_params,
-        params_loaded);
-      next_param = 0;
- */
-
-
-      char * tmp1;
-      char * tmp_info;
-      for (int i=0;i<menu_item_id;i++) {
-        if (mItems[i].value) {
-          tmp1 =  mItems[i].value;
-        } else {
-          //db_out.printf("values:%u\n",mItems[i].value);
-
-          tmp1 = mItems[i].name;
-        }
-        if (mItems[i].s.info) {
-          tmp_info = new char[20];
-          strlcpy(tmp_info, (char *) mItems[i].s.info,20);
-          //tmp_info = (char *) "not empty";
-        } else {
-          tmp_info= (char *) "empty";
-        }
-
-          db_out.printf("id;%u;%u;%s;%u;%s;d:%u;%i;%i;c:%u;status:%u;sel:%u;%u;%u;%u;%s\n",
-            mItems[i].id,
-            mItems[i].parent,
-            mItems[i].name,
-            mItems[i].type,
-            tmp1,
-            mItems[i].device,
-            mItems[i].min_value,
-            mItems[i].max_value,
-            mItems[i].changed,
-            mItems[i].u.status,
-            mItems[i].u.text_sel,
-            mItems[i].u.point,
-            mItems[i].u.string_max_len,
-            command.dialog,
-            tmp_info);
-            
-            db_out.printf("options\n");
-            for (int l  = 0; mItems[i].submenuItems[l] != 0 ; l++) {
-              db_out.printf("%s:",mItems[i].submenuItems[l]);
-            }
-            db_out.println("");
-            
-
+        params_loaded); */
+       
+    next_param = 0; 
     }
-      for (int i=0;i<submenu_item_id;i++) {
-          db_out.printf("id;%u;%u;%s;%u;status:%u;max:%u\n",
-            smItems[i].id,
-            smItems[i].parent,
-            smItems[i].name,
-            smItems[i].type,
-            smItems[i].u.status,
-            smItems[i].max_value);
-      if (smItems[i].type==9) {
-        for (size_t j = 0; j <= smItems[i].max_value; j++)
-        {
-          db_out.printf("%s:",smItems[i].submenuItems[j]);
-
-        }
-        db_out.println("");
-        
-      }
-      }
-
-    } 
-  
 }
 
-menu_items get_all_params_from_buffer(menu_items *mItemTmp,uint8_t *buffer) {
-
-  //  db_out.printf("id:%i:bf:%x\n",mItemTmp->id,buffer[3]);
-    int update = mItemTmp->id == buffer[3];
-    mItemTmp->device = device_idx;
-    mItemTmp->id = buffer[3];
-
-    mItemTmp->type = static_cast<data_type>(*recv_param_ptr & 0x7f);
-    
-    //db_out.printf("type: %i \n ",(int) mItemP->type);
-     
-  if (!update) {
-        mItemTmp->hidden = *recv_param_ptr++ & 0x80;
-
-        mItemTmp->name = new char[strlen(recv_param_ptr)+1];
-        strlcpy(mItemTmp->name, (const char *)recv_param_ptr,strlen(recv_param_ptr)+1);
-       recv_param_ptr += strlen(recv_param_ptr) + 1;
-      
-    } else {
-        if (mItemTmp->hidden != (*recv_param_ptr & 0x80))
-            params_loaded = 0;   // if item becomes hidden others may also, so reload all params
-        mItemTmp->hidden = *recv_param_ptr++ & 0x80;
-        mItemTmp->name = new char[strlen(recv_param_ptr)+1];
-        strlcpy(mItemTmp->name, (const char *)recv_param_ptr,strlen(recv_param_ptr)+1);
-    //    db_out.printf("not update :hidden:%s:%u\n",mItemTmp->name,mItemTmp->hidden);
-     
-        recv_param_ptr += strlen(recv_param_ptr) + 1;
-    }
-    int count;
-    switch (mItemTmp->type) {
-    case UINT8:
-    case INT8:
-    case UINT16:
-    case INT16:
-    case FLOAT:
-        parse_bytes(mItemTmp->type, &recv_param_ptr,  (char *) &mItemTmp->value);
-        parse_bytes(mItemTmp->type, &recv_param_ptr, (char *) &mItemTmp->min_value);
-        parse_bytes(mItemTmp->type, &recv_param_ptr, (char *) &mItemTmp->max_value);
-        parse_bytes(mItemTmp->type, &recv_param_ptr, (char *) &mItemTmp->default_value);
-        if (mItemTmp->type == FLOAT) {
-            parse_bytes(UINT8, &recv_param_ptr, (char *) &mItemTmp->u.point);
-            parse_bytes(FLOAT, &recv_param_ptr, (char *) &mItemTmp->step);
-        } else if (*recv_param_ptr) {
-          db_out.println("eeerrr");
-            if (!update) mItemTmp->s.unit = ( char *)recv_param_ptr,
-                    CRSF_STRING_BYTES_AVAIL(strlen(recv_param_ptr)+1);
-
-        }
-        break;
-
-    case TEXT_SELECTION:
-        if (!update) {
-          //db_out.println("text_sel: ");
-  
-          mItemTmp->value = new char[strlen(recv_param_ptr)+1];
-          strlcpy(mItemTmp->value, (const char *)recv_param_ptr,strlen(recv_param_ptr)+1);
-
-          
-         // db_out.printf("val: %s\n",(char*)mItemP->value);
-
-          recv_param_ptr += strlen(recv_param_ptr) + 1;
-          
-          // put null between selection options
-          // find max choice string length to adjust textselectplate size
-          
-          get_divided_submenu_options(mItemTmp);
-      
-         } else {
-            recv_param_ptr += strlen(recv_param_ptr) + 1;
-        }
-        parse_bytes(UINT8, &recv_param_ptr, (char *) &mItemTmp->u.text_sel);
-        //db_out.printf("uvalue:%u\n",mItemP->u.text_sel);
-        parse_bytes(UINT8, &recv_param_ptr, (char *) &mItemTmp->min_value);
-        parse_bytes(UINT8, &recv_param_ptr, (char *) &count);  // don't use incorrect parameter->max_value
-        parse_bytes(UINT8, &recv_param_ptr, (char *) &mItemTmp->default_value);
-        break;
-
-    case INFO:
-
-         //if (!update) {
-         // db_out.printf("id:%i:bf:%x\n",mItemP->id,buffer[3]);
-          
-          mItemTmp->value = new char[strlen(recv_param_ptr)+1];
-          strlcpy(mItemTmp->value, (const char *)recv_param_ptr,CRSF_STRING_BYTES_AVAIL(mItemTmp->value));
-
-          //db_out.printf("info val: %s\n",(char*)mItemP->value);
-          recv_param_ptr += strlen(recv_param_ptr) + 1;
-
-        //}
-        break;
-    case STRING:
-        {
-        db_out.println("string - ");
-
-            const char *value, *default_value;
-            value = recv_param_ptr;
-            recv_param_ptr += strlen(value) + 1;
-            default_value = recv_param_ptr;
-            recv_param_ptr += strlen(default_value) + 1;
-            parse_bytes(UINT8, &recv_param_ptr, (char *) &mItemTmp->u.string_max_len);
-      
-            // No string re-sizing so allocate max length for value
-        if (!update) mItemTmp->value = new char[(mItemTmp->u.string_max_len+1)];
-          strlcpy(mItemTmp->value, value,
-            MIN(mItemTmp->u.string_max_len+1,
-                        CRSF_STRING_BYTES_AVAIL(mItemTmp->value)));
-        if (!update) mItemTmp->default_value = new char[strlen(default_value)+1];
-            strlcpy(mItemTmp->default_value, default_value,
-                    CRSF_STRING_BYTES_AVAIL(mItemTmp->default_value));
-        db_out.printf("STRING - %s:%s \n",mItemTmp->value,mItemTmp->default_value);
-
-      }
-        break;
-
-    case COMMAND:
-      
-        parse_bytes(UINT8, &recv_param_ptr, (char *)  &mItemTmp->u.status);
-        parse_bytes(UINT8, &recv_param_ptr, (char *) &mItemTmp->timeout);
-        if (!update) mItemTmp->s.info = new char[20];
-        strlcpy(mItemTmp->s.info, (const char *)recv_param_ptr, 20);
-        /* db_out.printf("command val:i%s:s:%u:%u\n",
-        (char*)mItemP->s.info,
-        mItemP->u.status,
-        mItemP->timeout);
- */
-        
-
-
-        //command.param = mItemP;
-        command.time = 0;
-        switch (mItemTmp->u.status) {
-        case PROGRESS:
-            db_out.println("PROGRESS");
-            //command.time = CLOCK_getms();
-            // FALLTHROUGH
-        case CONFIRMATION_NEEDED:
-            db_out.println("CONFIRMATION_NEEDED");
-            command.dialog = 1;
-            break;
-        case READY:
-            //db_out.println("READY");
-            command.dialog = 2;
-            break;
-        }
-        break;
-
-    case FOLDER:
-    case OUT_OF_RANGE:
-    default:
-        break;
-    }
- return *mItemTmp;
-}
-
-void get_divided_submenu_options(menu_items *mItemTmp ) {
-
-          char *start = (char *)mItemTmp->value;
-          
-            int count = 0;
-            for (char *p = (char *)mItemTmp->value; *p; p++) {
-                if (*p == ';') {
-                    int len = (strlen(start)-strlen(p));
-                    mItemTmp->submenuItems[count] = new char[len+1];
-                    strlcpy(mItemTmp->submenuItems[count],start,len+1);
-                
-                    start = p+1;
-                    count += 1;
-                }
-            }
-            int len = strlen(start);
-            mItemTmp->submenuItems[count] = new char[len+1];
-            strlcpy(mItemTmp->submenuItems[count],start,len+1);
-                   
-            mItemTmp->max_value = count;   
-            
-     
-}
 
 static const char *hdr_str_cb(const void *data) {
     

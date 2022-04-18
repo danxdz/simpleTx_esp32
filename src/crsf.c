@@ -46,17 +46,6 @@
 #include "crsf.h"
 #include <stdint.h>
 
-// from https://github.com/DeviationTX/deviation/pull/1009/ ELRS menu implement in deviation TX
-/* static uint8_t  currentPktRate =1; //  "250Hz", "150Hz", "50Hz"
-  //                                1=200
-static uint8_t  currentPower =1 ;//  "10mW", "25mW", "50mW", "100mW", "250mW"
-  //                               0     1         2        3        4   
-static uint8_t currentTlmRatio =1 ;//0=1:64
-static uint8_t currentBind = 0;
-static uint8_t currentWiFi = 0;
-static uint8_t getParamsCounter = 0;
-static uint8_t currentFrequency = 6; //2.4G
- */
 
  // crc implementation from CRSF protocol document rev7
 static uint8_t crc8tab[256] = {

@@ -16,7 +16,9 @@
         "algorithm": "cpp",
         "string": "cpp",
         "array": "cpp",
-        "utility": "cpp"
+        "utility": "cpp",
+        "system_error": "cpp",
+        "crsf.c": "cpp"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

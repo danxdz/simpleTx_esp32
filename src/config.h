@@ -190,14 +190,14 @@ typedef enum {
 } module_type_t;
 
 static uint8_t params_loaded;     // if not zero, number received so far for current device
+static uint8_t next_param;   // parameter and chunk currently being read
+static uint8_t next_chunk;
 
 //setup menus
 int selected = 0;
 int subSelected = -1;
-int entered = -1; 
+int entered = -1; //-2 idle // -1 main menu // 0 options/submenu
 bool menu_loaded = false;
-uint8_t menu_item_id = 0;
-uint8_t submenu_item_id = 0;
 
 menu_items get_all_params_from_buffer(menu_items *mItemP, uint8_t *buffer ) ;
 void get_divided_submenu_options(menu_items *mItemP );
@@ -239,3 +239,32 @@ void bt_handle(uint8_t value);
 	return 0;
 }
 */
+
+
+static void parse_bytes(enum data_type type, char **buffer, char *dest) {
+    switch (type) {
+    case UINT8:
+        *(uint8_t *)dest = (uint8_t) (*buffer)[0];
+        *buffer += 1;
+        break;
+    case INT8:
+        *(int8_t *)dest = (int8_t) (*buffer)[0];
+        *buffer += 1;
+        break;
+    case UINT16:
+        *(uint16_t *)dest = (uint16_t) (((*buffer)[0] << 8) | (*buffer)[1]);
+        *buffer += 2;
+        break;
+    case INT16:
+        *(int16_t *)dest = (int16_t) (((*buffer)[0] << 8) | (*buffer)[1]);
+        *buffer += 2;
+        break;
+    case FLOAT:
+        *(int32_t *)dest = (int32_t) (((*buffer)[0] << 24) | ((*buffer)[1] << 16)
+                     |        ((*buffer)[2] << 8)  |  (*buffer)[3]);
+        *buffer += 4;
+        break;
+    default:
+        break;
+    }
+}
