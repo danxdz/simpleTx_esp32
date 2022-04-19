@@ -6,8 +6,7 @@
 void ICACHE_RAM_ATTR duplex_set_RX()
 {
 #ifdef DEBUG_HALF_DUPLEX
-  db_out.printf("rx: %u",micros());
-  db_out.println("");
+  db_out.printf("rx: %u\n",micros());
 #endif
 
   portDISABLE_INTERRUPTS();
@@ -21,8 +20,7 @@ void ICACHE_RAM_ATTR duplex_set_RX()
 void ICACHE_RAM_ATTR duplex_set_TX()
 {
 #ifdef DEBUG_HALF_DUPLEX
-  db_out.printf("tx: %u",micros());
-  db_out.println("");
+  db_out.printf("tx: %u\n",micros());
 #endif
 
   portDISABLE_INTERRUPTS();

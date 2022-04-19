@@ -19,7 +19,13 @@
  =======================================================================================================
  Simple TX CONFIG OPTIONS (comment out unneeded options)
  =======================================================================================================
+
+
  */
+
+  ESP32Encoder encoder;
+  int rotary_encoder_last_pos = 0;
+
 int Aileron_value = 0;        // values read from the pot 
 int Elevator_value = 0; 
 int Throttle_value=0;
@@ -37,11 +43,17 @@ int Rudder_OFFSET  = 0;
 static HardwareSerial elrs(1);
 static HardwareSerial db_out(0);
 
+#define _tr_noop(x) x
+
+static const char * const crsf_opts[] = {
+  _tr_noop("Bit Rate"), "400K", "1.87M", "2.25M","3.75M", NULL,
+  NULL
+};
 
 static void add_param(uint8_t *buffer, uint8_t num_bytes);
-static void elrsWrite (uint8_t crsfPacket[],uint8_t size); 
+static void elrsWrite (uint8_t crsfPacket[],uint8_t size,int32_t add_delay); 
 
-void sync_crsf();
+void sync_crsf(int32_t add);
 void serialEvent();
 
 #define CRSF_MAX_PARAMS  55   // one extra required, max observed is 47 in Diversity Nano RX
@@ -55,20 +67,7 @@ void serialEvent();
 #ifndef NUM_ELEMS
     #define NUM_ELEMS (6 + 8 + 8 + 4 + 1)
 #endif
-struct buttonAction {
-    uint32_t button;
-    uint8_t flags;
-    unsigned (*callback)(uint32_t button, unsigned flags, void *data);
-    void *data;
-    struct buttonAction *next;
-};
-struct main_page {
-    struct buttonAction action;
-    uint8_t ignore_release;
-    int16_t battery;
-    int32_t elem[NUM_ELEMS];
-    uint32_t time;
-};
+
 struct crsfconfig_page {
     char strings[CRSF_MAX_STRING_BYTES];
 
@@ -79,7 +78,7 @@ struct crsfdevice_page {
 
 struct pagemem {
     union {
-        struct main_page main_page;
+        //struct main_page main_page;
         struct crsfconfig_page crsfconfig_page;
         struct crsfdevice_page crsfdevice_page;
     } u;
@@ -90,7 +89,6 @@ struct pagemem {
 
 
 struct pagemem pagemem;
-static struct crsfconfig_page * const mp = &pagemem.u.crsfconfig_page;
 static uint16_t current_selected = 0;
 static uint8_t number_of_devices;    // total known
 
@@ -109,6 +107,7 @@ enum data_type {
     COMMAND        = 13,
     OUT_OF_RANGE   = 127,
 };
+
 
 typedef struct {
     // common fields
@@ -140,7 +139,6 @@ typedef struct {
     } s;
 } crsf_param_t;
 
-crsf_param_t crsf_params[CRSF_MAX_PARAMS];
 
 typedef struct {
     uint8_t address;
@@ -152,6 +150,7 @@ typedef struct {
     char name[CRSF_MAX_NAME_LEN];
 } crsf_device_t;
 
+
 typedef enum {
     MODULE_UNKNOWN,
     MODULE_ELRS,
@@ -161,3 +160,67 @@ typedef enum {
 
 extern crsf_device_t crsf_devices[CRSF_MAX_DEVICES];
 uint8_t protocol_module_is_elrs();
+
+static char *next_string;
+#define TEMPSTRINGLENGTH 400 //This is the max dialog size (80 characters * 5 lines)
+                             //We could reduce this to ~240 on the 128x64 screens
+                             //But only after all sprintf are replaced with snprintf
+                             //Maybe move this to target_defs.h
+extern char tempstring[TEMPSTRINGLENGTH];
+
+static const char *hdr_str_cb(const void *data);
+
+
+static void crsfdevice_init();
+void bt_handle(uint8_t value);
+
+
+
+/*
+	Student st[5];
+	for( int i=0; i<5; i++ )
+	{
+		cout << "Student " << i + 1 << endl;
+		cout << "Enter name" << endl;
+		st[i].getName();
+		cout << "Enter marks" << endl;
+		st[i].getMarks();
+	}
+
+	for( int i=0; i<5; i++ )
+	{
+		cout << "Student " << i + 1 << endl;
+		st[i].displayInfo();
+	}
+	return 0;
+}
+*/
+
+
+static void parse_bytes(enum data_type type, char **buffer, char *dest) {
+    switch (type) {
+    case UINT8:
+        *(uint8_t *)dest = (uint8_t) (*buffer)[0];
+        *buffer += 1;
+        break;
+    case INT8:
+        *(int8_t *)dest = (int8_t) (*buffer)[0];
+        *buffer += 1;
+        break;
+    case UINT16:
+        *(uint16_t *)dest = (uint16_t) (((*buffer)[0] << 8) | (*buffer)[1]);
+        *buffer += 2;
+        break;
+    case INT16:
+        *(int16_t *)dest = (int16_t) (((*buffer)[0] << 8) | (*buffer)[1]);
+        *buffer += 2;
+        break;
+    case FLOAT:
+        *(int32_t *)dest = (int32_t) (((*buffer)[0] << 24) | ((*buffer)[1] << 16)
+                     |        ((*buffer)[2] << 8)  |  (*buffer)[3]);
+        *buffer += 4;
+        break;
+    default:
+        break;
+    }
+}

@@ -10,6 +10,15 @@
         "fstream": "cpp",
         "iomanip": "cpp",
         "istream": "cpp",
-        "ostream": "cpp"
-    }
+        "ostream": "cpp",
+        "new": "cpp",
+        "typeinfo": "cpp",
+        "algorithm": "cpp",
+        "string": "cpp",
+        "array": "cpp",
+        "utility": "cpp",
+        "system_error": "cpp",
+        "crsf.c": "cpp"
+    },
+    "C_Cpp.errorSquiggles": "Disabled"
 }

@@ -46,17 +46,6 @@
 #include "crsf.h"
 #include <stdint.h>
 
-// from https://github.com/DeviationTX/deviation/pull/1009/ ELRS menu implement in deviation TX
-/* static uint8_t  currentPktRate =1; //  "250Hz", "150Hz", "50Hz"
-  //                                1=200
-static uint8_t  currentPower =1 ;//  "10mW", "25mW", "50mW", "100mW", "250mW"
-  //                               0     1         2        3        4   
-static uint8_t currentTlmRatio =1 ;//0=1:64
-static uint8_t currentBind = 0;
-static uint8_t currentWiFi = 0;
-static uint8_t getParamsCounter = 0;
-static uint8_t currentFrequency = 6; //2.4G
- */
 
  // crc implementation from CRSF protocol document rev7
 static uint8_t crc8tab[256] = {
@@ -170,16 +159,15 @@ void buildElrsPingPacket(uint8_t packetCmd[])
 }
 // Request parameter info from known device
 //void CRSF_read_param(u8 device, u8 id, u8 chunk) {
-void CRSF_read_param(uint8_t packetCmd[],uint8_t param,uint8_t chunk) {
+void CRSF_read_param(uint8_t packetCmd[],uint8_t id,uint8_t chunk) {
     packetCmd[0] = ADDR_MODULE;
     packetCmd[1] = 6; // length of Command (4) + payload + crc
     packetCmd[2] = TYPE_SETTINGS_READ;
     packetCmd[3] = ELRS_ADDRESS;
     packetCmd[4] = ADDR_RADIO;
-    packetCmd[5] = param;
+    packetCmd[5] = id;
     packetCmd[6] = chunk;
     packetCmd[7] = crsf_crc8(&packetCmd[2], packetCmd[1]-1);
-
 }
 // request ELRS_info message
 void CRSF_get_elrs(uint8_t packetCmd[])

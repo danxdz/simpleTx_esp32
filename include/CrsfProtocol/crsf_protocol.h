@@ -431,6 +431,6 @@ enum cmd_status {
     PROGRESS            = 2,
     CONFIRMATION_NEEDED = 3,
     CONFIRM             = 4,
-    CMD_CANCEL              = 5,
+    CMD_CANCEL          = 5,
     POLL                = 6
 };

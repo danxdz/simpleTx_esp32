@@ -1,0 +1,605 @@
+
+
+
+
+
+//boot sequence edited
+...
+Too many bad UART RX packets!
+UART WDT: Switch to: 400000 baud
+Adjusted max packet size 64-80
+UART STATS Bad:Good = 0:0
+CRSF UART Connected
+hwTimer resume
+
+SerialInPacketPtr:6:6
+T:8817901:0x28:0xEE;0xEA:151:51
+send info
+
+SerialInPacketPtr:10:10
+T:8818291:0x32:0xEE;0xEA:16:5
+modelId:0
+
+SerialInPacketPtr:6:6
+T:8823076:0x28:0xEE;0xEA:151:5
+send info
+
+SerialInPacketPtr:8:8
+T:8832502:0x2D:0xEE;0xEA:0:0
+ELRS status request
+send 2E
+
+UART STATS Bad:Good = 0:44
+
+SerialInPacketPtr:8:8
+T:9189492:0x2D:0xEE;0xEA:0:0
+ELRS status request
+send 2E
+
+SerialInPacketPtr:8:8
+T:9589487:0x2D:0xEE;0xEA:0:0
+ELRS status request
+send 2E
+
+SerialInPacketPtr:8:8
+T:9989487:0x2D:0xEE;0xEA:0:0
+ELRS status request
+send 2E
+
+UART STATS Bad:Good = 0:200
+
+SerialInPacketPtr:8:8
+T:10389487:0x2D:0xEE;0xEA:0:0
+ELRS status request
+send 2E
+...
+
+//boot sequence raw
+
+...
+Too many bad UART RX packets!
+UART WDT: Switch to: 400000 baud
+Adjusted max packet size 64-80
+UART STATS Bad:Good = 0:0
+CRSF UART Connected
+hwTimer resume
+SerialInPacketPtr:6:6
+T:8817901:0x28:0xEE;0xEA:151:51
+send info
+SerialInPacketPtr:10:10
+T:8818291:0x32:0xEE;0xEA:16:5
+modelId:0
+SerialInPacketPtr:6:6
+T:8823076:0x28:0xEE;0xEA:151:5
+send info
+SerialInPacketPtr:8:8
+T:8832502:0x2D:0xEE;0xEA:0:0
+ELRS status request
+send 2E
+UART STATS Bad:Good = 0:44
+SerialInPacketPtr:8:8
+T:9189492:0x2D:0xEE;0xEA:0:0
+ELRS status request
+send 2E
+SerialInPacketPtr:8:8
+T:9589487:0x2D:0xEE;0xEA:0:0
+ELRS status request
+send 2E
+SerialInPacketPtr:8:8
+T:9989487:0x2D:0xEE;0xEA:0:0
+ELRS status request
+send 2E
+UART STATS Bad:Good = 0:200
+SerialInPacketPtr:8:8
+T:10389487:0x2D:0xEE;0xEA:0:0
+ELRS status request
+send 2E
+SerialInPacketPtr:8:8
+T:10789493:0x2D:0xEE;0xEA:0:0
+ELRS status request
+send 2E
+UART STATS Bad:Good = 0:200
+SerialInPacketPtr:8:8
+T:11189487:0x2D:0xEE;0xEA:0:0
+ELRS status request
+send 2E
+SerialInPacketPtr:8:8
+T:11589486:0x2D:0xEE;0xEA:0:0
+ELRS status request
+send 2E
+SerialInPacketPtr:8:8
+T:11989486:0x2D:0xEE;0xEA:0:0
+ELRS status request
+send 2E
+UART STATS Bad:Good = 0:200
+SerialInPacketPtr:8:8
+T:12389486:0x2D:0xEE;0xEA:0:0
+ELRS status request
+send 2E
+SerialInPacketPtr:8:8
+T:12789484:0x2D:0xEE;0xEA:0:0
+ELRS status request
+send 2E
+UART STATS Bad:Good = 0:200
+SerialInPacketPtr:8:8
+T:13189488:0x2D:0xEE;0xEA:0:0
+ELRS status request
+send 2E
+SerialInPacketPtr:8:8
+T:13589490:0x2D:0xEE;0xEA:0:0
+ELRS status request
+send 2E
+SerialInPacketPtr:8:8
+T:13989486:0x2D:0xEE;0xEA:0:0
+ELRS status request
+send 2E
+UART STATS Bad:Good = 0:200
+SerialInPacketPtr:8:8
+T:14389486:0x2D:0xEE;0xEA:0:0
+ELRS status request
+send 2E
+SerialInPacketPtr:8:8
+T:14789486:0x2D:0xEE;0xEA:0:0
+ELRS status request
+send 2E
+UART STATS Bad:Good = 0:200
+SerialInPacketPtr:8:8
+T:15189487:0x2D:0xEE;0xEA:0:0
+ELRS status request
+send 2E
+SerialInPacketPtr:8:8
+T:15589487:0x2D:0xEE;0xEA:0:0
+ELRS status request
+send 2E
+SerialInPacketPtr:8:8
+T:15989486:0x2D:0xEE;0xEA:0:0
+ELRS status request
+send 2E
+UART STATS Bad:Good = 0:200
+SerialInPacketPtr:8:8
+T:16389486:0x2D:0xEE;0xEA:0:0
+ELRS status request
+send 2E
+SerialInPacketPtr:8:8
+T:16789486:0x2D:0xEE;0xEA:0:0
+ELRS status request
+send 2E
+UART STATS Bad:Good = 0:200
+SerialInPacketPtr:8:8
+T:17189486:0x2D:0xEE;0xEA:0:0
+ELRS status request
+send 2E
+SerialInPacketPtr:8:8
+T:17589486:0x2D:0xEE;0xEA:0:0
+ELRS status request
+send 2E
+
+
+
+
+
+
+
+
+
+
+//press button to get menu
+Too many bad UART RX packets!
+UART WDT: Switch to: 400000 baud
+Adjusted max packet size 64-80
+UART STATS Bad:Good = 0:0
+CRSF UART Connected
+hwTimer resume
+SerialInPacketPtr:6:6
+0x28:0xEE;0xEA
+SerialInPacketPtr:10:10
+0x32:0xEE;0xEA
+modelId:0
+SerialInPacketPtr:6:6
+0x28:0xEE;0xEA
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+UART STATS Bad:Good = 0:44
+0x2D:0xEE;0xEA
+UART STATS Bad:Good = 0:200
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+...
+0x2D:0xEE;0xEA
+SerialInPacketPtr:6:6
+0x28:0x0;0xEA
+CRSF_FRAMETYPE_DEVICE_PING
+0x2D:0xEE;0xEA
+0x2D:0xEE;0xEA
+0x2D:0xEE;0xEA
+0x2D:0xEE;0xEA
+SerialInPacketPtr:6:6
+0x28:0x0;0xEA
+CRSF_FRAMETYPE_DEVICE_PING
+0x2D:0xEE;0xEA
+1 - 0x2C:0xEE;0xEA
+2 - 0x2C:0xEE;0xEA
+3 - 0x2C:0xEE;0xEA
+5 - 0x2C:0xEE;0xEA
+6 - 0x2C:0xEE;0xEA
+7 - 0x2C:0xEE;0xEA
+8 - 0x2C:0xEE;0xEA
+9 - 0x2C:0xEE;0xEA
+10 - 0x2C:0xEE;0xEA
+11 - 0x2C:0xEE;0xEA
+12 - 0x2C:0xEE;0xEA
+13 - 0x2C:0xEE;0xEA
+14 - 0x2C:0xEE;0xEA
+15 - 0x2C:0xEE;0xEA
+16 - 0x2C:0xEE;0xEA
+17 - 0x2C:0xEE;0xEA
+18 - 0x2C:0xEE;0xEA
+19 - 0x2C:0xEE;0xEA
+20 - 0x2C:0xEE;0xEA
+21 - 0x2C:0xEE;0xEA
+0x2D:0xEE;0xEA
+1 - 0x2C:0xEE;0xEA
+2 - 0x2C:0xEE;0xEA
+3 - 0x2C:0xEE;0xEA
+
+0x2D:0xEE;0xEA
+ELRS status request
+...
+
+
+
+
+
+RAW:
+
+Too many bad UART RX packets!
+UART WDT: Switch to: 400000 baud
+Adjusted max packet size 64-80
+UART STATS Bad:Good = 0:0
+CRSF UART Connected
+hwTimer resume
+SerialInPacketPtr:6:6
+0x28:0xEE;0xEA
+SerialInPacketPtr:10:10
+0x32:0xEE;0xEA
+modelId:0
+SerialInPacketPtr:6:6
+0x28:0xEE;0xEA
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+UART STATS Bad:Good = 0:44
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+UART STATS Bad:Good = 0:200
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+UART STATS Bad:Good = 0:200
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+UART STATS Bad:Good = 0:200
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+UART STATS Bad:Good = 0:200
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+UART STATS Bad:Good = 0:200
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+UART STATS Bad:Good = 0:200
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+UART STATS Bad:Good = 0:200
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+UART STATS Bad:Good = 0:200
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+UART STATS Bad:Good = 0:200
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+UART STATS Bad:Good = 0:200
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+UART STATS Bad:Good = 0:200
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+UART STATS Bad:Good = 0:200
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+UART STATS Bad:Good = 0:200
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+UART STATS Bad:Good = 0:200
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+UART STATS Bad:Good = 0:200
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+UART STATS Bad:Good = 0:200
+SerialInPacketPtr:6:6
+0x28:0x0;0xEA
+CRSF_FRAMETYPE_DEVICE_PING
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+UART STATS Bad:Good = 0:200
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+SerialInPacketPtr:6:6
+0x28:0x0;0xEA
+CRSF_FRAMETYPE_DEVICE_PING
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+SerialInPacketPtr:8:8
+0x2C:0xEE;0xEA
+SerialInPacketPtr:8:8
+0x2C:0xEE;0xEA
+SerialInPacketPtr:8:8
+0x2C:0xEE;0xEA
+SerialInPacketPtr:8:8
+0x2C:0xEE;0xEA
+SerialInPacketPtr:8:8
+0x2C:0xEE;0xEA
+SerialInPacketPtr:8:8
+0x2C:0xEE;0xEA
+SerialInPacketPtr:8:8
+0x2C:0xEE;0xEA
+SerialInPacketPtr:8:8
+0x2C:0xEE;0xEA
+SerialInPacketPtr:8:8
+0x2C:0xEE;0xEA
+SerialInPacketPtr:8:8
+0x2C:0xEE;0xEA
+SerialInPacketPtr:8:8
+0x2C:0xEE;0xEA
+SerialInPacketPtr:8:8
+0x2C:0xEE;0xEA
+SerialInPacketPtr:8:8
+0x2C:0xEE;0xEA
+SerialInPacketPtr:8:8
+0x2C:0xEE;0xEA
+SerialInPacketPtr:8:8
+0x2C:0xEE;0xEA
+SerialInPacketPtr:8:8
+0x2C:0xEE;0xEA
+SerialInPacketPtr:8:8
+0x2C:0xEE;0xEA
+SerialInPacketPtr:8:8
+0x2C:0xEE;0xEA
+SerialInPacketPtr:8:8
+0x2C:0xEE;0xEA
+SerialInPacketPtr:8:8
+0x2C:0xEE;0xEA
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+SerialInPacketPtr:8:8
+0x2C:0xEE;0xEA
+SerialInPacketPtr:8:8
+0x2C:0xEE;0xEA
+SerialInPacketPtr:8:8
+0x2C:0xEE;0xEA
+UART STATS Bad:Good = 0:200
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+UART STATS Bad:Good = 0:200
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+UART STATS Bad:Good = 0:200
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+UART STATS Bad:Good = 0:200
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+SerialInPacketPtr:8:8
+0x2D:0xEE;0xEA
+ELRS status request
+UART STATS Bad:Good = 0:200
+
+
+
+
+
+
+
+**** elrs change packet rate output
+
+UART STATS Bad:Good = 0:100
+SerialInPacketPtr:8:8
+T:107277879:0x2D:0xEE;0xEA:1:3
+Set Lua [Packet Rate]=3
+set rate 0
+hwTimer interval: 5000
+SetRxTimeout(5000), symbolTime=128us symbols=39
+Adjusted max packet size 64-80
+UART STATS Bad:Good = 0:142
+UART STATS Bad:Good = 0:200
+SerialInPacketPtr:8:8
+T:109327883:0x2C:0xEE;0xEA:1:0
+SerialInPacketPtr:8:8
+T:109337880:0x2C:0xEE;0xEA:1:1
+UART STATS Bad:Good = 0:200
+
+*** simpleTx
+
+UART STATS Bad:Good = 0:50
+SerialInPacketPtr:8:8
+T:260604086:0x2D:0xEE;0xEA:1:3
+Set Lua [Packet Rate]=3
+SerialInPacketPtr:8:8
+T:260607961:0x2C:0xEE;0xEA:1:0
+set rate 0
+hwTimer interval: 5000
+SetRxTimeout(5000), symbolTime=128us symbols=39
+Adjusted max packet size 64-128
+UART STATS Bad:Good = 0:43
+SerialInPacketPtr:8:8
+T:261067980:0x2C:0xEE;0xEA:0:1
+UART STATS Bad:Good = 0:133
+UART STATS Bad:Good = 0:200
+UART STATS Bad:Good = 0:200
+UART STATS Bad:Good = 0:200
+UART STATS Bad:Good = 0:200
+UART STATS Bad:Good = 0:200
+
+**** elrs change tlm ratio output
+UART STATS Bad:Good = 0:50
+SerialInPacketPtr:8:8
+T:235267881:0x2D:0xEE;0xEA:2:3
+Set Lua [Telem Ratio]=3
+UART STATS Bad:Good = 0:50
+UART STATS Bad:Good = 0:50
+SerialInPacketPtr:8:8
+T:237347880:0x2C:0xEE;0xEA:2:0
+UART STATS Bad:Good = 0:50
+***
+ UART STATS Bad:Good = 0:50
+SerialInPacketPtr:8:8
+T:131125366:0x2D:0xEE;0xEA:1:4
+Set Lua [Packet Rate]=4
+SerialInPacketPtr:8:8
+T:131129207:0x2C:0xEE;0xEA:1:0
+SerialInPacketPtr:8:8
+T:131201606:0x2C:0xEE;0xEA:0:1
+UART STATS Bad:Good = 0:48
+UART STATS Bad:Good = 0:50
+
+
+
+**** elrs change switch output
+
+ UART STATS Bad:Good = 0:50
+SerialInPacketPtr:8:8
+T:290447874:0x2D:0xEE;0xEA:3:1
+Set Lua [Switch Mode]=1
+UART STATS Bad:Good = 0:50
+UART STATS Bad:Good = 0:50
+SerialInPacketPtr:8:8
+T:292547876:0x2C:0xEE;0xEA:3:0
+UART STATS Bad:Good = 0:50
+
+
+
+
+id:1:0:Packet Rate:9:25(-123dbm);50(-120dbm);100(-117dbm);200(-112dbm):d:0:0:3:c:0:status:1:sel:1:1:1:2:empty
+id:2:0:Telem Ratio:9:Off;1:128;1:64;1:32;1:16;1:8;1:4;1:2:d:0:0:7:c:0:status:1:sel:1:1:1:2:empty
+
