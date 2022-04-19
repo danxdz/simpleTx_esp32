@@ -1,5 +1,16 @@
 
 
+static uint8_t params_loaded;     // if not zero, number received so far for current device
+static uint8_t next_param;   // parameter and chunk currently being read
+static uint8_t next_chunk;
+
+//setup menus
+int selected = 0;
+int subSelected = -1;
+int entered = -1; //-2 idle // -1 main menu // 0 options/submenu
+bool menu_loaded = false;
+
+
 class Menu {
 
     uint8_t hidden;

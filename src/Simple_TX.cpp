@@ -37,6 +37,7 @@
 
 #include <Arduino.h>
 #include <HardwareSerial.h>
+#include <ESP32Encoder.h>
 
 #include "config.h"
 #include "crsf.c"
@@ -48,6 +49,7 @@
 #include "uart.h"
 #include "menus/menus.cpp"
 #include "ui_buttons/ui_buttons.cpp"
+
 
 char tempstring[TEMPSTRINGLENGTH];
 
@@ -99,8 +101,6 @@ elrs_info_t elrs_info;
 crsf_device_t crsf_devices[CRSF_MAX_DEVICES];
 
 crsf_param_t crsf_params[CRSF_MAX_PARAMS];
-menu_items mItems[CRSF_MAX_PARAMS];
-menu_items smItems[CRSF_MAX_PARAMS];
 
 static uint8_t model_id_send;
 static uint32_t elrs_info_time;
@@ -435,9 +435,17 @@ void serialEvent() {
 void OutputTask( void * pvParameters ){
   Oled::init();
 
+
+	ESP32Encoder::useInternalWeakPullResistors=UP;
+	encoder.attachSingleEdge(12, 4);
+  //set starting count value after attaching
+	encoder.setCount(0);
+
+	db_out.println("Encoder Start = " + String((int32_t)encoder.getCount()));
+
   for(;;){
     read_ui_buttons();
-
+    //delay(50);
      if ((MODULE_IS_ELRS)&&(local_info.good_pkts==0)) {
       CRSF_get_elrs(crsfCmdPacket);
       elrsWrite(crsfCmdPacket,sizeof(crsfCmdPacket),0);
@@ -445,7 +453,7 @@ void OutputTask( void * pvParameters ){
     
     if (entered == -1) {
       if (params_loaded<crsf_devices[0].number_of_params) {
-        char *load = (char *)hdr_str_cb(mItems);
+        char *load = (char *)hdr_str_cb(menuItems);//TODO
         //db_out.printf("hdr:%s\n",load);
         Menu::loadMainMenu(load);
         if (crsf_devices[device_idx].number_of_params) {
@@ -454,7 +462,7 @@ void OutputTask( void * pvParameters ){
             protocol_read_param(device_idx, &crsf_params[0]);    // only one param now
           } else {
             //db_out.printf("Menu address: 0x%x - num par: %u\n",crsf_devices[device_idx].address, crsf_devices[device_idx].number_of_params);
-            if (next_param ==1) {
+            if (next_param > 0) {
               CRSF_read_param(crsfCmdPacket,next_param,0);
               elrsWrite(crsfCmdPacket,8,200000);
             }
@@ -463,8 +471,8 @@ void OutputTask( void * pvParameters ){
         delay(2000);
       // end not all params
       } else { //else (if all parameters) load main menu      
-        //db_out.println("main menu loaded...");
-        Oled::setMainMenuItems();
+          //db_out.println("main menu loaded...");
+          Oled::setMainMenuItems();
       }
     } else if (entered== -2) { //show idle screen
       Oled::setMainScreen(
@@ -527,7 +535,6 @@ static void crsfdevice_init() {
     params_loaded = 0;
     params_displayed = 0;
     next_string = mp->strings;
-    memset(mItems, 0, sizeof mItems);
     //CBUF_Init(send_buf);
 }
 
@@ -676,7 +683,7 @@ static uint8_t count_params_loaded() {
 
 static void add_param(uint8_t *buffer, uint8_t num_bytes) {
   // abort if wrong device, or not enough buffer space
-  db_out.printf("add_param:%u:%u:0x%x\n",buffer[3],crsf_devices[0].number_of_params,crsf_devices[device_idx].address);
+  //db_out.printf("add_param:%u:%u:0x%x\n",buffer[3],crsf_devices[0].number_of_params,crsf_devices[device_idx].address);
   //CRSF_ADDRESS_CRSF_TRANSMITTER 
   if (buffer[2] != crsf_devices[device_idx].address
        || ((int)((sizeof recv_param_buffer) - (recv_param_ptr - recv_param_buffer)) < (num_bytes-4))) {

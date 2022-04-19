@@ -17,8 +17,8 @@ const int DigitalInPinPowerChange = 15;  //
 int testButtonPressed=0;
 bool powerChangeHasRun = false;
 
-const int upBt = 12;
-const int downBt = 4;
+///const int upBt = 12;
+//const int downBt = 4;
 const int enterBt = 0;
 const int backBt = 5;
 

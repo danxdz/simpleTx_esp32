@@ -1,14 +1,40 @@
+
+#include "rotary_encoder/rotary_encoder.cpp"
+
+
 void read_ui_buttons () {
     
 
-    bool up = digitalRead(upBt);
-    bool down = digitalRead(downBt);
+    bool up = false; //digitalRead(upBt);
+    bool down = false;// digitalRead(downBt);
     bool enter = digitalRead(enterBt);
     bool back = digitalRead(backBt);
     //TODO bt bouncer
     delay(250);
-    //db_out.printf("%i%i%i%i\n",up,down,enter,back);
+
+    //db_out.printf("%i:%i::%u\n",enter,back,getRE_POS());
     //db_out.printf("%i:\n",params_loaded);
+    
+    uint8_t tmp =0;//= getRE_POS(); 
+
+    int readEncoder= encoder.getCount();
+
+    if ( readEncoder > rotary_encoder_last_pos ) {
+      //db_out.printf("up :%i\n",readEncoder);
+      tmp =  1;
+    }
+    if (readEncoder < rotary_encoder_last_pos) {
+      //db_out.printf("down :%i\n",readEncoder);
+      tmp = 2;
+    } 
+  rotary_encoder_last_pos = readEncoder;
+
+    if (tmp==1) up = 1;
+    else if (tmp==2) down = 1;
+    else {
+      up = 0;
+      down = 0;
+    }
 
     if (up == LOW && down == LOW) {
     };
@@ -26,7 +52,7 @@ void read_ui_buttons () {
         //selected = (selected <= 0) ? 0 : selected-1;
       do {
         selected--;
-        db_out.printf("select:%i:\n",selected);
+        //db_out.printf("select:%i:\n",selected);
         if (selected < 0) selected = crsf_devices[0].number_of_params-3;
       } while (menuItems[selected].parent != 0); 
 
@@ -34,7 +60,7 @@ void read_ui_buttons () {
         //selected++;
       do {
         selected++;
-        db_out.printf("select:%i:\n",selected);
+        //db_out.printf("select:%i:\n",selected);
         if (selected > crsf_devices[0].number_of_params-3) selected = 0;
       } while (menuItems[selected].parent != 0); 
 
@@ -47,7 +73,7 @@ void read_ui_buttons () {
         menuItems[selected].max_value
         );
 
-        if (menuItems[selected].p_type == 9) {
+        if ((menuItems[selected].p_type == 9) || ((menuItems[selected].p_type == 13))) {
         db_out.printf("find:%i:%s:%u:%u\n",
         selected,
         menuItems[selected].name,
@@ -61,6 +87,8 @@ void read_ui_buttons () {
            } else next_chunk = 0;
 
         next_param = menuItems[selected].id;
+        if (menuItems[selected].p_type == 13) next_chunk = 4; //cmd 
+
         //next_chunk == cmd to send
         Menu::ChangeParam(next_param,next_chunk);
         
@@ -69,6 +97,7 @@ void read_ui_buttons () {
             db_out.printf("not find:%i:%s\n",
                 selected,
                 menuItems[selected].name);
+
             subSelected = selected+1;
             entered = selected;
         }
@@ -79,12 +108,26 @@ void read_ui_buttons () {
     } else if (entered>=0){
       //db_out.println("@submenu");
 
-      subSelected=selected+1;
       if (enter == LOW) {
+        
+        next_param = menuItems[subSelected].id;
+      
+        if (menuItems[subSelected].status < menuItems[subSelected].max_value) {
+          next_chunk = menuItems[subSelected].status + 1;
+           } else next_chunk = 0;
 
-        db_out.printf("send cmd submenu \n %i:%i\n",
-        selected,
-        subSelected);
+        db_out.printf("send cmd submenu \n %i:%i:%u:%u:%u:type:%u:%u\n",
+              selected,
+              subSelected,
+              menuItems[subSelected].id,
+              menuItems[subSelected].max_value,
+              menuItems[subSelected].status,
+              menuItems[subSelected].p_type,
+              next_chunk);
+        
+              
+        if (menuItems[subSelected].p_type == 13) next_chunk = 4; //cmd 
+        Menu::ChangeParam(next_param,next_chunk);
       }
       if (back == LOW) {
         entered = -1;
@@ -92,12 +135,12 @@ void read_ui_buttons () {
       }
       if ((up == LOW)) // && (entered != selected))
       {
-        db_out.println("up");
+        //db_out.println("up");
         subSelected--;
       }
       if ((down == LOW)) // && (entered != subSelected))
       { 
-        db_out.println("@down");
+        //db_out.println("@down");
         subSelected++;
         }
   }

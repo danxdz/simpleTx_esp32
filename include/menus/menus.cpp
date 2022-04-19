@@ -12,9 +12,9 @@
 #include "gpio/gpio.cpp"
 
 void Menu::ChangeParam(uint8_t param, uint8_t cmd){
-  db_out.printf("ChangeParam: %s",menuItems[selected].name);
+  db_out.printf("ChangeParam: %s\n",menuItems[selected].name);
   buildElrsPacket(crsfCmdPacket,param,cmd);
-  elrsWrite(crsfCmdPacket,8,0);
+  elrsWrite(crsfCmdPacket,8,200000);
 
   delay(500);
 
@@ -23,25 +23,6 @@ void Menu::ChangeParam(uint8_t param, uint8_t cmd){
   elrsWrite(crsfCmdPacket,8,20000); 
 }
 
-/* void updateDisplay(
-                    crsfPayloadLinkstatistics_s LinkStatistics, 
-                    uint8_t batteryVoltage,
-                    uint8_t bpkts,
-                    uint16_t gpkts,
-                    char * name,
-                    module_type_t typeModule,
-                    int num_menu_item,
-                    int entered  ) {
-     
-  if (entered == -1) {
-    Oled::setMainMenuItems();
-  }
-  else if (entered == -2) {
-    Oled::setMainScreen(name,LinkStatistics,bpkts,gpkts);
-  } else {
-    Oled::setSubMenuItems();
-  }  
-} */
 
 void Menu::loadMainMenu(char *load) {
   display.clearDisplay();

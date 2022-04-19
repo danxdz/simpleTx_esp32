@@ -19,7 +19,13 @@
  =======================================================================================================
  Simple TX CONFIG OPTIONS (comment out unneeded options)
  =======================================================================================================
+
+
  */
+
+  ESP32Encoder encoder;
+  int rotary_encoder_last_pos = 0;
+
 int Aileron_value = 0;        // values read from the pot 
 int Elevator_value = 0; 
 int Throttle_value=0;
@@ -145,62 +151,12 @@ typedef struct {
 } crsf_device_t;
 
 
-
-typedef struct {
-        // common fields
-    uint8_t device;            // device index of device parameter belongs to
-    uint8_t id;                // Parameter number (starting from 1)
-    uint8_t parent;            // Parent folder parameter number of the parent folder, 0 means root
-    enum data_type type;  // (Parameter type definitions and hidden bit)
-    uint8_t hidden;            // set if hidden
-    char *name;           // Null-terminated string
-    char *value;          // size depending on data type
-    
-    char *submenuItems[20];
-    int submenuType;
-
-    // field presence depends on type
-    char *default_value;  // size depending on data type. Not present for COMMAND.
-    int32_t min_value;        // not sent for string type
-    int32_t max_value;        // not sent for string type
-    int32_t step;             // Step size ( type float only otherwise this entry is not sent )
-    uint8_t timeout;           // COMMAND timeout (100ms/count)
-    uint8_t changed;           // flag if set needed when edit element is de-selected
-    char *max_str;        // Longest choice length for text select
-    union {
-        uint8_t point;             // Decimal point ( type float only otherwise this entry is not sent )
-        uint8_t text_sel;          // current value index for TEXT_SELECTION type
-        uint8_t string_max_len;    // String max length ( for string type only )
-        uint8_t status;            // Status for COMMANDs
-    } u;
-    union {
-        char *info;
-        char *unit;         // Unit ( Null-terminated string / not sent for type string and folder )
-    } s;
-} menu_items;
-
-
-extern menu_items mItems[55];
-extern menu_items smItems[55];
-
 typedef enum {
     MODULE_UNKNOWN,
     MODULE_ELRS,
     MODULE_OTHER,
 } module_type_t;
 
-static uint8_t params_loaded;     // if not zero, number received so far for current device
-static uint8_t next_param;   // parameter and chunk currently being read
-static uint8_t next_chunk;
-
-//setup menus
-int selected = 0;
-int subSelected = -1;
-int entered = -1; //-2 idle // -1 main menu // 0 options/submenu
-bool menu_loaded = false;
-
-menu_items get_all_params_from_buffer(menu_items *mItemP, uint8_t *buffer ) ;
-void get_divided_submenu_options(menu_items *mItemP );
 
 extern crsf_device_t crsf_devices[CRSF_MAX_DEVICES];
 uint8_t protocol_module_is_elrs();
