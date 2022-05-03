@@ -1,11 +1,18 @@
 #include "Arduino.h"
 #include "oled.h"
 #include "xbmStrings.h"
+#include "uart.h"
+#include "crsf.h"
+#include "menus.h"
 
 #define DEBUG
 
 
+U8G2_SSD1306_128X64_NONAME_F_HW_I2C display(U8G2_R0,U8X8_PIN_NONE,22,21); //todo define pins
+
+
 void Oled::PrintCenter(uint8_t y,char *tmp) {
+    
     uint8_t x = (display.getDisplayWidth()/2) - (display.getStrWidth(tmp)/2);
     display.drawStr(x,y,tmp);
 }
@@ -71,7 +78,7 @@ void Oled::setMainScreen(char *name, crsfLinkStatistics_t LinkStatistics,uint8_t
 
     display.setFont(u8g2_font_10x20_mr);
     display.setCursor(0,35);    
-    float vBat = (float)batteryVoltage.voltage/10;
+    float vBat = 5;// (float)batteryVoltage.voltage/10;
     display.print(vBat,2);  
     display.setFont(u8g2_font_5x7_mr);
      

@@ -1,5 +1,8 @@
 
-#include "rotary_encoder/rotary_encoder.cpp"
+#include "rotary_encoder.h"
+#include "gpio.h"
+#include "menus.h"
+#include "uart.h"
 
 
 void read_ui_buttons () {

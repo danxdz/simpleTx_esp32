@@ -1,3 +1,4 @@
+
 #pragma once
 
 #include <cstdint>
@@ -410,20 +411,7 @@ static inline uint32_t htobe32(uint32_t val)
 
 #define CRSF_MAX_NAME_LEN      16
 
-typedef struct {
-    uint8_t update;
-    uint8_t bad_pkts;
-    uint16_t good_pkts;
-    uint8_t flags;
-    char flag_info[CRSF_MAX_NAME_LEN];
-} elrs_info_t;
 
-static struct {
-    crsf_param_t *param;
-    uint32_t time;
-    uint16_t timeout;
-    uint8_t  dialog;
-} command;
 
 enum cmd_status {
     READY               = 0,
@@ -434,3 +422,35 @@ enum cmd_status {
     CMD_CANCEL          = 5,
     POLL                = 6
 };
+
+
+
+/*******************************
+  Crossfire
+********************************/
+typedef enum {
+    TELEM_CRSF_RX_RSSI1 = 1,
+    TELEM_CRSF_RX_RSSI2,
+    TELEM_CRSF_RX_QUALITY,
+    TELEM_CRSF_RX_SNR,
+    TELEM_CRSF_RX_ANTENNA,
+    TELEM_CRSF_RF_MODE,
+    TELEM_CRSF_TX_POWER,
+    TELEM_CRSF_TX_RSSI,
+    TELEM_CRSF_TX_QUALITY,
+    TELEM_CRSF_TX_SNR,
+    TELEM_CRSF_BATT_VOLTAGE,
+    TELEM_CRSF_BATT_CURRENT,
+    TELEM_CRSF_BATT_CAPACITY,
+    TELEM_CRSF_GPS_LATITUDE,
+    TELEM_CRSF_GPS_LONGITUDE,
+    TELEM_CRSF_GPS_GROUND_SPEED,
+    TELEM_CRSF_GPS_HEADING,
+    TELEM_CRSF_GPS_ALTITUDE,
+    TELEM_CRSF_GPS_SATELLITES,
+    TELEM_CRSF_ATTITUDE_PITCH,
+    TELEM_CRSF_ATTITUDE_ROLL,
+    TELEM_CRSF_ATTITUDE_YAW,
+    TELEM_CRSF_FLIGHT_MODE,
+    TELEM_CRSF_LAST
+} crossfire_telem_t;

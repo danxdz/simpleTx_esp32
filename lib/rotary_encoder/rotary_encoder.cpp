@@ -1,3 +1,17 @@
+#include <Arduino.h>
+#include "rotary_encoder.h"
+#include "uart.h"
+
+uint8_t encoderInit() {
+
+	ESP32Encoder::useInternalWeakPullResistors=UP;
+	encoder.attachSingleEdge(12, 4);
+    //set starting count value after attaching
+	encoder.setCount(0);
+
+	db_out.println("Encoder Start = " + String((int32_t)encoder.getCount()));
+}
+
 uint8_t getRE_POS() {
     
     //delay(100);

@@ -16,6 +16,50 @@
  */
 
  
+
+#ifndef CRSF_H /* include guards */
+#define CRSF_H
+
+#include <Arduino.h>
+#include "crsf_protocol.h"
+#define CRSF_MAX_PARAMS  55   // one extra required, max observed is 47 in Diversity Nano RX
+#define CRSF_MAX_DEVICES       4
+#define CRSF_MAX_NAME_LEN      16
+#define CRSF_MAX_STRING_BYTES  2500     // max observed is 2010 in Nano RX
+#define CRSF_STRING_BYTES_AVAIL(current)  (CRSF_MAX_STRING_BYTES-((char *)(current)-mp->strings))
+
+
+typedef struct {
+    uint8_t address;
+    uint8_t number_of_params;
+    uint8_t params_version;
+    uint32_t serial_number;
+    uint32_t hardware_id;
+    uint32_t firmware_id;
+    char name[CRSF_MAX_NAME_LEN];
+} crsf_device_t;
+
+
+static crsf_device_t crsf_devices[CRSF_MAX_DEVICES];
+
+typedef enum {
+    MODULE_UNKNOWN,
+    MODULE_ELRS,
+    MODULE_OTHER,
+} module_type_t;
+
+
+uint8_t protocol_module_is_elrs();
+
+static module_type_t module_type;
+static uint8_t device_idx;   // current device index
+
+#define CRSF_MAX_CHUNK_SIZE   58   // 64 - header - type - destination - origin
+#define CRSF_MAX_CHUNKS        5   // not in specification. Max observed is 3 for Nano RX
+
+static char recv_param_buffer[CRSF_MAX_CHUNKS * CRSF_MAX_CHUNK_SIZE];
+static char *recv_param_ptr;
+
  // Basic setup
 #define CRSF_MAX_CHANNEL 16
 #ifdef DEBUG
@@ -100,8 +144,79 @@
 
 
 
-#define CRSF_MAX_CHUNK_SIZE   58   // 64 - header - type - destination - origin
-#define CRSF_MAX_CHUNKS        5   // not in specification. Max observed is 3 for Nano RX
 
 #define SEND_MSG_BUF_SIZE  64      // don't send more than one chunk
 #define ADDR_BROADCAST  0x00  //  Broadcast address
+
+
+#define MODULE_IS_ELRS     (module_type == MODULE_ELRS)
+#define MODULE_IS_UNKNOWN  (module_type == MODULE_UNKNOWN)
+
+typedef struct {
+    uint8_t update;
+    uint8_t bad_pkts;
+    uint16_t good_pkts;
+    uint8_t flags;
+    char flag_info[CRSF_MAX_NAME_LEN];
+} elrs_info_t;
+
+
+static elrs_info_t local_info;
+
+static elrs_info_t elrs_info;
+
+
+
+uint32_t parse_u32(const uint8_t *buffer);
+void parse_device(uint8_t* buffer, crsf_device_t *device);
+
+
+
+/// UART Handling ///
+static volatile uint8_t SerialInPacketLen; // length of the CRSF packet as measured
+static volatile uint8_t SerialInPacketPtr; // index where we are reading/writing
+static volatile bool CRSFframeActive;// = false; //since we get a copy of the serial data use this flag to know when to ignore it
+static uint8_t SerialInBuffer[CRSF_MAX_PACKET_LEN];
+
+//prepare elrs setup packet (power, packet rate...)
+static uint8_t crsfCmdPacket[CRSF_CMD_PACKET_SIZE];
+static uint8_t crsfSetIdPacket[LinkStatisticsFrameLength];
+
+
+void crsfPreparePacket(uint8_t packet[], int channels[]);
+void buildElrsPacket(uint8_t packetCmd[],uint8_t command, uint8_t value);
+void buildElrsPingPacket(uint8_t packetCmd[]);
+void CRSF_read_param(uint8_t packetCmd[],uint8_t id,uint8_t chunk);
+void CRSF_get_elrs(uint8_t packetCmd[]);
+void CRSF_sendId(uint8_t packetCmd[],uint8_t modelId );
+uint8_t crsf_crc8(const uint8_t *ptr, uint8_t len);
+void  elrsWrite (uint8_t crsfPacket[],uint8_t size,int32_t add_delay);
+uint8_t count_params_loaded();
+
+void protocol_module_type(module_type_t type);
+
+void sync_crsf(int32_t add);
+uint32_t get_update_interval();
+void serialEvent();
+void CRSF_serial_rcv(uint8_t *buffer, uint8_t num_bytes);
+uint8_t getCrossfireTelemetryValue(uint8_t index, int32_t *value, uint8_t len);
+
+void add_device(uint8_t *buffer);
+void parse_elrs_info(uint8_t *buffer);
+void add_param(uint8_t *buffer, uint8_t num_bytes);
+
+
+static uint32_t updateInterval;// = CRSF_TIME_BETWEEN_FRAMES_US;
+static int32_t correction;
+
+//elrs timing
+extern uint32_t crsfTime;
+// for calculate main loop time to sync with elrs tx module
+static  uint32_t lastCrsfTime;
+
+class Crsf {
+    public:
+        static HardwareSerial elrs;
+};
+
+#endif
