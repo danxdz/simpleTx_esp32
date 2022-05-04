@@ -138,10 +138,6 @@ void Oled::setSubMenuItems() {
 }
 
 
-
-
-
-
 void Oled::setMainMenuItems() {
      dbout.printf("Mainsreen: %s:%i:%s\n",
         menuItems[selected].name,

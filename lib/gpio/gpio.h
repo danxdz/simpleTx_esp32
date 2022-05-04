@@ -19,10 +19,10 @@ const int DigitalInPinPowerChange = 15;  //
 //button bouncer
 static int testButtonPressed;
 
-///const int upBt = 12;
-//const int downBt = 4;
-const int enterBt = 0;
-const int backBt = 5;
+extern int upBt;
+extern int downBt;
+extern int enterBt;
+extern int backBt;
 
 
 //pins that used for output

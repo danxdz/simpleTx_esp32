@@ -170,11 +170,11 @@ void parse_device(uint8_t* buffer, crsf_device_t *device);
 static volatile uint8_t SerialInPacketLen; // length of the CRSF packet as measured
 static volatile uint8_t SerialInPacketPtr; // index where we are reading/writing
 static volatile bool CRSFframeActive;// = false; //since we get a copy of the serial data use this flag to know when to ignore it
-static uint8_t SerialInBuffer[CRSF_MAX_PACKET_LEN];
+extern uint8_t SerialInBuffer[];
 
 //prepare elrs setup packet (power, packet rate...)
-static uint8_t crsfCmdPacket[CRSF_CMD_PACKET_SIZE];
-static uint8_t crsfSetIdPacket[LinkStatisticsFrameLength];
+extern uint8_t crsfCmdPacket[];
+extern uint8_t crsfSetIdPacket[];
 
 
 void crsfPreparePacket(uint8_t packet[], int channels[]);

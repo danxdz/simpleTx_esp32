@@ -1,5 +1,3 @@
-
-#include "rotary_encoder.h"
 #include "gpio.h"
 #include "menus.h"
 #include "uart.h"
@@ -8,25 +6,16 @@
 void read_ui_buttons () {
     
 
-    bool up = false; //digitalRead(upBt);
-    bool down = false;// digitalRead(downBt);
+    bool up = digitalRead(upBt);
+    bool down = digitalRead(downBt);
     bool enter = digitalRead(enterBt);
     bool back = digitalRead(backBt);
     //TODO bt bouncer
     delay(250);
 
-   // dbout.printf("%i:%i::%u\n",enter,back,get_encoder_pos());
+   // dbout.printf("%i:%i::%i:%i\n",enter,back,up,down);
     //dbout.printf("%i:\n",params_loaded);
     
-    uint8_t tmp = get_encoder_pos(); 
-
-
-    if (tmp==1) up = 1;
-    else if (tmp==2) down = 1;
-    else {
-      up = 0;
-      down = 0;
-    }
 
     if (up == LOW && down == LOW) {
     };

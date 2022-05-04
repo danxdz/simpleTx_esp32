@@ -74,6 +74,12 @@ char *recv_param_ptr;
 
 uint8_t device_idx = 0;   // current device index
 
+uint8_t SerialInBuffer[CRSF_MAX_PACKET_LEN];
+
+//prepare elrs setup packet (power, packet rate...)
+uint8_t crsfCmdPacket[CRSF_CMD_PACKET_SIZE];
+uint8_t crsfSetIdPacket[LinkStatisticsFrameLength];
+
 
  // crc implementation from CRSF protocol document rev7
 static uint8_t crc8tab[256] = {

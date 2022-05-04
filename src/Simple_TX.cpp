@@ -39,7 +39,6 @@
 
 #include "config.h"
 #include "crsf.h"
-#include "rotary_encoder.h"
 #include "led.h"
 #include "oled.h"
 #include "crsf_protocol.h"
@@ -72,13 +71,12 @@ void OutputTask( void * pvParameters ){
  
   oled.init();
 
-  encoderInit();
 
   for(;;){
     read_ui_buttons();
      if ((MODULE_IS_ELRS)&&(local_info.good_pkts==0)) {
       CRSF_get_elrs(crsfCmdPacket);
-      elrsWrite(crsfCmdPacket,sizeof(crsfCmdPacket),0);
+      elrsWrite(crsfCmdPacket,6,0);
     } 
     
     if (entered == -1) {
