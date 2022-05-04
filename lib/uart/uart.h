@@ -9,7 +9,5 @@
 extern HardwareSerial elrs;
 extern HardwareSerial dbout;
 
-extern volatile crsf_sensor_battery_s batteryVoltage;
-extern crsfPayloadLinkstatistics_s LinkStatistics; // Link Statisitics Stored as Struct
 
 #endif

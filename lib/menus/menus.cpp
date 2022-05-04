@@ -55,7 +55,7 @@ void Menu::ChangeParam(uint8_t param, uint8_t cmd){
   buildElrsPacket(crsfCmdPacket,param,cmd);
   elrsWrite(crsfCmdPacket,8,200000);
 
-  delay(500);
+  //delay(500);
 
   next_chunk = 0;
   CRSF_read_param(crsfCmdPacket,param,next_chunk);

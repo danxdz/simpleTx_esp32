@@ -31,7 +31,7 @@
 #define CRSF_SYNC_BYTE 0xC8
 
 #define RCframeLength 22             // length of the RC data packed bytes frame. 16 channels in 11 bits each.
-#define LinkStatisticsFrameLength 10 //
+//#define LinkStatisticsFrameLength 10 //
 #define OpenTXsyncFrameLength 11     //
 #define BattSensorFrameLength 8      //
 #define VTXcontrolFrameLength 12     //

@@ -8,8 +8,6 @@ int backBt = 5;
 
 void initGpio () {
 
-
-
 //analogReference(EXTERNAL);
   pinMode(DIGITAL_PIN_SWITCH_ARM, INPUT_PULLDOWN);
   pinMode(DIGITAL_PIN_SWITCH_AUX2, INPUT_PULLUP);
@@ -24,4 +22,3 @@ void initGpio () {
   pinMode(backBt, INPUT_PULLUP);
 
 }
-

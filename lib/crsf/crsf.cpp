@@ -80,6 +80,9 @@ uint8_t SerialInBuffer[CRSF_MAX_PACKET_LEN];
 uint8_t crsfCmdPacket[CRSF_CMD_PACKET_SIZE];
 uint8_t crsfSetIdPacket[LinkStatisticsFrameLength];
 
+crsfPayloadLinkstatistics_s LinkStatistics; 
+
+volatile crsf_sensor_battery_s batteryVoltage;
 
  // crc implementation from CRSF protocol document rev7
 static uint8_t crc8tab[256] = {

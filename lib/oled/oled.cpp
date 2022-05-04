@@ -44,7 +44,7 @@ void Oled::init() {
     
     Oled::PrintCenter(58,(char *)"ExpressLRS");
     display.sendBuffer();
-    delay(4000);
+    delay(2000);
 }
 
 
@@ -139,11 +139,11 @@ void Oled::setSubMenuItems() {
 
 
 void Oled::setMainMenuItems() {
-     dbout.printf("Mainsreen: %s:%i:%s\n",
+    /*  dbout.printf("Mainsreen: %s:%i:%s\n",
         menuItems[selected].name,
         menuItems[selected].status,
         menuItems[selected].getMainMenuItem_StatusText()); 
- 
+  */
     display.clearBuffer(); 
     display.setFont(u8g2_font_profont11_tr);
     display.drawStr(0,7,crsf_devices[0].name);
