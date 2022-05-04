@@ -30,7 +30,7 @@ void Oled::PrintRight(uint8_t y,char *tmp) {
 
 void Oled::init() {
     #if defined(DEBUG) 
-        db_out.printf("starting screen..."); 
+        dbout.printf("starting screen...\n"); 
     #endif
 
     display.begin();
@@ -49,7 +49,7 @@ void Oled::init() {
 
 
 void Oled::setMainScreen(char *name, crsfLinkStatistics_t LinkStatistics,uint8_t bpkts,uint8_t gpkts) {
-    //db_out.printf("Mainsreen\n");
+    //dbout.printf("Mainsreen\n");
     display.clearBuffer(); 
     display.setFont(u8g2_font_chikita_tr);
     display.drawStr(0,7, name);
@@ -88,7 +88,7 @@ void Oled::setMainScreen(char *name, crsfLinkStatistics_t LinkStatistics,uint8_t
 }
 
 void Oled::setSubMenuItems() {
-    //db_out.printf("Subscreen: %u : ", display.getWidth());
+    //dbout.printf("Subscreen: %u : ", display.getWidth());
     display.clearBuffer(); 
     display.setFont(u8g2_font_profont11_tr);
     display.setCursor(0,7);
@@ -117,7 +117,7 @@ void Oled::setSubMenuItems() {
 
     for (size_t i = 0; i<crsf_devices[0].number_of_params; i++) {
         if (menuItems[i].parent == menuItems[selected].id ) {
-            //db_out.printf("%s:%u : \n ",menuItems[i].name,menuItems[i].id); 
+            //dbout.printf("%s:%u : \n ",menuItems[i].name,menuItems[i].id); 
             
             
             display.setCursor(0,display.getCursorY()+9);
@@ -125,7 +125,7 @@ void Oled::setSubMenuItems() {
                 display.print("> ");
          
             display.print(menuItems[i].name);
-            //db_out.printf("len! %u;%u\n",len,  display.getDisplayWidth());
+            //dbout.printf("len! %u;%u\n",len,  display.getDisplayWidth());
             //display.setFont(u8g2_font_profont10_mr);
             if (menuItems[i].optionsMainMenu[menuItems[i].status])
                 Oled::PrintRight(menuItems[i].optionsMainMenu[menuItems[i].status]);
@@ -143,11 +143,11 @@ void Oled::setSubMenuItems() {
 
 
 void Oled::setMainMenuItems() {
-    /* db_out.printf("Mainsreen: %s:%i:%s\n",
+     dbout.printf("Mainsreen: %s:%i:%s\n",
         menuItems[selected].name,
         menuItems[selected].status,
         menuItems[selected].getMainMenuItem_StatusText()); 
- */
+ 
     display.clearBuffer(); 
     display.setFont(u8g2_font_profont11_tr);
     display.drawStr(0,7,crsf_devices[0].name);
@@ -162,7 +162,7 @@ void Oled::setMainMenuItems() {
             menu_item_num++;
 
         } else submenu_item_num++;
-       /*  db_out.printf("menu_item_num:%u:%u:%u\n",
+       /*  dbout.printf("menu_item_num:%u:%u:%u\n",
                         menu_item_num,
                         submenu_item_num,
                         selected); */
@@ -184,7 +184,7 @@ void Oled::setMainMenuItems() {
         display.print(start);
         display.print(":");
         display.print(menu_item_num);
-        //db_out.printf("selected:%u:s:%u:num:%u\n",
+        //dbout.printf("selected:%u:s:%u:num:%u\n",
         //selected,start,menu_item_num);
     #endif
 
@@ -207,7 +207,7 @@ void Oled::setMainMenuItems() {
             //text selection - items w/ menu
             if (menuItems[i].p_type==9) { 
                 //int len = display.getDisplayWidth() - (strlen(menuItems[i].getMainMenuItem_StatusText())*6);
-                //db_out.printf("len! %u;%u\n",len,  display.getDisplayWidth());
+                //dbout.printf("len! %u;%u\n",len,  display.getDisplayWidth());
                 Oled::PrintRight(menuItems[i].getMainMenuItem_StatusText());
             }
             display.print("\n");  

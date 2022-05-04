@@ -19,15 +19,14 @@ enum data_type {
     OUT_OF_RANGE   = 127,
 };
 
-static uint8_t params_loaded;     // if not zero, number received so far for current device
-static uint8_t next_param;   // parameter and chunk currently being read
-static uint8_t next_chunk;
+extern uint8_t params_loaded;     // if not zero, number received so far for current device
+extern uint8_t next_param;   // parameter and chunk currently being read
+extern uint8_t next_chunk;
 
 //setup menus
-static int selected;
-static int subSelected;
-static int entered; //-2 idle // -1 main menu // 0 options/submenu
-static bool menu_loaded;
+extern int entered; //-2 idle // -1 main menu // 0 options/submenu
+extern int selected;
+extern int subSelected;
 
 
 class Menu {
@@ -42,6 +41,7 @@ class Menu {
 
 	public:
         
+
         uint8_t id;
         char *name;
         uint8_t parent;
@@ -62,7 +62,7 @@ class Menu {
 		
 };
 
-static Menu menuItems[CRSF_MAX_PARAMS];
+extern Menu menuItems[];
 
 
 #endif

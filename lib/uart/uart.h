@@ -4,11 +4,12 @@
 #include "Arduino.h"
 #include "crsf_protocol.h"
 
-static crsfPayloadLinkstatistics_s LinkStatistics; // Link Statisitics Stored as Struct
-static volatile crsf_sensor_battery_s batteryVoltage;
 
 //portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
+extern HardwareSerial elrs;
+extern HardwareSerial dbout;
 
-static HardwareSerial db_out(0);
+extern volatile crsf_sensor_battery_s batteryVoltage;
+extern crsfPayloadLinkstatistics_s LinkStatistics; // Link Statisitics Stored as Struct
 
 #endif

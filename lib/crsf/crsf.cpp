@@ -51,15 +51,28 @@
 #include "uart.h"
 #include "crsf_protocol.h"
 
-HardwareSerial Crsf::elrs(1);
+uint32_t crsfTime = 0;
+uint32_t lastCrsfTime = 0;
+uint32_t updateInterval = CRSF_TIME_BETWEEN_FRAMES_US;;
 
+int32_t correction = 0;
 
+crsf_device_t crsf_devices[CRSF_MAX_DEVICES];
+
+elrs_info_t  local_info;
+
+elrs_info_t  elrs_info;
 
 void protocol_module_type(module_type_t type) {
     module_type = type;
 };
 uint8_t protocol_module_is_elrs() { return MODULE_IS_ELRS; }
 
+
+char recv_param_buffer[CRSF_MAX_CHUNKS * CRSF_MAX_CHUNK_SIZE];
+char *recv_param_ptr;
+
+uint8_t device_idx = 0;   // current device index
 
 
  // crc implementation from CRSF protocol document rev7
@@ -172,6 +185,8 @@ void buildElrsPingPacket(uint8_t packetCmd[])
 // Request parameter info from known device
 //void CRSF_read_param(u8 device, u8 id, u8 chunk) {
 void CRSF_read_param(uint8_t packetCmd[],uint8_t id,uint8_t chunk) {
+    dbout.printf("read param\n");
+
     packetCmd[0] = ADDR_MODULE;
     packetCmd[1] = 6; // length of Command (4) + payload + crc
     packetCmd[2] = TYPE_SETTINGS_READ;
@@ -215,11 +230,14 @@ void CRSF_ping_devices() {
  
 
 void elrsWrite (uint8_t crsfPacket[],uint8_t size,int32_t add_delay) {
+ 
+  if (crsfPacket[2] != TYPE_CHANNELS) dbout.printf("elrs write 0x%x\n",crsfPacket[2]);
+
   duplex_set_TX();
-  Crsf::elrs.write(crsfPacket, size);
-  Crsf::elrs.flush();
+  elrs.write(crsfPacket, size);
+  elrs.flush();
   //if (add_delay>0)
-    //db_out.printf("del:%u\n",add_delay);
+    //dbout.printf("del:%u\n",add_delay);
 
   //set last time packet send
   sync_crsf(add_delay);
@@ -230,7 +248,7 @@ void elrsWrite (uint8_t crsfPacket[],uint8_t size,int32_t add_delay) {
 uint8_t count_params_loaded() {
     int i;
     for (i=0; i < crsf_devices[0].number_of_params; i++) {
-        //db_out.printf("count_params_loaded: %i:%u\n",i,crsf_devices[0].number_of_params);
+        //dbout.printf("count_params_loaded: %i:%u\n",i,crsf_devices[0].number_of_params);
         if (menuItems[i].id == 0) break;
     }
     return i;
@@ -242,10 +260,10 @@ void sync_crsf (int32_t add_delay) {
   //debug timing
   #if defined(DEBUG_SYNC)
     if (updated_interval!=20000)
-      db_out.printf("%u ; %u ; %i ; %u\n",lastCrsfTime, crsfTime ,offset,updated_interval);
+      dbout.printf("%u ; %u ; %i ; %u\n",lastCrsfTime, crsfTime ,offset,updated_interval);
   #endif
   //if (add_delay>0)
-    //db_out.printf("delay:%u:%u\n",add_delay,offset);
+    //dbout.printf("delay:%u:%u\n",add_delay,offset);
   crsfTime += ((updated_interval+add_delay) - offset);//set current micros
   lastCrsfTime = crsfTime; //set time that we send last packet
 }
@@ -264,12 +282,12 @@ void serialEvent() {
   //set uart as rx
   duplex_set_RX();
 
-  while (Crsf::elrs.available()) {
+  while (elrs.available()) {
     if (CRSFframeActive == false)
     {
-      unsigned char const inChar = Crsf::elrs.read();
+      unsigned char const inChar = elrs.read();
       // stage 1 wait for sync byte //
-      //db_out.write(inChar);
+      //dbout.write(inChar);
       if (inChar == CRSF_ADDRESS_RADIO_TRANSMITTER)
       {
         // we got sync, reset write pointer
@@ -288,13 +306,13 @@ void serialEvent() {
         SerialInPacketPtr = 0;
         SerialInPacketLen = 0;
         CRSFframeActive = false;
-        db_out.println("bad packet len");
+        dbout.println("bad packet len");
         return;
       }
       // special case where we save the expected pkt len to buffer //
       if (SerialInPacketPtr == 1)
       {
-        unsigned char const inChar = Crsf::elrs.read();
+        unsigned char const inChar = elrs.read();
 
         if (inChar <= CRSF_MAX_PACKET_LEN)
         {
@@ -312,9 +330,9 @@ void serialEvent() {
       }
 
       int toRead = (SerialInPacketLen + 2) - SerialInPacketPtr;
-      int count = Crsf::elrs.read(&SerialInBuffer[SerialInPacketPtr], toRead);
+      int count = elrs.read(&SerialInBuffer[SerialInPacketPtr], toRead);
       SerialInPacketPtr += count;
-      //////db_out.println(count);
+      //////dbout.println(count);
 
       if (SerialInPacketPtr >= (SerialInPacketLen + 2)) // plus 2 because the packlen is referenced from the start of the 'type' flag, IE there are an extra 2 bytes.
       {
@@ -327,13 +345,13 @@ void serialEvent() {
 
 
           if (id == CRSF_FRAMETYPE_BATTERY_SENSOR) {
-            db_out.print("battery");
+            dbout.print("battery");
             if (getCrossfireTelemetryValue(3, &value, 2)) {
               //batteryVoltage.voltage = value; //todo
               }
             }
           if (id == CRSF_FRAMETYPE_RADIO_ID) {
-            //db_out.print("radio id");
+            //dbout.print("radio id");
             if (SerialInBuffer[3] == CRSF_ADDRESS_RADIO_TRANSMITTER//0xEA - radio address
                 && SerialInBuffer[5] == CRSF_FRAMETYPE_OPENTX_SYNC//0x10 - timing correction frame
               ) { 
@@ -384,15 +402,15 @@ void serialEvent() {
           #if defined(DEBUG_PACKETS)
           //output packets to serial for debug
             for (int i=0;i<=15;i++) {
-              db_out.write(SerialInBuffer[i]); 
+              dbout.write(SerialInBuffer[i]); 
             }
           #endif
     
         
         } else {
-          db_out.write("UART CRC failure");
+          dbout.write("UART CRC failure");
           // cleanup input buffer
-          Crsf::elrs.flush();
+          elrs.flush();
           // BadPktsCount++;
         }
         CRSFframeActive = false;
@@ -406,26 +424,26 @@ void serialEvent() {
 
 void CRSF_serial_rcv(uint8_t *buffer, uint8_t num_bytes) {
   /*for (int i=0;i<num_bytes;i++) {
-    db_out.printf("0x%x:",buffer[i]);
+    dbout.printf("0x%x:",buffer[i]);
     }
-  db_out.println(""); */
+  dbout.println(""); */
 
   if ((buffer[0]!=CRSF_FRAMETYPE_RADIO_ID) && (buffer[0]!=CRSF_FRAMETYPE_LINK_STATISTICS)){
-      //db_out.printf("CRSF FRAMETYPE: 0x%x : L:%u : ",buffer[0],num_bytes);
+      //dbout.printf("CRSF FRAMETYPE: 0x%x : L:%u : ",buffer[0],num_bytes);
   } else {
      if (buffer[0]!=CRSF_FRAMETYPE_RADIO_ID) {
       for (int i=0;i<num_bytes;i++) {
-        db_out.printf("0x%x:",buffer[i]);
+        dbout.printf("0x%x:",buffer[i]);
       }
-      db_out.println("");
+      dbout.println("");
     } 
   }
   switch (buffer[0]) {
     case CRSF_FRAMETYPE_DEVICE_INFO:
-       db_out.printf("DEVICE_INFO\n");
+       dbout.printf("DEVICE_INFO\n");
 
         add_device(buffer);
-        db_out.printf("send model id\n");
+        dbout.printf("send model id\n");
 
         CRSF_sendId(crsfSetIdPacket,0);
         elrsWrite(crsfSetIdPacket,LinkStatisticsFrameLength,0);
@@ -433,12 +451,12 @@ void CRSF_serial_rcv(uint8_t *buffer, uint8_t num_bytes) {
 
     case CRSF_FRAMETYPE_ELRS_STATUS:
         parse_elrs_info(buffer);
-       // db_out.printf("FRAMETYPE_ELRS_STATUS\n");
+       // dbout.printf("FRAMETYPE_ELRS_STATUS\n");
     
         break;
 
     case CRSF_FRAMETYPE_PARAMETER_SETTINGS_ENTRY:
-     //   db_out.printf("PARAMETER_SETTINGS_ENTRY\n");
+        dbout.printf("PARAMETER_SETTINGS_ENTRY\n");
         add_param(buffer, num_bytes);
         break;
 
@@ -459,7 +477,7 @@ void parse_elrs_info(uint8_t *buffer) {
     local_info.update = elrs_info.update;
     if (memcmp((void*)&elrs_info, (void*)&local_info, sizeof(elrs_info_t)-CRSF_MAX_NAME_LEN)) {
         if (local_info.flag_info[0] && strncmp(local_info.flag_info, elrs_info.flag_info, CRSF_MAX_NAME_LEN)) {
-            db_out.printf("error: %s\n",local_info.flag_info);
+            dbout.printf("error: %s\n",local_info.flag_info);
             //example: error: Model Mismatch
             //error: [ ! Armed ! ]
         }
@@ -471,7 +489,7 @@ void parse_elrs_info(uint8_t *buffer) {
     //example bad_pckts : good_pckts ; flag ; flag_info ; info_update ;
     // 0 : 100 ; 5 ; Model Mismatch ; 0 
     // 0 : 200 ; 8 ; [ ! Armed ! ] ; 0 
-    db_out.printf("%u : %u ; %u ; %s ; %u\n ",local_info.bad_pkts,local_info.good_pkts,local_info.flags,local_info.flag_info,local_info.update);
+    dbout.printf("%u : %u ; %u ; %s ; %u\n ",local_info.bad_pkts,local_info.good_pkts,local_info.flags,local_info.flag_info,local_info.update);
 }
 
 
@@ -493,7 +511,7 @@ void add_device(uint8_t *buffer) {
         if (crsf_devices[i].address == buffer[2]        //  device already in table
          || crsf_devices[i].address == 0                //  not found, add to table
          || crsf_devices[i].address == ADDR_RADIO) {    //  replace deviation device if necessary
-            db_out.printf("no devices match : parse new:0x%x\n",buffer[2]);
+            dbout.printf("no devices match : parse new:0x%x\n",buffer[2]);
 
             parse_device(buffer, &crsf_devices[i]);
             break;
@@ -506,17 +524,18 @@ void add_device(uint8_t *buffer) {
 
 void add_param(uint8_t *buffer, uint8_t num_bytes) {
   // abort if wrong device, or not enough buffer space
-  //db_out.printf("add_param:%u:%u:0x%x\n",buffer[3],crsf_devices[0].number_of_params,crsf_devices[device_idx].address);
+  dbout.printf("add_param:%u:%u:0x%x\n",buffer[3],crsf_devices[0].number_of_params,crsf_devices[device_idx].address);
   //CRSF_ADDRESS_CRSF_TRANSMITTER 
   if (buffer[2] != crsf_devices[device_idx].address
        || ((int)((sizeof recv_param_buffer) - (recv_param_ptr - recv_param_buffer)) < (num_bytes-4))) {
         recv_param_ptr = recv_param_buffer;
         next_chunk = 0;
         next_param = 0;
-        db_out.println("err");
-        db_out.println(recv_param_ptr);
+        dbout.println("err");
+        dbout.println(recv_param_ptr);
         return;
     }
+
     memcpy(recv_param_ptr, buffer+5, num_bytes-5);
     recv_param_ptr += num_bytes - 5;
 
@@ -527,7 +546,10 @@ void add_param(uint8_t *buffer, uint8_t num_bytes) {
             next_param = 0;
             return;
         } else {
+
             next_chunk += 1;
+            dbout.printf("next chunk :: %u:%u",next_param, next_chunk);
+
             CRSF_read_param(crsfCmdPacket,next_param, next_chunk);
             elrsWrite(crsfCmdPacket,8,20000);
 
@@ -545,14 +567,14 @@ void add_param(uint8_t *buffer, uint8_t num_bytes) {
     }
     menuItems[(int)buffer[3]-1].getParams(recv_param_ptr,buffer[3]);
     //debug
-    //menuItems[buffer[3]-1].displayInfo();
+    menuItems[buffer[3]-1].displayInfo();
 
 
     recv_param_ptr = recv_param_buffer;
     next_chunk = 0;
     params_loaded = count_params_loaded();
     // read all params when needed
-   /// db_out.printf("pL:%u:%i:%i\n",params_loaded,menu_item_id,submenu_item_id);
+    dbout.printf("params_loaded: %u\n",params_loaded);
     if (params_loaded < crsf_devices[device_idx].number_of_params)
        // && (menu_item_id+submenu_item_id <  crsf_devices[device_idx].number_of_params))
     {
@@ -562,15 +584,15 @@ void add_param(uint8_t *buffer, uint8_t num_bytes) {
       } else {
         next_param = 1;
       }
-       // db_out.printf("count_out:%u:%u:%u\n",
+       // dbout.printf("count_out:%u:%u:%u\n",
      // device_idx,
       //  crsf_devices[device_idx].number_of_params,params_loaded);
-      //db_out.printf("id:%u:%s\n",parameter->id,parameter->name);
+      //dbout.printf("id:%u:%s\n",parameter->id,parameter->name);
 
         CRSF_read_param(crsfCmdPacket, next_param, next_chunk);
         elrsWrite(crsfCmdPacket,8,0); 
   } else {
-    /*  db_out.printf("0_count_out:%u:%u:%u\n",
+    /*  dbout.printf("0_count_out:%u:%u:%u\n",
         device_idx,
         crsf_devices[device_idx].number_of_params,
         params_loaded); */
@@ -600,16 +622,16 @@ void parse_device(uint8_t* buffer, crsf_device_t *device) {
     if (device->address == ADDR_MODULE) {
       if (device->serial_number == 0x454C5253)
       {
-        db_out.println("Module type: elrs");
+        dbout.println("Module type: elrs");
         protocol_module_type(MODULE_ELRS);
       }
         else
       {
-        db_out.println("Module type: not elrs");
+        dbout.println("Module type: not elrs");
         protocol_module_type(MODULE_OTHER);
       } 
     }
-    db_out.printf("Module details:%s,0x%x,%u,%u,%u,%u,%u\n",
+    dbout.printf("Module details:%s,0x%x,%u,%u,%u,%u,%u\n",
                     device->name,
                     device->address,
                     device->number_of_params,
@@ -617,7 +639,7 @@ void parse_device(uint8_t* buffer, crsf_device_t *device) {
                     device->serial_number,
                     device->firmware_id,
                     device->hardware_id);
-  db_out.printf("devices: %u : %u : 0x%x\n",device_idx, crsf_devices[device_idx].number_of_params,crsf_devices[device_idx].address);
+  dbout.printf("devices: %u : %u : 0x%x\n",device_idx, crsf_devices[device_idx].number_of_params,crsf_devices[device_idx].address);
   
 }
 

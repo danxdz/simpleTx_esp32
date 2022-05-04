@@ -7,7 +7,7 @@ const int analogInPinAileron = 32;
 const int analogInPinElevator = 33; 
 const int analogInPinThrottle = 34;
 const int analogInPinRudder = 35; 
-const int VOLTAGE_READ_PIN = 36; 
+//const int VOLTAGE_READ_PIN = 36; 
 
 
 //pins that used for the switch

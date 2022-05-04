@@ -17,7 +17,7 @@ class Oled {
       
     void init();
     void setMsg(char *msg);
-    void setMainScreen(char *name, crsfLinkStatistics_t LinkStats,uint8_t bpkts, uint8_t gpkts);
+    void setMainScreen(char *name, crsfLinkStatistics_t LinkStatistics,uint8_t bpkts, uint8_t gpkts);
     void setMainMenuItems();
     void setSubMenuItems();
     void printf(char* tmp);

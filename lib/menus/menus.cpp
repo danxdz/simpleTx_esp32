@@ -10,7 +10,17 @@
 #include "oled.h"
 #include "uart.h"
 
+Menu menuItems[CRSF_MAX_PARAMS];
 
+
+int entered = -2; //-2 idle // -1 main menu // 0 options/submenu
+
+int selected = 0;
+int subSelected = 0;
+
+uint8_t params_loaded = 0;     // if not zero, number received so far for current device
+uint8_t next_param = 0;   // parameter and chunk currently being read
+uint8_t next_chunk = 0;
 
 static void parse_bytes(enum data_type type, char **buffer, char *dest) {
     switch (type) {
@@ -41,7 +51,7 @@ static void parse_bytes(enum data_type type, char **buffer, char *dest) {
 }
 
 void Menu::ChangeParam(uint8_t param, uint8_t cmd){
-  db_out.printf("ChangeParam: %s\n",menuItems[selected].name);
+  dbout.printf("ChangeParam: %s\n",menuItems[selected].name);
   buildElrsPacket(crsfCmdPacket,param,cmd);
   elrsWrite(crsfCmdPacket,8,200000);
 
@@ -59,18 +69,18 @@ char * Menu::getMainMenuItem_StatusText() {
         //debug
 void Menu::displayInfo() {			
   if (name) {
-    db_out.printf("%u:%s:%u:%u:%u:%u:%u\n",id,name,parent,p_type,hidden,max_value,status);
+    dbout.printf("%u:%s:%u:%u:%u:%u:%u\n",id,name,parent,p_type,hidden,max_value,status);
     if (max_value) {
       for (size_t i = 0; i <= max_value; i++) {
-          db_out.printf("%s:",
+          dbout.printf("%s:",
           optionsMainMenu[i]);
       }
     }      
-    if (p_type == 9) db_out.printf(" :: OPT");  
-    if (p_type == 11) db_out.printf(" :: MainMenuItem");
-    if (p_type == 12) db_out.printf(" :: INFO");
-    if (p_type == 13) db_out.printf(" :: CMD");  
-    db_out.printf("\n"); 
+    if (p_type == 9) dbout.printf(" :: OPT");  
+    if (p_type == 11) dbout.printf(" :: MainMenuItem");
+    if (p_type == 12) dbout.printf(" :: INFO");
+    if (p_type == 13) dbout.printf(" :: CMD");  
+    dbout.printf("\n"); 
   }
 }
 
@@ -94,7 +104,7 @@ void Menu::divideValueParam (char *values) {
 }
 
 void Menu::getParams(char *buffer,int iid) {
-  ///db_out.printf("get P: %i\n",iid);
+  ///dbout.printf("get P: %i\n",iid);
 	id = iid;
   parent = *buffer++;
   //set main menu items
@@ -111,7 +121,7 @@ void Menu::getParams(char *buffer,int iid) {
       strlcpy(value, (const char *)buffer,strlen(buffer)+1);
       buffer += strlen(buffer) + 1;
       divideValueParam(value);
-      //db_out.printf("%s",value);
+      //dbout.printf("%s",value);
       parse_bytes(UINT8, &buffer, (char *) &status);
       parse_bytes(UINT8, &buffer, (char *) &min_value);
       parse_bytes(UINT8, &buffer, (char *) &count);  // don't use incorrect parameter->max_value
@@ -125,7 +135,7 @@ void Menu::getParams(char *buffer,int iid) {
       value = new char[strlen(buffer)+1];
       strlcpy(value, (const char *)buffer,strlen(buffer)+1);
       buffer += strlen(buffer) + 1;
-      //db_out.printf("%s",value);
+      //dbout.printf("%s",value);
       break;
     case 13: //command
       parse_bytes(UINT8, &buffer, (char *)  &status);

@@ -5,9 +5,9 @@
 
 
 static ESP32Encoder encoder;
-static int rotary_encoder_last_pos;
+extern int rotary_encoder_last_pos;
 
 uint8_t encoderInit();
-uint8_t getRE_POS();
+uint8_t get_encoder_pos();
 
 #endif

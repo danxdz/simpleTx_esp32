@@ -40,7 +40,6 @@ typedef struct {
 } crsf_device_t;
 
 
-static crsf_device_t crsf_devices[CRSF_MAX_DEVICES];
 
 typedef enum {
     MODULE_UNKNOWN,
@@ -52,13 +51,13 @@ typedef enum {
 uint8_t protocol_module_is_elrs();
 
 static module_type_t module_type;
-static uint8_t device_idx;   // current device index
+extern uint8_t device_idx;   // current device index
 
 #define CRSF_MAX_CHUNK_SIZE   58   // 64 - header - type - destination - origin
 #define CRSF_MAX_CHUNKS        5   // not in specification. Max observed is 3 for Nano RX
 
-static char recv_param_buffer[CRSF_MAX_CHUNKS * CRSF_MAX_CHUNK_SIZE];
-static char *recv_param_ptr;
+extern char recv_param_buffer[];
+extern char *recv_param_ptr;
 
  // Basic setup
 #define CRSF_MAX_CHANNEL 16
@@ -91,7 +90,7 @@ static char *recv_param_ptr;
 #define CRSF_MSP_TX_BUF_SIZE 128
 #define CRSF_PACKET_LENGTH 22
 #define CRSF_PACKET_SIZE  26
-#define CRSF_FRAME_LENGTH 24;   // length of type + payload + crc
+#define CRSF_FRAME_LENGTH 24   // length of type + payload + crc
 #define CRSF_CMD_PACKET_SIZE  8
 #define LinkStatisticsFrameLength 10 //
 
@@ -161,11 +160,6 @@ typedef struct {
 } elrs_info_t;
 
 
-static elrs_info_t local_info;
-
-static elrs_info_t elrs_info;
-
-
 
 uint32_t parse_u32(const uint8_t *buffer);
 void parse_device(uint8_t* buffer, crsf_device_t *device);
@@ -206,17 +200,17 @@ void parse_elrs_info(uint8_t *buffer);
 void add_param(uint8_t *buffer, uint8_t num_bytes);
 
 
-static uint32_t updateInterval;// = CRSF_TIME_BETWEEN_FRAMES_US;
-static int32_t correction;
 
-//elrs timing
+
+extern elrs_info_t local_info;
+extern elrs_info_t elrs_info;
+
 extern uint32_t crsfTime;
-// for calculate main loop time to sync with elrs tx module
-static  uint32_t lastCrsfTime;
+extern uint32_t lastCrsfTime;
+extern uint32_t updateInterval;
+extern int32_t correction;
 
-class Crsf {
-    public:
-        static HardwareSerial elrs;
-};
+extern crsf_device_t crsf_devices[];
+
 
 #endif

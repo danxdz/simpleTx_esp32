@@ -36,7 +36,6 @@
 
 
 #include <Arduino.h>
-#include <HardwareSerial.h>
 
 #include "config.h"
 #include "crsf.h"
@@ -53,7 +52,6 @@
 
 Oled oled;
 
-
 char tempstring[TEMPSTRINGLENGTH];
 
 TaskHandle_t elrsTaskHandler;
@@ -67,32 +65,17 @@ uint8_t crsfPacket[CRSF_PACKET_SIZE];
 int rcChannels[CRSF_MAX_CHANNEL];
 
 
-
-
-#define constrain(amt,low,high) ((amt)<(low)?(low):((amt)>(high)?(high):(amt)))
-
-
-
-
-//TODO
-
-
-
-
-
-
-
-
+//#define constrain(amt,low,high) ((amt)<(low)?(low):((amt)>(high)?(high):(amt)))
 
 
 void OutputTask( void * pvParameters ){
+ 
   oled.init();
 
   encoderInit();
 
   for(;;){
     read_ui_buttons();
-    delay(150);
      if ((MODULE_IS_ELRS)&&(local_info.good_pkts==0)) {
       CRSF_get_elrs(crsfCmdPacket);
       elrsWrite(crsfCmdPacket,sizeof(crsfCmdPacket),0);
@@ -101,15 +84,15 @@ void OutputTask( void * pvParameters ){
     if (entered == -1) {
       if (params_loaded<crsf_devices[0].number_of_params) {
         char *load = (char *)hdr_str_cb(menuItems);//TODO
-        //db_out.printf("hdr:%s\n",load);
+        dbout.printf("hdr:%s\n",load);
         oled.printf(load);
-        //Menu::loadMainMenu(load);
+
         if (crsf_devices[device_idx].number_of_params) {
           if (crsf_devices[device_idx].address == ADDR_RADIO) {
-            db_out.println("address:radio");
+            dbout.println("address:radio");
             //protocol_read_param(device_idx, &crsf_params[0]);    // only one param now
           } else {
-            //db_out.printf("Menu address: 0x%x - num par: %u\n",crsf_devices[device_idx].address, crsf_devices[device_idx].number_of_params);
+            dbout.printf("Menu address: 0x%x - num par: %u\n",crsf_devices[device_idx].address, crsf_devices[device_idx].number_of_params);
             if (next_param > 0) {
               CRSF_read_param(crsfCmdPacket,next_param,0);
               elrsWrite(crsfCmdPacket,8,200000);
@@ -119,10 +102,11 @@ void OutputTask( void * pvParameters ){
         delay(2000);
       // end not all params
       } else { //else (if all parameters) load main menu      
-          //db_out.println("main menu loaded...");
+          //dbout.println("main menu loaded...");
           oled.setMainMenuItems();
       }
     } else if (entered== -2) { //show idle screen
+   // dbout.printf("idle screen\n");
       oled.setMainScreen(
               crsf_devices[0].name,
               LinkStatistics,
@@ -136,18 +120,19 @@ void OutputTask( void * pvParameters ){
 } // end output task
   
 void bt_handle(uint8_t value) {
-  db_out.println("bt_handle");
+  dbout.println("bt_handle");
   
   powerChangeHasRun=true;   
+
   clickCurrentMicros = crsfTime + 500000;//0.5sec
-  db_out.printf("times: %u:%u\n", clickCurrentMicros/1000, crsfTime/1000);
+  dbout.printf("times: %u:%u\n", clickCurrentMicros/1000, crsfTime/1000);
   //powerChangeHasRun=true;
   
   //CRSF_read_param(crsfCmdPacket,1,next_chunk);
   //elrsWrite(crsfCmdPacket,8,0);
   
   //buildElrsPingPacket(crsfCmdPacket);
-  //db_out.println(CRSF_send_model_id(2));
+  //dbout.println(CRSF_send_model_id(2));
   
   //set modelId
   //CRSF_sendId(crsfSetIdPacket,0);
@@ -179,18 +164,17 @@ void ElrsTask( void * pvParameters ){
   }
  
   //uart debug
-  db_out.begin(115200);
+  dbout.begin(115200);
   delay(2000); 
-  Crsf::elrs.begin(SERIAL_BAUDRATE,SERIAL_8N1,13, 13,false, 500);
-  db_out.write("starting elrs\n");
+  elrs.begin(SERIAL_BAUDRATE,SERIAL_8N1,13, 13,false, 500);
+  dbout.write("starting elrs\n");
   //digitalWrite(DIGITAL_PIN_LED, LOW); //LED ON
   device_idx = 0;
   crsfdevice_init();
-  //db_out.printf("********hdr : %s\n",(char *) hdr_str_cb(param));
+  //dbout.printf("********hdr : %s\n",(char *) hdr_str_cb(param));
 
   for(;;){
     uint32_t currentMicros = micros();
-    delay(4);
 
     //read values of rcChannels
     Aileron_value = analogRead(analogInPinAileron); 
@@ -206,7 +190,7 @@ void ElrsTask( void * pvParameters ){
     rcChannels[3] = map(Rudder_value ,0,4095,RC_CHANNEL_MIN,RC_CHANNEL_MAX);
     //Aux 1 Arm Channel
     rcChannels[4] = Arm ? RC_CHANNEL_MAX : RC_CHANNEL_MIN;
-    //db_out.println(Arm)
+    //dbout.println(Arm)
     //Aux 2 Mode Channel
     rcChannels[5] = FlightMode ? RC_CHANNEL_MIN : RC_CHANNEL_MAX;   
     //Additional switch add here.
@@ -216,15 +200,15 @@ void ElrsTask( void * pvParameters ){
     testButtonPressed = digitalRead(DigitalInPinPowerChange);
   
     if (currentMicros >= crsfTime) {
-      db_out.printf("loop: %u \n",crsfTime);
+      //dbout.printf("loop: %u:%u:%i \n",crsfTime,updateInterval,correction);
       if (powerChangeHasRun==true && clickCurrentMicros < currentMicros) 
       {
-        //db_out.println("reset");
+        //dbout.println("reset");
         powerChangeHasRun = false;
         clickCurrentMicros = currentMicros;
       }
       if((testButtonPressed==0) && (powerChangeHasRun==false)){
-          db_out.println("click");
+          dbout.println("click");
           bt_handle(1);//TODO
       } else { //send channels packets
           #if defined(DEBUG_CH)
@@ -238,7 +222,7 @@ void ElrsTask( void * pvParameters ){
             delay(1000); 
           #else
             //char buf [64];
-       /*      db_out.printf(buf, "A:%i:%i;E:%i:%i;T:%i:%i;R:%i:%i;arm:%i;fm:%i\r\n", 
+       /*      dbout.printf(buf, "A:%i:%i;E:%i:%i;T:%i:%i;R:%i:%i;arm:%i;fm:%i\r\n", 
             Aileron_value,rcChannels[0],
             Elevator_value,rcChannels[1],
             Throttle_value,rcChannels[2],
@@ -293,21 +277,21 @@ void loop() {
 static const char *hdr_str_cb(const void *data) {
     
     (void)data;
-     //   db_out.printf("call params: %u: %i\n",count_params_loaded(), device_idx);
+     //   dbout.printf("call params: %u: %i\n",count_params_loaded(), device_idx);
 
     if (count_params_loaded() != crsf_devices[device_idx].number_of_params) {
-   //     db_out.printf("not all params: %u: %i\n",count_params_loaded(), device_idx);
+   //     dbout.printf("not all params: %u: %i\n",count_params_loaded(), device_idx);
     
         snprintf(tempstring, sizeof tempstring, "%s %s", crsf_devices[device_idx].name, "LOADING");
     
     } else if (protocol_module_is_elrs()) {
-        db_out.printf("idx_elrs: %i\n",device_idx);
+        dbout.printf("idx_elrs: %i\n",device_idx);
 
         snprintf(tempstring, sizeof tempstring, "%s  %d/%d  %c",
                  crsf_devices[device_idx].name, elrs_info.bad_pkts, elrs_info.good_pkts,
                  (elrs_info.flags & 1) ? 'C' : '-');
     } else  {
-        db_out.printf("tx module not detected\n");
+        dbout.printf("tx module not detected\n");
         //return crsf_devices[device_idx].name;
         snprintf(tempstring, sizeof tempstring, "%s  %d/%d  %c",
                  crsf_devices[device_idx].name, elrs_info.bad_pkts, elrs_info.good_pkts,

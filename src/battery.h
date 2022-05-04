@@ -25,7 +25,7 @@
     //analogRead(VOLTAGE_READ_PIN); // first fake read to improve further readings accuracy (as suggested by Nicola Gorghetto)
 
     for (uint8_t i = 0; i < VOLTAGE_READS; i++) {
-        voltageA += analogRead(VOLTAGE_READ_PIN);
+        //voltageA += analogRead(VOLTAGE_READ_PIN);
     }
 
     voltageA = voltageA/VOLTAGE_READS; // average of VOLTAGE_READS readings
