@@ -37,12 +37,12 @@ void  update_packet_rate(uint32_t currentMicros) {
         uint8_t tmp =  LinkStatistics.rf_Mode;
         if (MODULE_IS_ELRS) {            
             if ( (int)local_info.good_pkts != (int)rates[tmp] ) {
-                dbout.printf("update elrs info\n");
+                dbout.printf("get elrs tx module info\n");
                 CRSF_get_elrs_info(crsfCmdPacket,ELRS_ADDRESS);
                 elrsWrite(crsfCmdPacket,8,0);
             }
             if (rxConected == 0) {
-                crsf_devices[1].address =0;
+                crsf_devices[1].address = 0;
                 CRSF_ping_devices();
                 dbout.printf("no rx found - broadcasting ping..\n");
             } else {

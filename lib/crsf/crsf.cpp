@@ -248,7 +248,9 @@ void CRSF_ping_devices() {
 
 void elrsWrite (uint8_t crsfPacket[],uint8_t size,int32_t add_delay) {
  
-  if (crsfPacket[2] != TYPE_CHANNELS) dbout.printf("elrs write 0x%x\n",crsfPacket[2]);
+  #if defined(debug) 
+    if (crsfPacket[2] != TYPE_CHANNELS) dbout.printf("elrs write 0x%x\n",crsfPacket[2]);
+  #endif
 
   duplex_set_TX();
   elrs.write(crsfPacket, size);
@@ -270,7 +272,7 @@ uint8_t count_params_loaded(uint8_t index ) {
     if (crsf_devices[index].address == CRSF_ADDRESS_CRSF_TRANSMITTER) 
       if (menuItems[i].id == 0) break;
     if (crsf_devices[index].address == CRSF_ADDRESS_CRSF_RECEIVER) 
-      if (rx_p[i].id == 0) break;
+      if (rx_p[i].getId() == 0) break;
   }
   return i;
 }
@@ -389,7 +391,9 @@ void serialEvent() {
                 }
               }
               if (MODULE_IS_UNKNOWN) {
-                dbout.printf("mod type: %i\n", module_type);
+                #if defined(debug) 
+                  dbout.printf("mod type: %i\n", module_type);
+                 #endif
                 CRSF_ping_devices();
               }
             }
@@ -471,10 +475,12 @@ void CRSF_serial_rcv(uint8_t *buffer, uint8_t num_bytes) {
   }
   switch (buffer[0]) {
     case CRSF_FRAMETYPE_DEVICE_INFO:
-       dbout.printf("DEVICE_INFO\n");
-
-        add_device(buffer);
-        /* 
+      #if defined(debug) 
+        dbout.printf("DEVICE_INFO\n");
+      #endif
+      add_device(buffer);
+      
+       /* TODO URGENT
         dbout.printf("send model id\n");
 
         CRSF_sendId(crsfSetIdPacket,0);
@@ -488,7 +494,9 @@ void CRSF_serial_rcv(uint8_t *buffer, uint8_t num_bytes) {
         break;
 
     case CRSF_FRAMETYPE_PARAMETER_SETTINGS_ENTRY:
-        dbout.printf("PARAMETER_SETTINGS_ENTRY\n");
+        #if defined(debug) 
+          dbout.printf("PARAMETER_SETTINGS_ENTRY\n");
+        #endif
         add_param(buffer, num_bytes);
         break;
 
@@ -544,10 +552,12 @@ void add_device(uint8_t *buffer) {
         if (crsf_devices[i].address == buffer[2]        //  device already in table
          || crsf_devices[i].address == 0                //  not found, add to table
          || crsf_devices[i].address == ADDR_RADIO) {    //  replace deviation device if necessary
+          
+          #if defined(debug) 
             dbout.printf("device pong: 0x%x\n",buffer[2]);
-
-            parse_device(buffer, &crsf_devices[i]);
-            break;
+          #endif
+          parse_device(buffer, &crsf_devices[i]);
+          break;
         }
     }
     //  no new device added if no more space in table
@@ -609,7 +619,7 @@ void add_param(uint8_t *buffer, uint8_t num_bytes) {
     }
 
 	uint8_t id = buffer[3];
-  rx_p[id-1].id = id;
+  rx_p[id-1].setId(id);
   uint8_t parent = *recv_param_ptr++;
   //set main menu items
   uint8_t p_type = *recv_param_ptr & 0x7f;
@@ -753,23 +763,23 @@ void parse_device(uint8_t* buffer, crsf_device_t *device) {
     if (device->address == ADDR_MODULE) {
       if (device->serial_number == 0x454C5253)
       {
-        dbout.println("Module type: elrs");
+        //dbout.println("Module type: elrs");
         protocol_module_type(MODULE_ELRS);
       }
         else
       {
-        dbout.println("Module type: not elrs");
+        //dbout.println("Module type: not elrs");
         protocol_module_type(MODULE_OTHER);
       } 
     }
-    dbout.printf("device details:%s,0x%x,%u,%u,%u,%u,%u\n",
+    /* dbout.printf("device details:%s,0x%x,%u,%u,%u,%u,%u\n",
                     device->name,
                     device->address,
                     device->number_of_params,
                     device->params_version,
                     device->serial_number,
                     device->firmware_id,
-                    device->hardware_id);
+                    device->hardware_id); */
 }
 
 

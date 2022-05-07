@@ -12,10 +12,14 @@ class RxInfo {
 };
 
 class RxParams {
+    
+    uint8_t id;
+
     public:
-        uint8_t id;
         char *name;
         char * get_rx_name();
+        void setId(uint8_t RxId);
+        uint8_t getId();
 };
 
 extern RxParams rx_p[];
