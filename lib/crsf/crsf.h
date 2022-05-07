@@ -50,7 +50,7 @@ typedef enum {
 
 uint8_t protocol_module_is_elrs();
 
-static module_type_t module_type;
+extern module_type_t module_type;
 extern uint8_t device_idx;   // current device index
 
 #define CRSF_MAX_CHUNK_SIZE   58   // 64 - header - type - destination - origin
@@ -96,13 +96,13 @@ extern char *recv_param_ptr;
 
 // ELRS command
 #define ELRS_ADDRESS                   0xEE
+#define ELRS_RX_ADDRESS                0xEC
 #define ELRS_BIND_COMMAND              0xFF
 #define ELRS_WIFI_COMMAND              0xFE
 #define ELRS_PKT_RATE_COMMAND          1
 #define ELRS_TLM_RATIO_COMMAND         2
 #define ELRS_POWER_COMMAND             3
-#define TYPE_SETTINGS_WRITE            0x2D
-#define TYPE_SETTINGS_READ             0x2C
+
 #define ADDR_RADIO                     0xEA  //  Radio Transmitter
 
 // Frame Type
@@ -177,15 +177,20 @@ extern uint8_t crsfCmdPacket[];
 extern uint8_t crsfSetIdPacket[];
 
 
+uint8_t crsf_crc8(const uint8_t *ptr, uint8_t len);
 void crsfPreparePacket(uint8_t packet[], int channels[]);
 void buildElrsPacket(uint8_t packetCmd[],uint8_t command, uint8_t value);
 void buildElrsPingPacket(uint8_t packetCmd[]);
-void CRSF_read_param(uint8_t packetCmd[],uint8_t id,uint8_t chunk);
-void CRSF_get_elrs(uint8_t packetCmd[]);
+void CRSF_read_param(uint8_t packetCmd[],uint8_t id,uint8_t chunk, uint8_t target);
+
+//void CRSF_get_elrs_info(uint8_t packetCmd[]);
+void CRSF_get_elrs_info(uint8_t crsfCmdPacket[],uint8_t target);
+
 void CRSF_sendId(uint8_t packetCmd[],uint8_t modelId );
-uint8_t crsf_crc8(const uint8_t *ptr, uint8_t len);
+void CRSF_ping_devices();
 void  elrsWrite (uint8_t crsfPacket[],uint8_t size,int32_t add_delay);
-uint8_t count_params_loaded();
+
+uint8_t count_params_loaded(uint8_t index);
 
 void protocol_module_type(module_type_t type);
 
@@ -201,7 +206,7 @@ void add_param(uint8_t *buffer, uint8_t num_bytes);
 
 
 
-
+extern uint8_t rxConected;
 extern elrs_info_t local_info;
 extern elrs_info_t elrs_info;
 

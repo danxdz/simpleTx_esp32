@@ -19,6 +19,10 @@ enum data_type {
     OUT_OF_RANGE   = 127,
 };
 
+
+extern int mmOptionSelected;
+
+
 extern uint8_t params_loaded;     // if not zero, number received so far for current device
 extern uint8_t next_param;   // parameter and chunk currently being read
 extern uint8_t next_chunk;

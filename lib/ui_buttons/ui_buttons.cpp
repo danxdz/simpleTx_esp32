@@ -11,7 +11,7 @@ void read_ui_buttons () {
     bool enter = digitalRead(enterBt);
     bool back = digitalRead(backBt);
     //TODO bt bouncer
-    delay(50);
+    delay(150);
 
    // dbout.printf("%i:%i::%i:%i\n",enter,back,up,down);
     //dbout.printf("%i:\n",params_loaded);
@@ -61,17 +61,18 @@ void read_ui_buttons () {
         menuItems[selected].status,
         menuItems[selected].max_value);
         //params_loaded = 0;
-        
-
+        entered = -10;
+        mmOptionSelected = menuItems[selected].status;
+/* 
         if (menuItems[selected].status < menuItems[selected].max_value) {
           next_chunk = menuItems[selected].status + 1;
            } else next_chunk = 0;
 
         next_param = menuItems[selected].id;
-        if (menuItems[selected].p_type == 13) next_chunk = 4; //cmd 
+        if (menuItems[selected].p_type == 13) next_chunk = 4; //cmd  */
 
         //next_chunk == cmd to send
-        Menu::ChangeParam(next_param,next_chunk);
+       // Menu::ChangeParam(next_param,next_chunk);
         
 
         } else {
@@ -86,6 +87,36 @@ void read_ui_buttons () {
       if (back == LOW) entered = -2;
 
     //if at submenu
+
+    } else if (entered == -10) {
+        //db_out.printf("select options: %i:%i:%i\n",mmOptionSelected,up,back);
+        if (down == 1) {
+          //entered = -1;
+          if (mmOptionSelected < menuItems[selected].max_value)
+            mmOptionSelected++;
+          else
+            mmOptionSelected = 0;
+        }
+        if (up == 1) // && (entered != selected))
+        {
+          //db_out.println("up");
+          if (mmOptionSelected > 0) 
+            mmOptionSelected--;
+          else mmOptionSelected = menuItems[selected].max_value;
+        }
+
+      if (back == LOW) entered = -1;
+      if (enter == LOW) {
+        dbout.printf("select option %u:%u",mmOptionSelected,selected);
+        next_param = selected+1;
+        next_chunk = mmOptionSelected;
+        Menu::ChangeParam(next_param,next_chunk);
+      }
+
+
+
+
+
     } else if (entered>=0){
       //dbout.println("@submenu");
 
@@ -108,11 +139,12 @@ void read_ui_buttons () {
         
               
         if (menuItems[subSelected].p_type == 13) next_chunk = 4; //cmd 
+        
         Menu::ChangeParam(next_param,next_chunk);
       }
       if (back == LOW) {
         entered = -1;
-        subSelected = -1;
+        //subSelected = -1;
       }
       if ((up == LOW)) // && (entered != selected))
       {

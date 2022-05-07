@@ -15,6 +15,7 @@ Menu menuItems[CRSF_MAX_PARAMS];
 
 int entered = -2; //-2 idle // -1 main menu // 0 options/submenu
 
+int mmOptionSelected = -1;
 int selected = 0;
 int subSelected = 0;
 
@@ -58,7 +59,7 @@ void Menu::ChangeParam(uint8_t param, uint8_t cmd){
   //delay(500);
 
   next_chunk = 0;
-  CRSF_read_param(crsfCmdPacket,param,next_chunk);
+  CRSF_read_param(crsfCmdPacket,param,next_chunk, ELRS_ADDRESS);
   elrsWrite(crsfCmdPacket,8,20000); 
 }
 

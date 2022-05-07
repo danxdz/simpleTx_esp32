@@ -19,11 +19,12 @@ class Oled {
     void setMsg(char *msg);
     void setMainScreen(char *name, crsfLinkStatistics_t LinkStatistics,uint8_t bpkts, uint8_t gpkts);
     void setMainMenuItems();
+    static void selectOptionMainMenu();
     void setSubMenuItems();
-    void printf(char* tmp);
+    void println(char* tmp);
     void PrintCenter(uint8_t y,char * tmp);
-    void PrintRight(char *tmp);
-    void PrintRight(uint8_t y,char *tmp);
+    static void PrintRight(char *tmp);
+    static void PrintRight(uint8_t y,char *tmp);
 
 };
 

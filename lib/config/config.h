@@ -1,37 +1,21 @@
+#pragma once 
 
+#include <Arduino.h>
 
-bool powerChangeHasRun = false;
+extern bool powerChangeHasRun;
 
-int Aileron_value = 0;        // values read from the pot 
-int Elevator_value = 0; 
-int Throttle_value=0;
-int Rudder_value = 0; 
+extern int Aileron_value;        // values read from the pot 
+extern int Elevator_value; 
+extern int Throttle_value;
+extern int Rudder_value; 
 
-int Arm = 0;        // switch values read from the digital pin
-int FlightMode = 0; 
+extern int Arm;                   // switch values read from the digital pin
+extern int FlightMode; 
 
- // Define RC input Offset
-int Aileron_OFFSET = 0;        // values read from the pot 
-int Elevator_OFFSET  = 0; 
-int Throttle_OFFSET =0;
-int Rudder_OFFSET  = 0; 
-
-
-#define _tr_noop(x) x
-
-static const char * const crsf_opts[] = {
-  _tr_noop("Bit Rate"), "400K", "1.87M", "2.25M","3.75M", NULL,
-  NULL
-};
-
-
-
-//NUM_TRIM_ELEMS + NUM_BOX_ELEMS + NUM_BAR_ELEMS + NUM_TOGGLE_ELEMS
-#ifndef NUM_ELEMS
-    #define NUM_ELEMS (6 + 8 + 8 + 4 + 1)
-#endif
-
-
+extern uint32_t tickTime;
+extern uint16_t rates[];
+//click deboucer
+static uint32_t clickCurrentMicros = 0;
 
 
 
@@ -41,9 +25,7 @@ static const char * const crsf_opts[] = {
                              //Maybe move this to target_defs.h
 extern char tempstring[TEMPSTRINGLENGTH];
 
-static const char *hdr_str_cb(const void *data);
-
-
-static void crsfdevice_init();
+void  update_packet_rate(uint32_t currentMicros);
+const char * hdr_str_cb(const void *data);
+void crsfdevice_init();
 void bt_handle(uint8_t value);
-
