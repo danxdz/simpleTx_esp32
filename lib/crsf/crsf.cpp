@@ -52,8 +52,11 @@
 #include "crsf_protocol.h"
 #include "rx_params.h"
 
+uint8_t crsfPacket[CRSF_PACKET_SIZE];
+uint8_t packetCmd[CRSF_CMD_PACKET_SIZE];
 
-uint8_t rxConected = false;
+uint8_t rxConected = 0;
+uint8_t txConected = 0;
 
 uint32_t crsfTime = 0;
 uint32_t lastCrsfTime = 0;
@@ -145,38 +148,40 @@ uint8_t crsf_crc8_BA(const uint8_t *ptr, uint8_t len) {
 }
 
 //prepare data packet
-void crsfPreparePacket(uint8_t packet[], int channels[]){
+void crsfSendChannels(int channels[]) {
 
     // packet[0] = UART_SYNC; //Header
-    packet[0] = ADDR_MODULE; //Header
-    packet[1] = 24;   // length of type (24) + payload + crc
-    packet[2] = TYPE_CHANNELS;
-    packet[3] = (uint8_t) (channels[0] & 0x07FF);
-    packet[4] = (uint8_t) ((channels[0] & 0x07FF)>>8 | (channels[1] & 0x07FF)<<3);
-    packet[5] = (uint8_t) ((channels[1] & 0x07FF)>>5 | (channels[2] & 0x07FF)<<6);
-    packet[6] = (uint8_t) ((channels[2] & 0x07FF)>>2);
-    packet[7] = (uint8_t) ((channels[2] & 0x07FF)>>10 | (channels[3] & 0x07FF)<<1);
-    packet[8] = (uint8_t) ((channels[3] & 0x07FF)>>7 | (channels[4] & 0x07FF)<<4);
-    packet[9] = (uint8_t) ((channels[4] & 0x07FF)>>4 | (channels[5] & 0x07FF)<<7);
-    packet[10] = (uint8_t) ((channels[5] & 0x07FF)>>1);
-    packet[11] = (uint8_t) ((channels[5] & 0x07FF)>>9 | (channels[6] & 0x07FF)<<2);
-    packet[12] = (uint8_t) ((channels[6] & 0x07FF)>>6 | (channels[7] & 0x07FF)<<5);
-    packet[13] = (uint8_t) ((channels[7] & 0x07FF)>>3);
-    packet[14] = (uint8_t) ((channels[8] & 0x07FF));
-    packet[15] = (uint8_t) ((channels[8] & 0x07FF)>>8 | (channels[9] & 0x07FF)<<3);
-    packet[16] = (uint8_t) ((channels[9] & 0x07FF)>>5 | (channels[10] & 0x07FF)<<6);  
-    packet[17] = (uint8_t) ((channels[10] & 0x07FF)>>2);
-    packet[18] = (uint8_t) ((channels[10] & 0x07FF)>>10 | (channels[11] & 0x07FF)<<1);
-    packet[19] = (uint8_t) ((channels[11] & 0x07FF)>>7 | (channels[12] & 0x07FF)<<4);
-    packet[20] = (uint8_t) ((channels[12] & 0x07FF)>>4  | (channels[13] & 0x07FF)<<7);
-    packet[21] = (uint8_t) ((channels[13] & 0x07FF)>>1);
-    packet[22] = (uint8_t) ((channels[13] & 0x07FF)>>9  | (channels[14] & 0x07FF)<<2);
-    packet[23] = (uint8_t) ((channels[14] & 0x07FF)>>6  | (channels[15] & 0x07FF)<<5);
-    packet[24] = (uint8_t) ((channels[15] & 0x07FF)>>3);
+    crsfPacket[0] = ADDR_MODULE; //Header
+    crsfPacket[1] = 24;   // length of type (24) + payload + crc
+    crsfPacket[2] = TYPE_CHANNELS;
+    crsfPacket[3] = (uint8_t) (channels[0] & 0x07FF);
+    crsfPacket[4] = (uint8_t) ((channels[0] & 0x07FF)>>8 | (channels[1] & 0x07FF)<<3);
+    crsfPacket[5] = (uint8_t) ((channels[1] & 0x07FF)>>5 | (channels[2] & 0x07FF)<<6);
+    crsfPacket[6] = (uint8_t) ((channels[2] & 0x07FF)>>2);
+    crsfPacket[7] = (uint8_t) ((channels[2] & 0x07FF)>>10 | (channels[3] & 0x07FF)<<1);
+    crsfPacket[8] = (uint8_t) ((channels[3] & 0x07FF)>>7 | (channels[4] & 0x07FF)<<4);
+    crsfPacket[9] = (uint8_t) ((channels[4] & 0x07FF)>>4 | (channels[5] & 0x07FF)<<7);
+    crsfPacket[10] = (uint8_t) ((channels[5] & 0x07FF)>>1);
+    crsfPacket[11] = (uint8_t) ((channels[5] & 0x07FF)>>9 | (channels[6] & 0x07FF)<<2);
+    crsfPacket[12] = (uint8_t) ((channels[6] & 0x07FF)>>6 | (channels[7] & 0x07FF)<<5);
+    crsfPacket[13] = (uint8_t) ((channels[7] & 0x07FF)>>3);
+    crsfPacket[14] = (uint8_t) ((channels[8] & 0x07FF));
+    crsfPacket[15] = (uint8_t) ((channels[8] & 0x07FF)>>8 | (channels[9] & 0x07FF)<<3);
+    crsfPacket[16] = (uint8_t) ((channels[9] & 0x07FF)>>5 | (channels[10] & 0x07FF)<<6);  
+    crsfPacket[17] = (uint8_t) ((channels[10] & 0x07FF)>>2);
+    crsfPacket[18] = (uint8_t) ((channels[10] & 0x07FF)>>10 | (channels[11] & 0x07FF)<<1);
+    crsfPacket[19] = (uint8_t) ((channels[11] & 0x07FF)>>7 | (channels[12] & 0x07FF)<<4);
+    crsfPacket[20] = (uint8_t) ((channels[12] & 0x07FF)>>4  | (channels[13] & 0x07FF)<<7);
+    crsfPacket[21] = (uint8_t) ((channels[13] & 0x07FF)>>1);
+    crsfPacket[22] = (uint8_t) ((channels[13] & 0x07FF)>>9  | (channels[14] & 0x07FF)<<2);
+    crsfPacket[23] = (uint8_t) ((channels[14] & 0x07FF)>>6  | (channels[15] & 0x07FF)<<5);
+    crsfPacket[24] = (uint8_t) ((channels[15] & 0x07FF)>>3);
     
-    packet[25] = crsf_crc8(&packet[2], CRSF_PACKET_SIZE-3); //CRC
+    crsfPacket[25] = crsf_crc8(&crsfPacket[2], CRSF_PACKET_SIZE-3); //CRC
 
+    elrsWrite(crsfPacket, CRSF_PACKET_SIZE,0);
 }
+
 
 void buildElrsPacket(uint8_t packetCmd[],uint8_t command, uint8_t value)
 {
@@ -200,19 +205,20 @@ void buildElrsPingPacket(uint8_t packetCmd[])
   packetCmd[5] = crsf_crc8(&packetCmd[2], packetCmd[1]-1);
 }
 // Request parameter info from known device
-//void CRSF_read_param(u8 device, u8 id, u8 chunk) {
-void CRSF_read_param(uint8_t packetCmd[],uint8_t id,uint8_t chunk, uint8_t target) {
+void CRSF_read_param(uint8_t n_param,uint8_t n_chunk, uint8_t target) {
     //dbout.printf("read param\n");
+
     packetCmd[0] = ELRS_ADDRESS;
     packetCmd[1] = 6; // length of Command (4) + payload + crc
     packetCmd[2] = TYPE_SETTINGS_READ;
     packetCmd[3] = target;
     packetCmd[4] = ADDR_RADIO;
-    packetCmd[5] = id;
-    packetCmd[6] = chunk;
+    packetCmd[5] = n_param;
+    packetCmd[6] = n_chunk;
     packetCmd[7] = crsf_crc8(&packetCmd[2], packetCmd[1]-1);
-}
 
+    elrsWrite(packetCmd,8,200000);
+}
 // request ELRS_info message
 void CRSF_get_elrs_info(uint8_t packetCmd[], uint8_t target)
 {
@@ -305,9 +311,13 @@ void serialEvent() {
   //set uart as rx
   duplex_set_RX();
 
+  
   while (elrs.available()) {
+    
+
     if (CRSFframeActive == false)
     {
+
       unsigned char const inChar = elrs.read();
       // stage 1 wait for sync byte //
       //dbout.printf("0x%x\n",inChar);
@@ -319,6 +329,7 @@ void serialEvent() {
         CRSFframeActive = true;
         SerialInBuffer[SerialInPacketPtr] = inChar;
         SerialInPacketPtr++;
+        
         
       }
     } else // frame is active so we do the processing
@@ -363,6 +374,8 @@ void serialEvent() {
         char CalculatedCRC = crsf_crc8(SerialInBuffer + 2, SerialInPacketPtr - 3);
         if (CalculatedCRC == SerialInBuffer[SerialInPacketPtr-1])
         {
+                  txConected++;
+
           int32_t value;
           uint8_t id = SerialInBuffer[2];
           CRSF_serial_rcv(SerialInBuffer+2, SerialInBuffer[1]-1);
@@ -602,9 +615,8 @@ void add_param(uint8_t *buffer, uint8_t num_bytes) {
             next_chunk += 1;
             dbout.printf("next chunk :: %u:%u",next_param, next_chunk);
 
-            CRSF_read_param(crsfCmdPacket, next_param, next_chunk, ELRS_RX_ADDRESS);
-            elrsWrite(crsfCmdPacket,8,20000);
-
+            CRSF_read_param( next_param, next_chunk, ELRS_RX_ADDRESS);
+          
         }
         return;
     }
@@ -653,8 +665,8 @@ void add_param(uint8_t *buffer, uint8_t num_bytes) {
       //  crsf_devices[device_idx].number_of_params,params_loaded);
       //dbout.printf("id:%u:%s\n",parameter->id,parameter->name);
 
-        CRSF_read_param(crsfCmdPacket, next_param, next_chunk, ELRS_RX_ADDRESS);
-        elrsWrite(crsfCmdPacket,8,0); 
+        CRSF_read_param(next_param, next_chunk, ELRS_RX_ADDRESS);
+       
   } else {
     /*  dbout.printf("0_count_out:%u:%u:%u\n",
         device_idx,
@@ -691,8 +703,7 @@ void add_param(uint8_t *buffer, uint8_t num_bytes) {
             next_chunk += 1;
             dbout.printf("next chunk :: %u:%u",next_param, next_chunk);
 
-            CRSF_read_param(crsfCmdPacket,next_param, next_chunk, ELRS_ADDRESS);
-            elrsWrite(crsfCmdPacket,8,20000);
+            CRSF_read_param(next_param, next_chunk, ELRS_ADDRESS);
 
         }
         return;
@@ -730,8 +741,7 @@ void add_param(uint8_t *buffer, uint8_t num_bytes) {
       //  crsf_devices[device_idx].number_of_params,params_loaded);
       //dbout.printf("id:%u:%s\n",parameter->id,parameter->name);
 
-        CRSF_read_param(crsfCmdPacket, next_param, next_chunk, ELRS_ADDRESS);
-        elrsWrite(crsfCmdPacket,8,0); 
+        CRSF_read_param(next_param, next_chunk, ELRS_ADDRESS);
   } else {
     /*  dbout.printf("0_count_out:%u:%u:%u\n",
         device_idx,

@@ -48,31 +48,21 @@
 #include "ui_buttons.h"
 #include "gpio.h"
 
-
-Oled oled;
-
-char tempstring[TEMPSTRINGLENGTH];
-
 TaskHandle_t elrsTaskHandler;
 TaskHandle_t outputTaskHandler;
 
-
-uint8_t crsfPacket[CRSF_PACKET_SIZE];
 int rcChannels[CRSF_MAX_CHANNEL];
-
 
 //#define constrain(amt,low,high) ((amt)<(low)?(low):((amt)>(high)?(high):(amt)))
 
-
 void OutputTask( void * pvParameters ){
  
+  Oled oled;
   oled.init();
-
 
   for(;;){
     read_ui_buttons();
-
-    if (entered == -1) {
+    if (entered == -1) { // main menu -1
       if (params_loaded<crsf_devices[0].number_of_params) {
         char *load = (char *)hdr_str_cb(menuItems);//TODO
         dbout.printf("hdr:%s\n",load);
@@ -86,8 +76,7 @@ void OutputTask( void * pvParameters ){
             dbout.printf("Menu address: 0x%x - num par: %u : next_p:%u\n",crsf_devices[0].address, crsf_devices[0].number_of_params,next_param);
             if (next_param > 0) {
               //next_chunk = 0;
-              CRSF_read_param(crsfCmdPacket,next_param,0, ELRS_ADDRESS);
-              elrsWrite(crsfCmdPacket,8,0);
+              CRSF_read_param(next_param,0, ELRS_ADDRESS);
             }
           }
         }
@@ -110,8 +99,6 @@ void OutputTask( void * pvParameters ){
         Oled::selectOptionMainMenu();
 
     } else if (entered >= 0) {
-
-
       oled.setSubMenuItems();
     }
   } // end main loop for
@@ -155,7 +142,7 @@ void ElrsTask( void * pvParameters ){
     rcChannels[2] = map(Throttle_value,0,4095,RC_CHANNEL_MIN,RC_CHANNEL_MAX);
     rcChannels[3] = map(Rudder_value ,0,4095,RC_CHANNEL_MIN,RC_CHANNEL_MAX);
     //Aux 1 Arm Channel
-    rcChannels[4] = Arm ? RC_CHANNEL_MAX : RC_CHANNEL_MIN;
+    rcChannels[4] = Arm ? RC_CHANNEL_MIN  : RC_CHANNEL_MAX ;
     //Aux 2 Mode Channel
     rcChannels[5] = FlightMode ? RC_CHANNEL_MIN : RC_CHANNEL_MAX;   
     //Additional switch add here.
@@ -185,9 +172,10 @@ void ElrsTask( void * pvParameters ){
             Arm,FlightMode);//batteryVoltage);
             delay(1000); 
           #else
-            //send crsf packet
-            crsfPreparePacket(crsfPacket, rcChannels);
-            elrsWrite(crsfPacket, CRSF_PACKET_SIZE,0);
+            //send crsf channels packet
+            crsfSendChannels(rcChannels);
+
+            
           #endif
       } // end elrs loop
       //start receiving at end of each crsf cycle or cmd sent

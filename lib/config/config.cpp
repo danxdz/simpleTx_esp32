@@ -4,6 +4,9 @@
 #include "uart.h"
 #include "rx_params.h"
 
+
+char tempstring[TEMPSTRINGLENGTH];
+
 bool powerChangeHasRun = false;
 
 int Aileron_value = 0;        // values read from the pot 
@@ -29,26 +32,28 @@ void crsfdevice_init() {
 void  update_packet_rate(uint32_t currentMicros) {
     
     if (currentMicros > tickTime ) {      
-        dbout.printf("tick %u\n", rxConected );
+        dbout.printf("tick :: tx: %u rx: %u\n", txConected, rxConected );
     
        //for (size_t i = 0;crsf_devices[i].address; i++) dbout.printf("device address: 0x%x\n",crsf_devices[i].address);
         
-        
         uint8_t tmp =  LinkStatistics.rf_Mode;
-        if (MODULE_IS_ELRS) {            
+        //if (MODULE_IS_ELRS) {   
+        if (txConected > 0) {
             if ( (int)local_info.good_pkts != (int)rates[tmp] ) {
-                dbout.printf("get elrs tx module info\n");
+                dbout.printf("get crsf link statistics\n");
                 CRSF_get_elrs_info(crsfCmdPacket,ELRS_ADDRESS);
                 elrsWrite(crsfCmdPacket,8,0);
             }
             if (rxConected == 0) {
-                crsf_devices[1].address = 0;
-                CRSF_ping_devices();
+                crsf_devices[1].address = 0;   
+                strlcpy(crsf_devices[1].name, (const char *)"", CRSF_MAX_NAME_LEN);
+
+                //CRSF_ping_devices();
                 dbout.printf("no rx found - broadcasting ping..\n");
             } else {
                 if (crsf_devices[1].address == 0) {
 
-                    CRSF_ping_devices();
+                    //CRSF_ping_devices();
               
                 }
                 else {
@@ -56,17 +61,21 @@ void  update_packet_rate(uint32_t currentMicros) {
                         dbout.printf("read rx info\n");
                         next_param = 1;
                         next_chunk = 0;
-                        CRSF_read_param(crsfCmdPacket,next_param, next_chunk, ELRS_RX_ADDRESS);
-                        elrsWrite(crsfCmdPacket,8,200000);
+                        CRSF_read_param(next_param, next_chunk, ELRS_RX_ADDRESS);
                     }
                 }
             }
         } else {
+            crsf_devices[0].address = 0;   
+            strlcpy(crsf_devices[0].name, (const char *)"", CRSF_MAX_NAME_LEN);
             local_info.good_pkts = 0;
-            dbout.printf("no module found\n");
+            #if defined(debug) 
+                dbout.printf("no tx module found\n");
+            #endif
         }
         tickTime = currentMicros + 1000000;
         rxConected = 0;
+        txConected = 0;
     }
 }
 
@@ -75,7 +84,7 @@ const char * hdr_str_cb(const void *data) {
     (void)data;
      //   dbout.printf("call params: %u: %i\n",count_params_loaded(), device_idx);
 
-    if (count_params_loaded(0) != crsf_devices[device_idx].number_of_params) {
+    if (count_params_loaded(device_idx) != crsf_devices[device_idx].number_of_params) {
         dbout.printf("not all params: %u: %i\n",count_params_loaded(0), device_idx);
     
         snprintf(tempstring, sizeof tempstring, "%s %s", crsf_devices[device_idx].name, "LOADING");
@@ -118,8 +127,7 @@ void bt_handle(uint8_t value) {
   //turn on rx wifi, even if missmatch modelId
   //buildElrsPacket(crsfCmdPacket,16,1);
 
-  CRSF_read_param(crsfCmdPacket,1,next_chunk,ELRS_ADDRESS);
-  elrsWrite(crsfCmdPacket,8,200000);
+  CRSF_read_param(1,next_chunk,ELRS_ADDRESS);
   //serialEvent();
 }
 

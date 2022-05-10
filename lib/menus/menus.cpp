@@ -59,8 +59,7 @@ void Menu::ChangeParam(uint8_t param, uint8_t cmd){
   //delay(500);
 
   next_chunk = 0;
-  CRSF_read_param(crsfCmdPacket,param,next_chunk, ELRS_ADDRESS);
-  elrsWrite(crsfCmdPacket,8,20000); 
+  CRSF_read_param(param,next_chunk, ELRS_ADDRESS);
 }
 
 char * Menu::getMainMenuItem_StatusText() {  

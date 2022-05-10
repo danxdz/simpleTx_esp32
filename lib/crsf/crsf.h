@@ -64,7 +64,7 @@ extern char *recv_param_ptr;
 #ifdef DEBUG
     #define SERIAL_BAUDRATE 115200 //low baud for Arduino Nano , the TX module will auto detect baud. max packet rate is 250Hz.
 #else
-    #define SERIAL_BAUDRATE 3750000//1870000 //testing
+    #define SERIAL_BAUDRATE 1870000// 3750000 //testing
 #endif
  // Device address & type
 #define RADIO_ADDRESS                  0xEA
@@ -176,12 +176,19 @@ extern uint8_t SerialInBuffer[];
 extern uint8_t crsfCmdPacket[];
 extern uint8_t crsfSetIdPacket[];
 
+extern uint8_t crsfPacket[];
+
+
 
 uint8_t crsf_crc8(const uint8_t *ptr, uint8_t len);
-void crsfPreparePacket(uint8_t packet[], int channels[]);
+void crsfSendChannels(int channels[]);
+
+
 void buildElrsPacket(uint8_t packetCmd[],uint8_t command, uint8_t value);
 void buildElrsPingPacket(uint8_t packetCmd[]);
-void CRSF_read_param(uint8_t packetCmd[],uint8_t id,uint8_t chunk, uint8_t target);
+
+void CRSF_read_param(uint8_t id,uint8_t chunk, uint8_t target);
+
 
 //void CRSF_get_elrs_info(uint8_t packetCmd[]);
 void CRSF_get_elrs_info(uint8_t crsfCmdPacket[],uint8_t target);
@@ -207,6 +214,7 @@ void add_param(uint8_t *buffer, uint8_t num_bytes);
 
 
 extern uint8_t rxConected;
+extern uint8_t txConected;
 extern elrs_info_t local_info;
 extern elrs_info_t elrs_info;
 
