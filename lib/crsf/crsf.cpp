@@ -52,9 +52,6 @@
 #include "crsf_protocol.h"
 #include "rx_params.h"
 
-uint8_t crsfPacket[CRSF_PACKET_SIZE];
-uint8_t packetCmd[CRSF_CMD_PACKET_SIZE];
-
 uint8_t rxConected = 0;
 uint8_t txConected = 0;
 
@@ -87,9 +84,6 @@ uint8_t device_idx = 0;   // current device index
 
 uint8_t SerialInBuffer[CRSF_MAX_PACKET_LEN];
 
-//prepare elrs setup packet (power, packet rate...)
-uint8_t crsfCmdPacket[CRSF_CMD_PACKET_SIZE];
-uint8_t crsfSetIdPacket[LinkStatisticsFrameLength];
 
 crsfPayloadLinkstatistics_s LinkStatistics; 
 
@@ -150,63 +144,82 @@ uint8_t crsf_crc8_BA(const uint8_t *ptr, uint8_t len) {
 //prepare data packet
 void crsfSendChannels(int channels[]) {
 
-    // packet[0] = UART_SYNC; //Header
-    crsfPacket[0] = ADDR_MODULE; //Header
-    crsfPacket[1] = 24;   // length of type (24) + payload + crc
-    crsfPacket[2] = TYPE_CHANNELS;
-    crsfPacket[3] = (uint8_t) (channels[0] & 0x07FF);
-    crsfPacket[4] = (uint8_t) ((channels[0] & 0x07FF)>>8 | (channels[1] & 0x07FF)<<3);
-    crsfPacket[5] = (uint8_t) ((channels[1] & 0x07FF)>>5 | (channels[2] & 0x07FF)<<6);
-    crsfPacket[6] = (uint8_t) ((channels[2] & 0x07FF)>>2);
-    crsfPacket[7] = (uint8_t) ((channels[2] & 0x07FF)>>10 | (channels[3] & 0x07FF)<<1);
-    crsfPacket[8] = (uint8_t) ((channels[3] & 0x07FF)>>7 | (channels[4] & 0x07FF)<<4);
-    crsfPacket[9] = (uint8_t) ((channels[4] & 0x07FF)>>4 | (channels[5] & 0x07FF)<<7);
-    crsfPacket[10] = (uint8_t) ((channels[5] & 0x07FF)>>1);
-    crsfPacket[11] = (uint8_t) ((channels[5] & 0x07FF)>>9 | (channels[6] & 0x07FF)<<2);
-    crsfPacket[12] = (uint8_t) ((channels[6] & 0x07FF)>>6 | (channels[7] & 0x07FF)<<5);
-    crsfPacket[13] = (uint8_t) ((channels[7] & 0x07FF)>>3);
-    crsfPacket[14] = (uint8_t) ((channels[8] & 0x07FF));
-    crsfPacket[15] = (uint8_t) ((channels[8] & 0x07FF)>>8 | (channels[9] & 0x07FF)<<3);
-    crsfPacket[16] = (uint8_t) ((channels[9] & 0x07FF)>>5 | (channels[10] & 0x07FF)<<6);  
-    crsfPacket[17] = (uint8_t) ((channels[10] & 0x07FF)>>2);
-    crsfPacket[18] = (uint8_t) ((channels[10] & 0x07FF)>>10 | (channels[11] & 0x07FF)<<1);
-    crsfPacket[19] = (uint8_t) ((channels[11] & 0x07FF)>>7 | (channels[12] & 0x07FF)<<4);
-    crsfPacket[20] = (uint8_t) ((channels[12] & 0x07FF)>>4  | (channels[13] & 0x07FF)<<7);
-    crsfPacket[21] = (uint8_t) ((channels[13] & 0x07FF)>>1);
-    crsfPacket[22] = (uint8_t) ((channels[13] & 0x07FF)>>9  | (channels[14] & 0x07FF)<<2);
-    crsfPacket[23] = (uint8_t) ((channels[14] & 0x07FF)>>6  | (channels[15] & 0x07FF)<<5);
-    crsfPacket[24] = (uint8_t) ((channels[15] & 0x07FF)>>3);
-    
-    crsfPacket[25] = crsf_crc8(&crsfPacket[2], CRSF_PACKET_SIZE-3); //CRC
+  uint8_t crsfPacket[CRSF_PACKET_SIZE];
 
-    elrsWrite(crsfPacket, CRSF_PACKET_SIZE,0);
+  // packet[0] = UART_SYNC; //Header
+  crsfPacket[0] = ADDR_MODULE; //Header
+  crsfPacket[1] = 24;   // length of type (24) + payload + crc
+  crsfPacket[2] = TYPE_CHANNELS;
+  crsfPacket[3] = (uint8_t) (channels[0] & 0x07FF);
+  crsfPacket[4] = (uint8_t) ((channels[0] & 0x07FF)>>8 | (channels[1] & 0x07FF)<<3);
+  crsfPacket[5] = (uint8_t) ((channels[1] & 0x07FF)>>5 | (channels[2] & 0x07FF)<<6);
+  crsfPacket[6] = (uint8_t) ((channels[2] & 0x07FF)>>2);
+  crsfPacket[7] = (uint8_t) ((channels[2] & 0x07FF)>>10 | (channels[3] & 0x07FF)<<1);
+  crsfPacket[8] = (uint8_t) ((channels[3] & 0x07FF)>>7 | (channels[4] & 0x07FF)<<4);
+  crsfPacket[9] = (uint8_t) ((channels[4] & 0x07FF)>>4 | (channels[5] & 0x07FF)<<7);
+  crsfPacket[10] = (uint8_t) ((channels[5] & 0x07FF)>>1);
+  crsfPacket[11] = (uint8_t) ((channels[5] & 0x07FF)>>9 | (channels[6] & 0x07FF)<<2);
+  crsfPacket[12] = (uint8_t) ((channels[6] & 0x07FF)>>6 | (channels[7] & 0x07FF)<<5);
+  crsfPacket[13] = (uint8_t) ((channels[7] & 0x07FF)>>3);
+  crsfPacket[14] = (uint8_t) ((channels[8] & 0x07FF));
+  crsfPacket[15] = (uint8_t) ((channels[8] & 0x07FF)>>8 | (channels[9] & 0x07FF)<<3);
+  crsfPacket[16] = (uint8_t) ((channels[9] & 0x07FF)>>5 | (channels[10] & 0x07FF)<<6);  
+  crsfPacket[17] = (uint8_t) ((channels[10] & 0x07FF)>>2);
+  crsfPacket[18] = (uint8_t) ((channels[10] & 0x07FF)>>10 | (channels[11] & 0x07FF)<<1);
+  crsfPacket[19] = (uint8_t) ((channels[11] & 0x07FF)>>7 | (channels[12] & 0x07FF)<<4);
+  crsfPacket[20] = (uint8_t) ((channels[12] & 0x07FF)>>4  | (channels[13] & 0x07FF)<<7);
+  crsfPacket[21] = (uint8_t) ((channels[13] & 0x07FF)>>1);
+  crsfPacket[22] = (uint8_t) ((channels[13] & 0x07FF)>>9  | (channels[14] & 0x07FF)<<2);
+  crsfPacket[23] = (uint8_t) ((channels[14] & 0x07FF)>>6  | (channels[15] & 0x07FF)<<5);
+  crsfPacket[24] = (uint8_t) ((channels[15] & 0x07FF)>>3);
+  
+  crsfPacket[25] = crsf_crc8(&crsfPacket[2], CRSF_PACKET_SIZE-3); //CRC
+
+  CRSF_write(crsfPacket, CRSF_PACKET_SIZE,0);
+
 }
 
+void CRSF_changeParam(uint8_t n_param, uint8_t n_chunk) {
+  
+  uint8_t packetCmd[8];
 
-void buildElrsPacket(uint8_t packetCmd[],uint8_t command, uint8_t value)
-{
   packetCmd[0] = ADDR_MODULE;
   packetCmd[1] = 6; // length of Command (4) + payload + crc
   packetCmd[2] = TYPE_SETTINGS_WRITE;
   packetCmd[3] = ELRS_ADDRESS;
   packetCmd[4] = ADDR_RADIO;
-  packetCmd[5] = command;
-  packetCmd[6] = value;
+  packetCmd[5] = n_param;
+  packetCmd[6] = n_chunk;
   packetCmd[7] = crsf_crc8(&packetCmd[2], packetCmd[1]-1);
+
+  CRSF_write(packetCmd,8,20000);
+  delay(500);
+  n_chunk = 0;
+  
+  dbout.printf("changed param:%u:%u  \n ",n_param,n_chunk);
+  CRSF_read_param(n_param,n_chunk, ELRS_ADDRESS);
+
 }
 
-void buildElrsPingPacket(uint8_t packetCmd[])
+void CRSF_broadcast_ping()
 {
+  uint8_t packetCmd[6];
+
   packetCmd[0] = ADDR_MODULE;
   packetCmd[1] = 4; // length of Command (4) + payload + crc
   packetCmd[2] = TYPE_PING_DEVICES;
   packetCmd[3] = ADDR_BROADCAST;
   packetCmd[4] = ADDR_RADIO;
   packetCmd[5] = crsf_crc8(&packetCmd[2], packetCmd[1]-1);
+
+  CRSF_write(packetCmd,6,0);
+
 }
 // Request parameter info from known device
 void CRSF_read_param(uint8_t n_param,uint8_t n_chunk, uint8_t target) {
     //dbout.printf("read param\n");
+
+    uint8_t packetCmd[8];
 
     packetCmd[0] = ELRS_ADDRESS;
     packetCmd[1] = 6; // length of Command (4) + payload + crc
@@ -217,11 +230,13 @@ void CRSF_read_param(uint8_t n_param,uint8_t n_chunk, uint8_t target) {
     packetCmd[6] = n_chunk;
     packetCmd[7] = crsf_crc8(&packetCmd[2], packetCmd[1]-1);
 
-    elrsWrite(packetCmd,8,200000);
+    CRSF_write(packetCmd,8,20000);
 }
 // request ELRS_info message
-void CRSF_get_elrs_info(uint8_t packetCmd[], uint8_t target)
+void CRSF_get_elrs_info(uint8_t target)
 {
+  uint8_t packetCmd[8];
+
   packetCmd[0] = target;
   packetCmd[1] = 6; // length of Command (4) + payload + crc
   packetCmd[2] = TYPE_SETTINGS_WRITE;
@@ -230,9 +245,15 @@ void CRSF_get_elrs_info(uint8_t packetCmd[], uint8_t target)
   packetCmd[5] = 0;
   packetCmd[6] = 0;
   packetCmd[7] = crsf_crc8(&packetCmd[2], packetCmd[1]-1);
+
+  CRSF_write(packetCmd,8,0);
+
 }
 
-void CRSF_sendId(uint8_t packetCmd[],uint8_t modelId ) {
+void CRSF_send_id(uint8_t modelId ) {
+
+    uint8_t packetCmd[LinkStatisticsFrameLength];
+
     packetCmd[0] = ELRS_ADDRESS;
     packetCmd[1] = 8; 
     packetCmd[2] = TYPE_COMMAND_ID;
@@ -243,18 +264,14 @@ void CRSF_sendId(uint8_t packetCmd[],uint8_t modelId ) {
     packetCmd[7] = modelId;//modelID TODO
     packetCmd[8] = crsf_crc8_BA(&packetCmd[2], packetCmd[1]-2);
     packetCmd[9] = crsf_crc8(&packetCmd[2], packetCmd[1]-1);
+    
+    CRSF_write(packetCmd,LinkStatisticsFrameLength,0); 
+
 }
 
-void CRSF_ping_devices() {
-  buildElrsPingPacket(crsfCmdPacket);
-  elrsWrite(crsfCmdPacket,6,0);
- }
-
+void CRSF_write (uint8_t crsfPacket[],uint8_t size,int32_t add_delay) {
  
-
-void elrsWrite (uint8_t crsfPacket[],uint8_t size,int32_t add_delay) {
- 
-  #if defined(debug) 
+  #if !defined(debug) 
     if (crsfPacket[2] != TYPE_CHANNELS) dbout.printf("elrs write 0x%x\n",crsfPacket[2]);
   #endif
 
@@ -404,10 +421,11 @@ void serialEvent() {
                 }
               }
               if (MODULE_IS_UNKNOWN) {
-                #if defined(debug) 
-                  dbout.printf("mod type: %i\n", module_type);
+                #if !defined(debug) 
+                  dbout.printf("Ping...\n");
+                  //protocol_module_type(module_type);
                  #endif
-                CRSF_ping_devices();
+                CRSF_broadcast_ping();
               }
             }
 
@@ -493,11 +511,6 @@ void CRSF_serial_rcv(uint8_t *buffer, uint8_t num_bytes) {
       #endif
       add_device(buffer);
       
-       /* TODO URGENT
-        dbout.printf("send model id\n");
-
-        CRSF_sendId(crsfSetIdPacket,0);
-        elrsWrite(crsfSetIdPacket,LinkStatisticsFrameLength,0); */
         break;
 
     case CRSF_FRAMETYPE_ELRS_STATUS:
@@ -688,6 +701,8 @@ void add_param(uint8_t *buffer, uint8_t num_bytes) {
         dbout.println(recv_param_ptr);
         return;
     }
+    dbout.printf("tx param\n");
+
 
     memcpy(recv_param_ptr, buffer+5, num_bytes-5);
     recv_param_ptr += num_bytes - 5;
@@ -701,7 +716,7 @@ void add_param(uint8_t *buffer, uint8_t num_bytes) {
         } else {
 
             next_chunk += 1;
-            dbout.printf("next chunk :: %u:%u",next_param, next_chunk);
+            dbout.printf("n_p: %u n_c: %u",next_param, next_chunk);
 
             CRSF_read_param(next_param, next_chunk, ELRS_ADDRESS);
 
@@ -773,12 +788,12 @@ void parse_device(uint8_t* buffer, crsf_device_t *device) {
     if (device->address == ADDR_MODULE) {
       if (device->serial_number == 0x454C5253)
       {
-        //dbout.println("Module type: elrs");
+        dbout.println("Module type: elrs");
         protocol_module_type(MODULE_ELRS);
       }
         else
       {
-        //dbout.println("Module type: not elrs");
+        dbout.println("Module type: not elrs");
         protocol_module_type(MODULE_OTHER);
       } 
     }
@@ -791,5 +806,3 @@ void parse_device(uint8_t* buffer, crsf_device_t *device) {
                     device->firmware_id,
                     device->hardware_id); */
 }
-
-

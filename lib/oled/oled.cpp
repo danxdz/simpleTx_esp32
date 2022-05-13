@@ -101,7 +101,7 @@ void Oled::setMainScreen(char *name, crsfLinkStatistics_t LinkStatistics,uint8_t
     }  else {
         display.setFont(u8g2_font_10x20_mr);
 
-        Oled::PrintCenter(45,"no rx");
+        Oled::PrintCenter(45,(char*)"no rx");
 
     }
     } else {

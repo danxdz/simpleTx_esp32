@@ -54,8 +54,6 @@ class Menu {
         uint8_t max_value;
         char *optionsMainMenu[50];
 
-        static void ChangeParam(uint8_t param, uint8_t cmd);
-
         char * getMainMenuItem_StatusText();
         
         void displayInfo();		

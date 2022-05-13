@@ -107,10 +107,15 @@ void read_ui_buttons () {
 
       if (back == LOW) entered = -1;
       if (enter == LOW) {
-        dbout.printf("select option %u:%u",mmOptionSelected,selected);
+        dbout.printf("select option %u:%u\n",mmOptionSelected,selected);
         next_param = selected+1;
         next_chunk = mmOptionSelected;
-        Menu::ChangeParam(next_param,next_chunk);
+        
+       
+        dbout.printf("ChangeParam: %s\n",menuItems[selected].name);
+        CRSF_changeParam(next_param,next_chunk);
+        
+        //Menu::ChangeParam(next_param,next_chunk);
       }
 
 
@@ -140,7 +145,9 @@ void read_ui_buttons () {
               
         if (menuItems[subSelected].p_type == 13) next_chunk = 4; //cmd 
         
-        Menu::ChangeParam(next_param,next_chunk);
+          dbout.printf("ChangeParam: %s\n",menuItems[selected].name);
+          CRSF_changeParam(next_param,next_chunk);
+          //Menu::ChangeParam(next_param,next_chunk);
       }
       if (back == LOW) {
         entered = -1;

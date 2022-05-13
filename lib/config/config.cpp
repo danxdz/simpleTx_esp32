@@ -41,26 +41,24 @@ void  update_packet_rate(uint32_t currentMicros) {
         if (txConected > 0) {
             if ( (int)local_info.good_pkts != (int)rates[tmp] ) {
                 dbout.printf("get crsf link statistics\n");
-                CRSF_get_elrs_info(crsfCmdPacket,ELRS_ADDRESS);
-                elrsWrite(crsfCmdPacket,8,0);
+                CRSF_get_elrs_info(ELRS_ADDRESS);
             }
             if (rxConected == 0) {
                 crsf_devices[1].address = 0;   
                 strlcpy(crsf_devices[1].name, (const char *)"", CRSF_MAX_NAME_LEN);
 
-                //CRSF_ping_devices();
-                dbout.printf("no rx found - broadcasting ping..\n");
+                dbout.printf("no rx found\n");
             } else {
                 if (crsf_devices[1].address == 0) {
 
-                    //CRSF_ping_devices();
+                    CRSF_broadcast_ping();
               
                 }
                 else {
                     if (rx_params_loaded < crsf_devices[1].number_of_params) {
                         dbout.printf("read rx info\n");
-                        next_param = 1;
-                        next_chunk = 0;
+                        //next_param = 1;
+                        //next_chunk = 0;
                         CRSF_read_param(next_param, next_chunk, ELRS_RX_ADDRESS);
                     }
                 }
@@ -73,7 +71,7 @@ void  update_packet_rate(uint32_t currentMicros) {
                 dbout.printf("no tx module found\n");
             #endif
         }
-        tickTime = currentMicros + 1000000;
+        tickTime = currentMicros + 2000000;
         rxConected = 0;
         txConected = 0;
     }
@@ -115,14 +113,12 @@ void bt_handle(uint8_t value) {
   //powerChangeHasRun=true;
   
   //CRSF_read_param(crsfCmdPacket,1,next_chunk);
-  //elrsWrite(crsfCmdPacket,8,0);
+  //CRSF_write(crsfCmdPacket,8,0);
   
   //buildElrsPingPacket(crsfCmdPacket);
   //dbout.println(CRSF_send_model_id(2));
   
   //set modelId
-  //CRSF_sendId(crsfSetIdPacket,0);
-  //elrsWrite(crsfSetIdPacket,LinkStatisticsFrameLength);
 
   //turn on rx wifi, even if missmatch modelId
   //buildElrsPacket(crsfCmdPacket,16,1);

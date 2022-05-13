@@ -80,7 +80,7 @@ void OutputTask( void * pvParameters ){
             }
           }
         }
-        delay(2000);
+       // delay(2000);
       // end not all params
       } else { //else (if all parameters) load main menu      
           //dbout.println("main menu loaded...");

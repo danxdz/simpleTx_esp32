@@ -51,16 +51,7 @@ static void parse_bytes(enum data_type type, char **buffer, char *dest) {
     }
 }
 
-void Menu::ChangeParam(uint8_t param, uint8_t cmd){
-  dbout.printf("ChangeParam: %s\n",menuItems[selected].name);
-  buildElrsPacket(crsfCmdPacket,param,cmd);
-  elrsWrite(crsfCmdPacket,8,200000);
 
-  //delay(500);
-
-  next_chunk = 0;
-  CRSF_read_param(param,next_chunk, ELRS_ADDRESS);
-}
 
 char * Menu::getMainMenuItem_StatusText() {  
   if (optionsMainMenu[status]) return optionsMainMenu[status];
@@ -104,10 +95,10 @@ void Menu::divideValueParam (char *values) {
 }
 
 void Menu::getParams(char *buffer,int iid) {
-  ///dbout.printf("get P: %i\n",iid);
+  //set main menu items
+  dbout.printf("get P: %i\n",iid);
 	id = iid;
   parent = *buffer++;
-  //set main menu items
   p_type = *buffer & 0x7f;
   hidden = *buffer++ & 0x80;
                 

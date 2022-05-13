@@ -64,7 +64,7 @@ extern char *recv_param_ptr;
 #ifdef DEBUG
     #define SERIAL_BAUDRATE 115200 //low baud for Arduino Nano , the TX module will auto detect baud. max packet rate is 250Hz.
 #else
-    #define SERIAL_BAUDRATE 1870000// 3750000 //testing
+    #define SERIAL_BAUDRATE  3750000 //testing 400000//1870000
 #endif
  // Device address & type
 #define RADIO_ADDRESS                  0xEA
@@ -170,14 +170,6 @@ void parse_device(uint8_t* buffer, crsf_device_t *device);
 static volatile uint8_t SerialInPacketLen; // length of the CRSF packet as measured
 static volatile uint8_t SerialInPacketPtr; // index where we are reading/writing
 static volatile bool CRSFframeActive;// = false; //since we get a copy of the serial data use this flag to know when to ignore it
-extern uint8_t SerialInBuffer[];
-
-//prepare elrs setup packet (power, packet rate...)
-extern uint8_t crsfCmdPacket[];
-extern uint8_t crsfSetIdPacket[];
-
-extern uint8_t crsfPacket[];
-
 
 
 uint8_t crsf_crc8(const uint8_t *ptr, uint8_t len);
@@ -185,17 +177,17 @@ void crsfSendChannels(int channels[]);
 
 
 void buildElrsPacket(uint8_t packetCmd[],uint8_t command, uint8_t value);
-void buildElrsPingPacket(uint8_t packetCmd[]);
+void CRSF_broadcast_ping();
 
-void CRSF_read_param(uint8_t id,uint8_t chunk, uint8_t target);
+void CRSF_read_param(uint8_t n_param,uint8_t n_chunk, uint8_t target);
 
 
 //void CRSF_get_elrs_info(uint8_t packetCmd[]);
-void CRSF_get_elrs_info(uint8_t crsfCmdPacket[],uint8_t target);
+void CRSF_get_elrs_info(uint8_t target);
 
-void CRSF_sendId(uint8_t packetCmd[],uint8_t modelId );
-void CRSF_ping_devices();
-void  elrsWrite (uint8_t crsfPacket[],uint8_t size,int32_t add_delay);
+void CRSF_send_id(uint8_t modelId );
+
+void  CRSF_write (uint8_t crsfPacket[],uint8_t size,int32_t add_delay);
 
 uint8_t count_params_loaded(uint8_t index);
 
@@ -210,6 +202,7 @@ uint8_t getCrossfireTelemetryValue(uint8_t index, int32_t *value, uint8_t len);
 void add_device(uint8_t *buffer);
 void parse_elrs_info(uint8_t *buffer);
 void add_param(uint8_t *buffer, uint8_t num_bytes);
+void CRSF_changeParam(uint8_t n_param, uint8_t n_chunk);
 
 
 
