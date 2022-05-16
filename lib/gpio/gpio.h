@@ -2,17 +2,8 @@
 #define GPIO_H
 
 //IO setup
-//pins that used for the Joystick
-const int analogInPinAileron = 32;
-const int analogInPinElevator = 33; 
-const int analogInPinThrottle = 34;
-const int analogInPinRudder = 35; 
-//const int VOLTAGE_READ_PIN = 36; 
 
 
-//pins that used for the switch
-const int DIGITAL_PIN_SWITCH_ARM = 16;  // Arm switch
-const int DIGITAL_PIN_SWITCH_AUX2 = 2;  // 
 
 //pin for button : testing bt
 const int DigitalInPinPowerChange = 15;  // 
@@ -37,5 +28,7 @@ const int DIGITAL_PIN_BUZZER = 12;  //
 
 
 void initGpio ();
+
+int *get_rc_channels();
 
 #endif

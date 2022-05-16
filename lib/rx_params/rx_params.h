@@ -1,6 +1,5 @@
 #pragma once
 #include <Arduino.h>
-#include "crsf_protocol.h"
 
 class RxInfo {
     public:

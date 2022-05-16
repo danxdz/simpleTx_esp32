@@ -59,6 +59,7 @@ uint32_t crsfTime = 0;
 uint32_t lastCrsfTime = 0;
 uint32_t updateInterval = CRSF_TIME_BETWEEN_FRAMES_US;;
 
+//int VOLTAGE_READ_PIN = 36;
 
 int32_t correction = 0;
 
@@ -68,8 +69,14 @@ elrs_info_t  local_info;
 
 elrs_info_t  elrs_info;
 
- module_type_t module_type;
+module_type_t module_type;
 
+int rcChannels[CRSF_MAX_CHANNEL];
+
+int Aileron_value = 0;        // values read from the pot 
+int Elevator_value = 0; 
+int Throttle_value = 0;
+int Rudder_value = 0; 
 
 void protocol_module_type(module_type_t type) {
     module_type = type;
@@ -142,40 +149,76 @@ uint8_t crsf_crc8_BA(const uint8_t *ptr, uint8_t len) {
 }
 
 //prepare data packet
-void crsfSendChannels(int channels[]) {
+void crsfSendChannels() {
 
   uint8_t crsfPacket[CRSF_PACKET_SIZE];
 
-  // packet[0] = UART_SYNC; //Header
-  crsfPacket[0] = ADDR_MODULE; //Header
-  crsfPacket[1] = 24;   // length of type (24) + payload + crc
-  crsfPacket[2] = TYPE_CHANNELS;
-  crsfPacket[3] = (uint8_t) (channels[0] & 0x07FF);
-  crsfPacket[4] = (uint8_t) ((channels[0] & 0x07FF)>>8 | (channels[1] & 0x07FF)<<3);
-  crsfPacket[5] = (uint8_t) ((channels[1] & 0x07FF)>>5 | (channels[2] & 0x07FF)<<6);
-  crsfPacket[6] = (uint8_t) ((channels[2] & 0x07FF)>>2);
-  crsfPacket[7] = (uint8_t) ((channels[2] & 0x07FF)>>10 | (channels[3] & 0x07FF)<<1);
-  crsfPacket[8] = (uint8_t) ((channels[3] & 0x07FF)>>7 | (channels[4] & 0x07FF)<<4);
-  crsfPacket[9] = (uint8_t) ((channels[4] & 0x07FF)>>4 | (channels[5] & 0x07FF)<<7);
-  crsfPacket[10] = (uint8_t) ((channels[5] & 0x07FF)>>1);
-  crsfPacket[11] = (uint8_t) ((channels[5] & 0x07FF)>>9 | (channels[6] & 0x07FF)<<2);
-  crsfPacket[12] = (uint8_t) ((channels[6] & 0x07FF)>>6 | (channels[7] & 0x07FF)<<5);
-  crsfPacket[13] = (uint8_t) ((channels[7] & 0x07FF)>>3);
-  crsfPacket[14] = (uint8_t) ((channels[8] & 0x07FF));
-  crsfPacket[15] = (uint8_t) ((channels[8] & 0x07FF)>>8 | (channels[9] & 0x07FF)<<3);
-  crsfPacket[16] = (uint8_t) ((channels[9] & 0x07FF)>>5 | (channels[10] & 0x07FF)<<6);  
-  crsfPacket[17] = (uint8_t) ((channels[10] & 0x07FF)>>2);
-  crsfPacket[18] = (uint8_t) ((channels[10] & 0x07FF)>>10 | (channels[11] & 0x07FF)<<1);
-  crsfPacket[19] = (uint8_t) ((channels[11] & 0x07FF)>>7 | (channels[12] & 0x07FF)<<4);
-  crsfPacket[20] = (uint8_t) ((channels[12] & 0x07FF)>>4  | (channels[13] & 0x07FF)<<7);
-  crsfPacket[21] = (uint8_t) ((channels[13] & 0x07FF)>>1);
-  crsfPacket[22] = (uint8_t) ((channels[13] & 0x07FF)>>9  | (channels[14] & 0x07FF)<<2);
-  crsfPacket[23] = (uint8_t) ((channels[14] & 0x07FF)>>6  | (channels[15] & 0x07FF)<<5);
-  crsfPacket[24] = (uint8_t) ((channels[15] & 0x07FF)>>3);
-  
-  crsfPacket[25] = crsf_crc8(&crsfPacket[2], CRSF_PACKET_SIZE-3); //CRC
+    
+  //read values of rcChannels
+  Aileron_value = analogRead(analogInPinAileron); 
+  Elevator_value= analogRead(analogInPinElevator); 
+  Throttle_value= analogRead(analogInPinThrottle); 
+  Rudder_value = analogRead(analogInPinRudder);
+  Arm = digitalRead(DIGITAL_PIN_SWITCH_ARM);
+  FlightMode = digitalRead(DIGITAL_PIN_SWITCH_AUX2);
 
-  CRSF_write(crsfPacket, CRSF_PACKET_SIZE,0);
+  //map rcchannels
+  rcChannels[0] = map(Aileron_value,0,4095,RC_CHANNEL_MIN,RC_CHANNEL_MAX);
+  rcChannels[1] = map(Elevator_value,0,4095,RC_CHANNEL_MIN,RC_CHANNEL_MAX); 
+  rcChannels[2] = map(Throttle_value,0,4095,RC_CHANNEL_MIN,RC_CHANNEL_MAX);
+  rcChannels[3] = map(Rudder_value ,0,4095,RC_CHANNEL_MIN,RC_CHANNEL_MAX);
+  //Aux 1 Arm Channel
+  rcChannels[4] = Arm ? RC_CHANNEL_MIN  : RC_CHANNEL_MAX ;
+  //Aux 2 Mode Channel
+  rcChannels[5] = FlightMode ? RC_CHANNEL_MIN : RC_CHANNEL_MAX;   
+  //Additional switch add here.
+  //rcChannels[6] = CH6 ? RC_CHANNEL_MIN : RC_CHANNEL_MAX; 
+
+
+  #if defined(DEBUG_CH)
+    char buf [64];
+    sprintf (buf, "A:%i:%i;E:%i:%i;T:%i:%i;R:%i:%i;arm:%i;fm:%i\r\n", 
+    Aileron_value,rcChannels[0],
+    Elevator_value,rcChannels[1],
+    Throttle_value,rcChannels[2],
+    Rudder_value,rcChannels[3],
+    Arm,FlightMode);//batteryVoltage);
+    delay(1000); 
+  #else
+  
+    // packet[0] = UART_SYNC; //Header
+    crsfPacket[0] = ADDR_MODULE; //Header
+    crsfPacket[1] = 24;   // length of type (24) + payload + crc
+    crsfPacket[2] = TYPE_CHANNELS;
+    crsfPacket[3] = (uint8_t) (rcChannels[0] & 0x07FF);
+    crsfPacket[4] = (uint8_t) ((rcChannels[0] & 0x07FF)>>8 | (rcChannels[1] & 0x07FF)<<3);
+    crsfPacket[5] = (uint8_t) ((rcChannels[1] & 0x07FF)>>5 | (rcChannels[2] & 0x07FF)<<6);
+    crsfPacket[6] = (uint8_t) ((rcChannels[2] & 0x07FF)>>2);
+    crsfPacket[7] = (uint8_t) ((rcChannels[2] & 0x07FF)>>10 | (rcChannels[3] & 0x07FF)<<1);
+    crsfPacket[8] = (uint8_t) ((rcChannels[3] & 0x07FF)>>7 | (rcChannels[4] & 0x07FF)<<4);
+    crsfPacket[9] = (uint8_t) ((rcChannels[4] & 0x07FF)>>4 | (rcChannels[5] & 0x07FF)<<7);
+    crsfPacket[10] = (uint8_t) ((rcChannels[5] & 0x07FF)>>1);
+    crsfPacket[11] = (uint8_t) ((rcChannels[5] & 0x07FF)>>9 | (rcChannels[6] & 0x07FF)<<2);
+    crsfPacket[12] = (uint8_t) ((rcChannels[6] & 0x07FF)>>6 | (rcChannels[7] & 0x07FF)<<5);
+    crsfPacket[13] = (uint8_t) ((rcChannels[7] & 0x07FF)>>3);
+    crsfPacket[14] = (uint8_t) ((rcChannels[8] & 0x07FF));
+    crsfPacket[15] = (uint8_t) ((rcChannels[8] & 0x07FF)>>8 | (rcChannels[9] & 0x07FF)<<3);
+    crsfPacket[16] = (uint8_t) ((rcChannels[9] & 0x07FF)>>5 | (rcChannels[10] & 0x07FF)<<6);  
+    crsfPacket[17] = (uint8_t) ((rcChannels[10] & 0x07FF)>>2);
+    crsfPacket[18] = (uint8_t) ((rcChannels[10] & 0x07FF)>>10 | (rcChannels[11] & 0x07FF)<<1);
+    crsfPacket[19] = (uint8_t) ((rcChannels[11] & 0x07FF)>>7 | (rcChannels[12] & 0x07FF)<<4);
+    crsfPacket[20] = (uint8_t) ((rcChannels[12] & 0x07FF)>>4  | (rcChannels[13] & 0x07FF)<<7);
+    crsfPacket[21] = (uint8_t) ((rcChannels[13] & 0x07FF)>>1);
+    crsfPacket[22] = (uint8_t) ((rcChannels[13] & 0x07FF)>>9  | (rcChannels[14] & 0x07FF)<<2);
+    crsfPacket[23] = (uint8_t) ((rcChannels[14] & 0x07FF)>>6  | (rcChannels[15] & 0x07FF)<<5);
+    crsfPacket[24] = (uint8_t) ((rcChannels[15] & 0x07FF)>>3);
+    
+    crsfPacket[25] = crsf_crc8(&crsfPacket[2], CRSF_PACKET_SIZE-3); //CRC
+
+    CRSF_write(crsfPacket, CRSF_PACKET_SIZE,0);
+
+        
+  #endif
 
 }
 
@@ -237,7 +280,7 @@ void CRSF_get_elrs_info(uint8_t target)
 {
   uint8_t packetCmd[8];
 
-  packetCmd[0] = target;
+  packetCmd[0] = ELRS_ADDRESS;//target;
   packetCmd[1] = 6; // length of Command (4) + payload + crc
   packetCmd[2] = TYPE_SETTINGS_WRITE;
   packetCmd[3] = target;
@@ -466,7 +509,7 @@ void serialEvent() {
     
         
         } else {
-          dbout.write("UART CRC failure");
+          dbout.write("UART CRC failure\n");
           // cleanup input buffer
           elrs.flush();
           // BadPktsCount++;
@@ -688,7 +731,7 @@ void add_param(uint8_t *buffer, uint8_t num_bytes) {
     next_param = 1; 
     }
     return;
-  } 
+  } else {
 
    
   if (buffer[2] != crsf_devices[0].address 
@@ -765,7 +808,7 @@ void add_param(uint8_t *buffer, uint8_t num_bytes) {
        
     next_param = 0; 
     }
-
+  }
 }
 
 uint32_t parse_u32(const uint8_t *buffer) {

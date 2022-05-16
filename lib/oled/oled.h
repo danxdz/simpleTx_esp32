@@ -22,10 +22,12 @@ class Oled {
     static void selectOptionMainMenu();
     void setSubMenuItems();
     void println(char* tmp);
+    void PrintCenter(char *tmp);
     void PrintCenter(uint8_t y,char * tmp);
     static void PrintRight(char *tmp);
     static void PrintRight(uint8_t y,char *tmp);
-
+    void PrintLeft(char *tmp);
+    void PrintLeft(uint8_t y,char *tmp);
 };
 
 #endif

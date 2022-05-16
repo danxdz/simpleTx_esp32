@@ -16,12 +16,35 @@
  */
 
  
+#pragma once
 
-#ifndef CRSF_H /* include guards */
-#define CRSF_H
 
 #include <Arduino.h>
 #include "crsf_protocol.h"
+
+
+//pins that used for the Joystick
+
+
+//pins that used for the Joystick
+const int analogInPinElevator = 32; 
+const int analogInPinAileron = 33;
+const int analogInPinThrottle = 34;
+const int analogInPinRudder = 35; 
+//int VOLTAGE_READ_PIN = 36;
+
+//pins that used for the switchs
+const int DIGITAL_PIN_SWITCH_ARM = 25;  // Arm switch
+const int DIGITAL_PIN_SWITCH_AUX2 = 26;  // 
+
+static int Arm;                   // switch values read from the digital pin
+static int FlightMode; 
+
+extern int Aileron_value;        // values read from the pot 
+extern int Elevator_value; 
+extern int Throttle_value;
+extern int Rudder_value; 
+
 #define CRSF_MAX_PARAMS  55   // one extra required, max observed is 47 in Diversity Nano RX
 #define CRSF_MAX_DEVICES       4
 #define CRSF_MAX_NAME_LEN      16
@@ -50,17 +73,23 @@ typedef enum {
 
 uint8_t protocol_module_is_elrs();
 
-extern module_type_t module_type;
-extern uint8_t device_idx;   // current device index
+#define CRSF_MAX_CHANNEL 16
+
+extern int rcChannels[CRSF_MAX_CHANNEL];
 
 #define CRSF_MAX_CHUNK_SIZE   58   // 64 - header - type - destination - origin
 #define CRSF_MAX_CHUNKS        5   // not in specification. Max observed is 3 for Nano RX
+
+
+
+extern module_type_t module_type;
+extern uint8_t device_idx;   // current device index
+
 
 extern char recv_param_buffer[];
 extern char *recv_param_ptr;
 
  // Basic setup
-#define CRSF_MAX_CHANNEL 16
 #ifdef DEBUG
     #define SERIAL_BAUDRATE 115200 //low baud for Arduino Nano , the TX module will auto detect baud. max packet rate is 250Hz.
 #else
@@ -173,7 +202,7 @@ static volatile bool CRSFframeActive;// = false; //since we get a copy of the se
 
 
 uint8_t crsf_crc8(const uint8_t *ptr, uint8_t len);
-void crsfSendChannels(int channels[]);
+void crsfSendChannels();
 
 
 void buildElrsPacket(uint8_t packetCmd[],uint8_t command, uint8_t value);
@@ -221,5 +250,3 @@ extern crsf_device_t crsf_devices[];
 extern volatile crsf_sensor_battery_s batteryVoltage;
 extern crsfPayloadLinkstatistics_s LinkStatistics; // Link Statisitics Stored as Struct
 
-
-#endif

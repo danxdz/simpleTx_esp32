@@ -1,9 +1,12 @@
 #include "Arduino.h"
 #include "gpio.h"
+#include "crsf.h"
+
+//IO setup
 
 int upBt = 12;
 int downBt = 4;
-int enterBt = 0;
+int enterBt = 14;
 int backBt = 5;
 
 void initGpio () {
@@ -22,3 +25,4 @@ void initGpio () {
   pinMode(backBt, INPUT_PULLUP);
 
 }
+

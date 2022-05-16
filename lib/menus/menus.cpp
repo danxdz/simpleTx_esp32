@@ -19,8 +19,10 @@ int mmOptionSelected = -1;
 int selected = 0;
 int subSelected = 0;
 
-uint8_t params_loaded = 0;     // if not zero, number received so far for current device
-uint8_t next_param = 0;   // parameter and chunk currently being read
+uint8_t params_loaded = 0;    
+
+// parameter and chunk currently being read
+uint8_t next_param = 0;  
 uint8_t next_chunk = 0;
 
 static void parse_bytes(enum data_type type, char **buffer, char *dest) {
@@ -52,12 +54,13 @@ static void parse_bytes(enum data_type type, char **buffer, char *dest) {
 }
 
 
-
 char * Menu::getMainMenuItem_StatusText() {  
   if (optionsMainMenu[status]) return optionsMainMenu[status];
   return 0;
 }	             
-        //debug
+       
+       
+//debug
 void Menu::displayInfo() {			
   if (name) {
     dbout.printf("%u:%s:%u:%u:%u:%u:%u\n",id,name,parent,p_type,hidden,max_value,status);
@@ -74,6 +77,7 @@ void Menu::displayInfo() {
     dbout.printf("\n"); 
   }
 }
+
 
 void Menu::divideValueParam (char *values) {
   char *start = (char *)values;
@@ -93,6 +97,7 @@ void Menu::divideValueParam (char *values) {
   strlcpy(optionsMainMenu[count],start,len+1);
   max_value = count;   
 }
+
 
 void Menu::getParams(char *buffer,int iid) {
   //set main menu items

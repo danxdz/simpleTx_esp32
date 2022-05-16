@@ -9,15 +9,10 @@ char tempstring[TEMPSTRINGLENGTH];
 
 bool powerChangeHasRun = false;
 
-int Aileron_value = 0;        // values read from the pot 
-int Elevator_value = 0; 
-int Throttle_value=0;
-int Rudder_value = 0; 
-
-int Arm = 0;        // switch values read from the digital pin
-int FlightMode = 0; 
 
 uint32_t tickTime = 0;
+uint32_t tickInterval = 2000000; // 2 sec. to check if rx or tx connect/disconnect
+
 uint16_t rates[] = { 0, 25, 50, 100, 150, 200 };
 
 
@@ -29,7 +24,7 @@ void crsfdevice_init() {
     //CBUF_Init(send_buf);
 }
 
-void  update_packet_rate(uint32_t currentMicros) {
+void  check_link_states(uint32_t currentMicros) {
     
     if (currentMicros > tickTime ) {      
         dbout.printf("tick :: tx: %u rx: %u\n", txConected, rxConected );
@@ -39,10 +34,14 @@ void  update_packet_rate(uint32_t currentMicros) {
         uint8_t tmp =  LinkStatistics.rf_Mode;
         //if (MODULE_IS_ELRS) {   
         if (txConected > 0) {
-            if ( (int)local_info.good_pkts != (int)rates[tmp] ) {
+            if ((int) local_info.good_pkts == 0) {
                 dbout.printf("get crsf link statistics\n");
                 CRSF_get_elrs_info(ELRS_ADDRESS);
+            } else if ((int)local_info.good_pkts != (int)rates[tmp] && rxConected > 0){
+                dbout.printf("update crsf link statistics\n");
+                //CRSF_get_elrs_info(ELRS_ADDRESS);
             }
+
             if (rxConected == 0) {
                 crsf_devices[1].address = 0;   
                 strlcpy(crsf_devices[1].name, (const char *)"", CRSF_MAX_NAME_LEN);
@@ -57,8 +56,8 @@ void  update_packet_rate(uint32_t currentMicros) {
                 else {
                     if (rx_params_loaded < crsf_devices[1].number_of_params) {
                         dbout.printf("read rx info\n");
-                        //next_param = 1;
-                        //next_chunk = 0;
+                        next_param = 1;
+                        next_chunk = 0;
                         CRSF_read_param(next_param, next_chunk, ELRS_RX_ADDRESS);
                     }
                 }
@@ -71,7 +70,7 @@ void  update_packet_rate(uint32_t currentMicros) {
                 dbout.printf("no tx module found\n");
             #endif
         }
-        tickTime = currentMicros + 2000000;
+        tickTime = currentMicros + tickInterval;
         rxConected = 0;
         txConected = 0;
     }

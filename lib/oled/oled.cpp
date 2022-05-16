@@ -12,6 +12,11 @@
 U8G2_SSD1306_128X64_NONAME_F_HW_I2C display(U8G2_R0,U8X8_PIN_NONE,22,21); //todo define pins
 
 
+void Oled::PrintCenter(char *tmp) {
+    
+    uint8_t x = (display.getDisplayWidth()/2) - (display.getStrWidth(tmp)/2);
+    display.drawStr(x,display.getCursorY()+10,tmp);
+}
 void Oled::PrintCenter(uint8_t y,char *tmp) {
     
     uint8_t x = (display.getDisplayWidth()/2) - (display.getStrWidth(tmp)/2);
@@ -21,14 +26,19 @@ void Oled::PrintRight(char *tmp) {
     uint8_t x = display.getDisplayWidth() - display.getStrWidth(tmp);
     display.drawStr(x,display.getCursorY(),tmp);
 }
-
 //with y
 void Oled::PrintRight(uint8_t y,char *tmp) {
     uint8_t x = display.getDisplayWidth() - (display.getStrWidth(tmp));
     display.drawStr(x,y,tmp);
 }
 
-
+void Oled::PrintLeft(char *tmp) {
+    display.drawStr(0,display.getCursorY(),tmp);
+}
+//with y
+void Oled::PrintLeft(uint8_t y,char *tmp) {
+    display.drawStr(0,y,tmp);
+}
 
 void Oled::init() {
     #if defined(DEBUG) 
@@ -53,68 +63,62 @@ void Oled::init() {
 void Oled::setMainScreen(char *name, crsfLinkStatistics_t LinkStatistics,uint8_t bpkts,uint8_t gpkts) {
     //dbout.printf("Mainsreen\n");
     
-    display.clearBuffer(); 
+    char output[400];
+    
+    display.setCursor(0,7);    
+    
+    display.clearBuffer();  
     display.setFont(u8g2_font_chikita_tr);
 
     if (crsf_devices[0].address != 0) {
-    
-    display.drawStr(0,7, name);
-    display.setCursor(0,14);
-    //display.print("tx ");
-    char output[400];
-    snprintf(output, sizeof output, "%u:%u | %i dBm  \n", 
-        LinkStatistics.rf_Mode,
-        LinkStatistics.uplink_Link_quality,
-        LinkStatistics.uplink_RSSI_1);
-    display.print(output);
-    
-    
-    display.setFont(u8g2_font_10x20_mr);
-    //display.setCursor(0,32);    
-    float vBat = 5;// (float)batteryVoltage.voltage/10;
-    char bat[64];
-    int ret = snprintf(bat, sizeof bat, "%.2f", vBat);
-    Oled::println("");
-    Oled::println(bat);
-    
-    display.setFont(u8g2_font_chikita_tr);
+            
+        Oled::PrintLeft(7,name);
 
-
-    //display.setCursor(0,47);    
-
-    Oled::println(crsf_devices[1].name);
-    if (crsf_devices[1].address != 0) {
-        snprintf(output, sizeof output, "%u:%u | %i dBm", 
-            LinkStatistics.rf_Mode,
-            LinkStatistics.downlink_Link_quality,
-            LinkStatistics.downlink_RSSI);
-        Oled::println(output);
-        //display.drawStr(0,55,output);
-        
         snprintf(output, sizeof output, "%u:%u",bpkts,gpkts);
-        Oled::println(output);
-        //display.drawStr(0,64, output );
+        Oled::PrintRight(output);
+        
+        if (crsf_devices[1].address != 0) {
 
-        display.setFont(u8g2_font_9x15_me);
-        display.setCursor(90,10);    
-        display.print(LinkStatistics.uplink_TX_Power+"mW");
-    }  else {
-        display.setFont(u8g2_font_10x20_mr);
 
-        Oled::PrintCenter(45,(char*)"no rx");
+            snprintf(output, sizeof output, "%u:%u | %i dBm  \n", 
+                LinkStatistics.rf_Mode,
+                LinkStatistics.uplink_Link_quality,
+                LinkStatistics.uplink_RSSI_1);
+            Oled::println(output);
+            
+        
+            display.setFont(u8g2_font_10x20_mr);
+            //display.setCursor(0,32);    
+            float vBat = 5;// (float)batteryVoltage.voltage/10;
+            char bat[64];
 
-    }
+            int ret = snprintf(bat, sizeof bat, "%.2f", vBat);
+            Oled::println((char*)"");
+            Oled::println(bat);
+            
+            display.setFont(u8g2_font_chikita_tr);
+
+            Oled::println(crsf_devices[1].name);
+
+            snprintf(output, sizeof output, "%u:%u | %i dBm", 
+                LinkStatistics.rf_Mode,
+                LinkStatistics.downlink_Link_quality,
+                LinkStatistics.downlink_RSSI);
+            Oled::println(output);
+            
+            display.setFont(u8g2_font_9x15_me);
+            display.setCursor(90,10);    
+            display.print(LinkStatistics.uplink_TX_Power+"mW");
+        }  else {
+            display.setFont(u8g2_font_10x20_mr);
+            Oled::PrintCenter(45,(char*)"no rx");
+        }
     } else {
-
     display.setFont(u8g2_font_9x15_me);
-
     display.setCursor(0,14);
     Oled::PrintCenter(25,(char*)"no tx module");
     }
-
     display.sendBuffer();
-
-
 }
 
 void Oled::setSubMenuItems() {

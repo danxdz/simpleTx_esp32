@@ -51,7 +51,6 @@
 TaskHandle_t elrsTaskHandler;
 TaskHandle_t outputTaskHandler;
 
-int rcChannels[CRSF_MAX_CHANNEL];
 
 //#define constrain(amt,low,high) ((amt)<(low)?(low):((amt)>(high)?(high):(amt)))
 
@@ -66,7 +65,7 @@ void OutputTask( void * pvParameters ){
       if (params_loaded<crsf_devices[0].number_of_params) {
         char *load = (char *)hdr_str_cb(menuItems);//TODO
         dbout.printf("hdr:%s\n",load);
-        oled.println(load);
+        oled.PrintCenter(load);
 
         if (crsf_devices[0].number_of_params) {
           if (crsf_devices[0].address == ADDR_RADIO) {
@@ -126,27 +125,7 @@ void ElrsTask( void * pvParameters ){
   for(;;){
     uint32_t currentMicros = micros();
 
-    update_packet_rate(currentMicros);
-
-    //read values of rcChannels
-    Aileron_value = analogRead(analogInPinAileron); 
-    Elevator_value= analogRead(analogInPinElevator); 
-    Throttle_value= analogRead(analogInPinThrottle); 
-    Rudder_value = analogRead(analogInPinRudder);
-    Arm = digitalRead(DIGITAL_PIN_SWITCH_ARM);
-    FlightMode = digitalRead(DIGITAL_PIN_SWITCH_AUX2);
-
-    //map rcchannels
-    rcChannels[0] = map(Aileron_value,0,4095,RC_CHANNEL_MIN,RC_CHANNEL_MAX);
-    rcChannels[1] = map(Elevator_value,0,4095,RC_CHANNEL_MIN,RC_CHANNEL_MAX); 
-    rcChannels[2] = map(Throttle_value,0,4095,RC_CHANNEL_MIN,RC_CHANNEL_MAX);
-    rcChannels[3] = map(Rudder_value ,0,4095,RC_CHANNEL_MIN,RC_CHANNEL_MAX);
-    //Aux 1 Arm Channel
-    rcChannels[4] = Arm ? RC_CHANNEL_MIN  : RC_CHANNEL_MAX ;
-    //Aux 2 Mode Channel
-    rcChannels[5] = FlightMode ? RC_CHANNEL_MIN : RC_CHANNEL_MAX;   
-    //Additional switch add here.
-    //rcChannels[6] = CH6 ? RC_CHANNEL_MIN : RC_CHANNEL_MAX;   
+    check_link_states(currentMicros);
 
     testButtonPressed = digitalRead(DigitalInPinPowerChange);
   
@@ -162,22 +141,10 @@ void ElrsTask( void * pvParameters ){
           dbout.println("click");
           bt_handle(1);//TODO
       } else { //send channels packets
-          #if defined(DEBUG_CH)
-            char buf [64];
-            sprintf (buf, "A:%i:%i;E:%i:%i;T:%i:%i;R:%i:%i;arm:%i;fm:%i\r\n", 
-            Aileron_value,rcChannels[0],
-            Elevator_value,rcChannels[1],
-            Throttle_value,rcChannels[2],
-            Rudder_value,rcChannels[3],
-            Arm,FlightMode);//batteryVoltage);
-            delay(1000); 
-          #else
-            //send crsf channels packet
-            crsfSendChannels(rcChannels);
-
-            
-          #endif
-      } // end elrs loop
+        //send crsf channels packet
+        //crsfSendChannels(rcChannels);
+        crsfSendChannels();
+        } // end elrs loop
       //start receiving at end of each crsf cycle or cmd sent
 
       serialEvent();
