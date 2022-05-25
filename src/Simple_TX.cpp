@@ -548,7 +548,7 @@ void ElrsTask( void * pvParameters ){
   //uart debug
   db_out.begin(115200);
   delay(2000); 
-  elrs.begin(SERIAL_BAUDRATE,SERIAL_8N1,13, 13,false, 500);
+  elrs.begin(SERIAL_BAUDRATE, SERIAL_8N1, GPIO_PIN_RCSIGNAL_RX, GPIO_PIN_RCSIGNAL_TX, false, 500);
   db_out.write("starting elrs\n");
   //digitalWrite(DIGITAL_PIN_LED, LOW); //LED ON
   device_idx = 0;
