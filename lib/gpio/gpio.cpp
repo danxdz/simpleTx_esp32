@@ -1,5 +1,13 @@
 #include "Arduino.h"
 #include "gpio.h"
+#include "crsf.h"
+
+//IO setup
+
+int upBt = 12;
+int downBt = 4;
+int enterBt = 14;
+int backBt = 5;
 
 void initGpio () {
 
@@ -11,8 +19,8 @@ void initGpio () {
   //digitalWrite(DIGITAL_PIN_BUZZER, LOW);
   //batteryVoltage=7.0; 
 
-  //pinMode(upBt, INPUT_PULLUP);
-  //pinMode(downBt, INPUT_PULLUP);
+  pinMode(upBt, INPUT_PULLUP);
+  pinMode(downBt, INPUT_PULLUP);
   pinMode(enterBt, INPUT_PULLUP);
   pinMode(backBt, INPUT_PULLUP);
 

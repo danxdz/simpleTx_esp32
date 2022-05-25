@@ -1,4 +1,5 @@
-#include <Arduino.h>
+#include "halfduplex.h"
+#include "uart.h"
 
 #define GPIO_PIN_RCSIGNAL_TX 13
 #define GPIO_PIN_RCSIGNAL_RX 13
@@ -9,6 +10,7 @@ void ICACHE_RAM_ATTR duplex_set_RX()
 #ifdef DEBUG_HALF_DUPLEX
   db_out.printf("rx: %u\n",micros());
 #endif
+  //dbout.printf("set rx\n");
 
   portDISABLE_INTERRUPTS();
     ESP_ERROR_CHECK(gpio_set_direction((gpio_num_t)GPIO_PIN_RCSIGNAL_RX, GPIO_MODE_INPUT));
@@ -29,6 +31,7 @@ void ICACHE_RAM_ATTR duplex_set_TX()
 #ifdef DEBUG_HALF_DUPLEX
   db_out.printf("tx: %u\n",micros());
 #endif
+  //dbout.printf("set tx\n");
 
   portDISABLE_INTERRUPTS();
     ESP_ERROR_CHECK(gpio_set_pull_mode((gpio_num_t)GPIO_PIN_RCSIGNAL_TX, GPIO_FLOATING));
