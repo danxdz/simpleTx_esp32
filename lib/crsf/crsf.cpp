@@ -314,7 +314,7 @@ void CRSF_send_id(uint8_t modelId ) {
 
 void CRSF_write (uint8_t crsfPacket[],uint8_t size,int32_t add_delay) {
  
-  #if !defined(debug) 
+  #if defined(debug) 
     if (crsfPacket[2] != TYPE_CHANNELS) dbout.printf("elrs write 0x%x\n",crsfPacket[2]);
   #endif
 
@@ -650,11 +650,11 @@ void add_device(uint8_t *buffer) {
 
 void add_param(uint8_t *buffer, uint8_t num_bytes) {
   // abort if wrong device, or not enough buffer space
-  dbout.printf("add_param:%u: device adr:0x%x:%u\n",buffer[3],buffer[2],num_bytes);
+  //dbout.printf("add_param:%u: device adr:0x%x:%u\n",buffer[3],buffer[2],num_bytes);
   //CRSF_ADDRESS_CRSF_TRANSMITTER 
 
   if (buffer[2] ==  ELRS_RX_ADDRESS) {
-  dbout.printf("rx param\n");
+  //dbout.printf("rx param\n");
   
 
   memcpy(recv_param_ptr, buffer+5, num_bytes-5);
@@ -669,7 +669,7 @@ void add_param(uint8_t *buffer, uint8_t num_bytes) {
         } else {
 
             next_chunk += 1;
-            dbout.printf("next chunk :: %u:%u",next_param, next_chunk);
+            //dbout.printf("next chunk :: %u:%u",next_param, next_chunk);
 
             CRSF_read_param( next_param, next_chunk, ELRS_RX_ADDRESS);
           
@@ -697,7 +697,7 @@ void add_param(uint8_t *buffer, uint8_t num_bytes) {
   strlcpy(name, (const char *)recv_param_ptr,strlen(recv_param_ptr)+1);
   recv_param_ptr += strlen(recv_param_ptr) + 1;
 
-  dbout.printf("param:%u:%u:%u:%u:%s\n",id,parent,p_type,hidden,name);
+  //dbout.printf("param:%u:%u:%u:%u:%s\n",id,parent,p_type,hidden,name);
 
   
     recv_param_ptr = recv_param_buffer;
@@ -706,7 +706,7 @@ void add_param(uint8_t *buffer, uint8_t num_bytes) {
     rx_params_loaded = count_params_loaded(1);
 
     // read all params when needed
-    dbout.printf("params_loaded: %u\n",rx_params_loaded);
+    //dbout.printf("params_loaded: %u\n",rx_params_loaded);
     if (rx_params_loaded < crsf_devices[1].number_of_params)
        // && (menu_item_id+submenu_item_id <  crsf_devices[device_idx].number_of_params))
     {
@@ -744,7 +744,7 @@ void add_param(uint8_t *buffer, uint8_t num_bytes) {
         dbout.println(recv_param_ptr);
         return;
     }
-    dbout.printf("tx param\n");
+    //dbout.printf("tx param\n");
 
 
     memcpy(recv_param_ptr, buffer+5, num_bytes-5);
@@ -759,7 +759,7 @@ void add_param(uint8_t *buffer, uint8_t num_bytes) {
         } else {
 
             next_chunk += 1;
-            dbout.printf("n_p: %u n_c: %u",next_param, next_chunk);
+            //dbout.printf("n_p: %u n_c: %u",next_param, next_chunk);
 
             CRSF_read_param(next_param, next_chunk, ELRS_ADDRESS);
 
@@ -777,14 +777,14 @@ void add_param(uint8_t *buffer, uint8_t num_bytes) {
     }
     menuItems[(int)buffer[3]-1].getParams(recv_param_ptr,buffer[3]);
     //debug
-    menuItems[buffer[3]-1].displayInfo();
+    //menuItems[buffer[3]-1].displayInfo();
 
 
     recv_param_ptr = recv_param_buffer;
     next_chunk = 0;
     params_loaded = count_params_loaded(0);
     // read all params when needed
-    dbout.printf("params_loaded: %u\n",params_loaded);
+    //dbout.printf("params_loaded: %u\n",params_loaded);
     if (params_loaded < crsf_devices[device_idx].number_of_params)
        // && (menu_item_id+submenu_item_id <  crsf_devices[device_idx].number_of_params))
     {

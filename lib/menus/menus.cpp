@@ -101,7 +101,7 @@ void Menu::divideValueParam (char *values) {
 
 void Menu::getParams(char *buffer,int iid) {
   //set main menu items
-  dbout.printf("get P: %i\n",iid);
+  //dbout.printf("get P: %i\n",iid);
 	id = iid;
   parent = *buffer++;
   p_type = *buffer & 0x7f;

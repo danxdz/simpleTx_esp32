@@ -11,6 +11,16 @@
 
 U8G2_SSD1306_128X64_NONAME_F_HW_I2C display(U8G2_R0,U8X8_PIN_NONE,22,21); //todo define pins
 
+void Oled::PrintLoad(char *tmp) {
+    display.clearBuffer();
+    display.setFont(u8g2_font_chikita_tr);
+
+    display.setCursor(0,20);    
+    dbout.println(tmp);
+    Oled::Println(tmp);
+    display.sendBuffer();
+
+}
 
 void Oled::PrintCenter(char *tmp) {
     
@@ -106,10 +116,10 @@ void Oled::setMainScreen(char *name, crsfLinkStatistics_t LinkStatistics,uint8_t
                 LinkStatistics.downlink_Link_quality,
                 LinkStatistics.downlink_RSSI);
             Oled::Println(output);
-            
-            display.setFont(u8g2_font_9x15_me);
-            display.setCursor(90,10);    
-            display.print(LinkStatistics.uplink_TX_Power+"mW");
+
+            snprintf(output, sizeof output, "%u mW", LinkStatistics.uplink_TX_Power);
+            Oled::PrintRight(output);
+
         }  else {
             display.setFont(u8g2_font_10x20_mr);
             Oled::PrintCenter(45,(char*)"no rx");

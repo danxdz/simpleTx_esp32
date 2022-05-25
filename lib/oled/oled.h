@@ -28,6 +28,7 @@ class Oled {
     static void PrintRight(uint8_t y,char *tmp);
     void PrintLeft(char *tmp);
     void PrintLeft(uint8_t y,char *tmp);
+    void PrintLoad(char *tmp);
 
 };
 

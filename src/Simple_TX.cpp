@@ -65,14 +65,15 @@ void OutputTask( void * pvParameters ){
       if (params_loaded<crsf_devices[0].number_of_params) {
         char *load = (char *)hdr_str_cb(menuItems);//TODO
         dbout.printf("hdr:%s\n",load);
-        oled.PrintCenter(load);
+        
+        oled.PrintLoad(load);
 
         if (crsf_devices[0].number_of_params) {
           if (crsf_devices[0].address == ADDR_RADIO) {
             dbout.println("address:radio");
             //protocol_read_param(device_idx, &crsf_params[0]);    // only one param now
           } else {
-            dbout.printf("Menu address: 0x%x - num par: %u : next_p:%u\n",crsf_devices[0].address, crsf_devices[0].number_of_params,next_param);
+            //dbout.printf("Menu address: 0x%x - num par: %u : next_p:%u\n",crsf_devices[0].address, crsf_devices[0].number_of_params,next_param);
             if (next_param > 0) {
               //next_chunk = 0;
               CRSF_read_param(next_param,0, ELRS_ADDRESS);
@@ -111,10 +112,10 @@ void ElrsTask( void * pvParameters ){
   }
  
   //uart debug
-  db_out.begin(115200);
+  dbout.begin(115200);
   delay(2000); 
   elrs.begin(SERIAL_BAUDRATE, SERIAL_8N1, GPIO_PIN_RCSIGNAL_RX, GPIO_PIN_RCSIGNAL_TX, false, 500);
-  db_out.write("starting elrs\n");
+  dbout.write("starting elrs\n");
   //digitalWrite(DIGITAL_PIN_LED, LOW); //LED ON
   device_idx = 0;
   crsfdevice_init();            

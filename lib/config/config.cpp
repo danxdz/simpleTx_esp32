@@ -81,7 +81,7 @@ const char * hdr_str_cb(const void *data) {
      //   dbout.printf("call params: %u: %i\n",count_params_loaded(), device_idx);
 
     if (count_params_loaded(device_idx) != crsf_devices[device_idx].number_of_params) {
-        dbout.printf("not all params: %u: %i\n",count_params_loaded(0), device_idx);
+        //dbout.printf("not all params: %u: %i\n",count_params_loaded(0), device_idx);
     
         snprintf(tempstring, sizeof tempstring, "%s %s", crsf_devices[device_idx].name, "LOADING");
     
