@@ -49,7 +49,7 @@ void  check_link_state(uint32_t currentMicros) {
         } else {
             if (crsf_devices[1].address == 0) {
 
-                //CRSF_broadcast_ping();
+                CRSF_broadcast_ping();
             
             }
             else {
@@ -57,7 +57,7 @@ void  check_link_state(uint32_t currentMicros) {
                     dbout.printf("read rx info\n");
                     next_param = 1;
                     next_chunk = 0;
-                    //CRSF_read_param(next_param, next_chunk, ELRS_RX_ADDRESS);
+                    CRSF_read_param(next_param, next_chunk, ELRS_RX_ADDRESS);
                 }
             }
         }
