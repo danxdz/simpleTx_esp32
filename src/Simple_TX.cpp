@@ -140,11 +140,10 @@ void ElrsTask( void * pvParameters ){
       if((testButtonPressed==0) && (powerChangeHasRun==false)){
           dbout.println("click");
           bt_handle(1);//TODO
-      } else { //send channels packets
+      } else { 
         //send crsf channels packet
-        //crsfSendChannels(rcChannels);
         crsfSendChannels();
-        } // end elrs loop
+      } // end elrs loop
       //start receiving at end of each crsf cycle or cmd sent
 
       serialEvent();
