@@ -18,7 +18,7 @@ static uint32_t clickCurrentMicros = 0;
                              //Maybe move this to target_defs.h
 extern char tempstring[TEMPSTRINGLENGTH];
 
-void  check_link_states(uint32_t currentMicros);
+void  check_link_state(uint32_t currentMicros);
 const char * hdr_str_cb(const void *data);
 void crsfdevice_init();
 void bt_handle(uint8_t value);

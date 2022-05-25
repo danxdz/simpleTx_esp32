@@ -93,7 +93,7 @@ extern char *recv_param_ptr;
 #ifdef DEBUG
     #define SERIAL_BAUDRATE 115200 //low baud for Arduino Nano , the TX module will auto detect baud. max packet rate is 250Hz.
 #else
-    #define SERIAL_BAUDRATE  3750000 //testing 400000//1870000
+    #define SERIAL_BAUDRATE  400000 //testing 3750000//1870000
 #endif
  // Device address & type
 #define RADIO_ADDRESS                  0xEA

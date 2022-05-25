@@ -84,7 +84,7 @@ void Oled::setMainScreen(char *name, crsfLinkStatistics_t LinkStatistics,uint8_t
                 LinkStatistics.rf_Mode,
                 LinkStatistics.uplink_Link_quality,
                 LinkStatistics.uplink_RSSI_1);
-            Oled::println(output);
+            Oled::Println(output);
             
         
             display.setFont(u8g2_font_10x20_mr);
@@ -93,18 +93,19 @@ void Oled::setMainScreen(char *name, crsfLinkStatistics_t LinkStatistics,uint8_t
             char bat[64];
 
             int ret = snprintf(bat, sizeof bat, "%.2f", vBat);
-            Oled::println((char*)"");
-            Oled::println(bat);
+            Oled::Println((char*)"");
+            Oled::Println((char*)"");
+            Oled::Println(bat);
             
             display.setFont(u8g2_font_chikita_tr);
 
-            Oled::println(crsf_devices[1].name);
+            Oled::Println(crsf_devices[1].name);
 
             snprintf(output, sizeof output, "%u:%u | %i dBm", 
                 LinkStatistics.rf_Mode,
                 LinkStatistics.downlink_Link_quality,
                 LinkStatistics.downlink_RSSI);
-            Oled::println(output);
+            Oled::Println(output);
             
             display.setFont(u8g2_font_9x15_me);
             display.setCursor(90,10);    
@@ -113,10 +114,6 @@ void Oled::setMainScreen(char *name, crsfLinkStatistics_t LinkStatistics,uint8_t
             display.setFont(u8g2_font_10x20_mr);
             Oled::PrintCenter(45,(char*)"no rx");
         }
-    } else {
-    display.setFont(u8g2_font_9x15_me);
-    display.setCursor(0,14);
-    Oled::PrintCenter(25,(char*)"no tx module");
     }
     display.sendBuffer();
 }
@@ -247,7 +244,7 @@ void Oled::setMainMenuItems() {
     display.sendBuffer();
 }
 
-void Oled::println(char *tmp) {
+void Oled::Println(char *tmp) {
     display.setCursor(0,display.getCursorY()+8);
     display.print(tmp);
 }

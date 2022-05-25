@@ -98,7 +98,7 @@ void OutputTask( void * pvParameters ){
         Oled::selectOptionMainMenu();
 
     } else if (entered >= 0) {
-      oled.setSubMenuItems();
+      Oled::setSubMenuItems();
     }
   } // end main loop for
 } // end output task
@@ -124,8 +124,9 @@ void ElrsTask( void * pvParameters ){
   
   for(;;){
     uint32_t currentMicros = micros();
-
-    check_link_states(currentMicros);
+    if (currentMicros > tickTime ) {    
+      check_link_state(currentMicros);
+    }
 
     testButtonPressed = digitalRead(DigitalInPinPowerChange);
   

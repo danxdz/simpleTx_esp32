@@ -24,56 +24,55 @@ void crsfdevice_init() {
     //CBUF_Init(send_buf);
 }
 
-void  check_link_states(uint32_t currentMicros) {
+void  check_link_state(uint32_t currentMicros) {
     
-    if (currentMicros > tickTime ) {      
-        dbout.printf("tick :: tx: %u rx: %u\n", txConected, rxConected );
-    
-       //for (size_t i = 0;crsf_devices[i].address; i++) dbout.printf("device address: 0x%x\n",crsf_devices[i].address);
-        
-        uint8_t tmp =  LinkStatistics.rf_Mode;
-        //if (MODULE_IS_ELRS) {   
-        if (txConected > 0) {
-            if ((int) local_info.good_pkts == 0) {
-                dbout.printf("get crsf link statistics\n");
-                CRSF_get_elrs_info(ELRS_ADDRESS);
-            } else if ((int)local_info.good_pkts != (int)rates[tmp] && rxConected > 0){
-                dbout.printf("update crsf link statistics\n");
-                //CRSF_get_elrs_info(ELRS_ADDRESS);
-            }
+    dbout.printf("tick :: tx: %u rx: %u\n", txConected, rxConected );
 
-            if (rxConected == 0) {
-                crsf_devices[1].address = 0;   
-                strlcpy(crsf_devices[1].name, (const char *)"", CRSF_MAX_NAME_LEN);
+    //for (size_t i = 0;crsf_devices[i].address; i++) dbout.printf("device address: 0x%x\n",crsf_devices[i].address);
 
-                dbout.printf("no rx found\n");
-            } else {
-                if (crsf_devices[1].address == 0) {
-
-                    CRSF_broadcast_ping();
-              
-                }
-                else {
-                    if (rx_params_loaded < crsf_devices[1].number_of_params) {
-                        dbout.printf("read rx info\n");
-                        next_param = 1;
-                        next_chunk = 0;
-                        CRSF_read_param(next_param, next_chunk, ELRS_RX_ADDRESS);
-                    }
-                }
-            }
-        } else {
-            crsf_devices[0].address = 0;   
-            strlcpy(crsf_devices[0].name, (const char *)"", CRSF_MAX_NAME_LEN);
-            local_info.good_pkts = 0;
-            #if defined(debug) 
-                dbout.printf("no tx module found\n");
-            #endif
+    uint8_t tmp =  LinkStatistics.rf_Mode;
+    //if (MODULE_IS_ELRS) {   
+    if (txConected > 0) {
+        if ((int) local_info.good_pkts == 0) {
+            dbout.printf("get crsf link statistics\n");
+            CRSF_get_elrs_info(ELRS_ADDRESS);
+        } else if ((int)local_info.good_pkts != (int)rates[tmp] && rxConected > 0){
+            dbout.printf("update crsf link statistics\n");
+            CRSF_get_elrs_info(ELRS_ADDRESS);
         }
-        tickTime = currentMicros + tickInterval;
-        rxConected = 0;
-        txConected = 0;
+
+        if (rxConected == 0) {
+            crsf_devices[1].address = 0;   
+            strlcpy(crsf_devices[1].name, (const char *)"", CRSF_MAX_NAME_LEN);
+
+            dbout.printf("no rx found\n");
+        } else {
+            if (crsf_devices[1].address == 0) {
+
+                //CRSF_broadcast_ping();
+            
+            }
+            else {
+                if (rx_params_loaded < crsf_devices[1].number_of_params) {
+                    dbout.printf("read rx info\n");
+                    next_param = 1;
+                    next_chunk = 0;
+                    //CRSF_read_param(next_param, next_chunk, ELRS_RX_ADDRESS);
+                }
+            }
+        }
+    } else {
+        crsf_devices[0].address = 0;   
+        strlcpy(crsf_devices[0].name, (const char *)"", CRSF_MAX_NAME_LEN);
+        local_info.good_pkts = 0;
+        #if defined(debug) 
+            dbout.printf("no tx module found\n");
+        #endif
     }
+    tickTime = currentMicros + tickInterval;
+    rxConected = 0;
+    txConected = 0;
+    
 }
 
 const char * hdr_str_cb(const void *data) {
