@@ -21,20 +21,20 @@
 #endif
 
 #define CRSF_NUM_CHANNELS 16
-#define CRSF_CHANNEL_VALUE_MIN  172
+#define CRSF_CHANNEL_VALUE_MIN 172
 #define CRSF_CHANNEL_VALUE_1000 191
-#define CRSF_CHANNEL_VALUE_MID  992
+#define CRSF_CHANNEL_VALUE_MID 992
 #define CRSF_CHANNEL_VALUE_2000 1792
-#define CRSF_CHANNEL_VALUE_MAX  1811
+#define CRSF_CHANNEL_VALUE_MAX 1811
 #define CRSF_MAX_PACKET_LEN 64
 
 #define CRSF_SYNC_BYTE 0xC8
 
-#define RCframeLength 22             // length of the RC data packed bytes frame. 16 channels in 11 bits each.
+#define RCframeLength 22 // length of the RC data packed bytes frame. 16 channels in 11 bits each.
 //#define LinkStatisticsFrameLength 10 //
-#define OpenTXsyncFrameLength 11     //
-#define BattSensorFrameLength 8      //
-#define VTXcontrolFrameLength 12     //
+#define OpenTXsyncFrameLength 11 //
+#define BattSensorFrameLength 8  //
+#define VTXcontrolFrameLength 12 //
 
 #define CRSF_PAYLOAD_SIZE_MAX 62
 #define CRSF_FRAME_NOT_COUNTED_BYTES 2
@@ -88,11 +88,11 @@ typedef enum
     CRSF_FRAMETYPE_PARAMETER_READ = 0x2C,
     CRSF_FRAMETYPE_PARAMETER_WRITE = 0x2D,
 
-    CRSF_FRAMETYPE_ELRS_STATUS = 0x2E, //ELRS good/bad packet count and status flags
+    CRSF_FRAMETYPE_ELRS_STATUS = 0x2E, // ELRS good/bad packet count and status flags
 
     CRSF_FRAMETYPE_COMMAND = 0x32,
     // KISS frames
-    CRSF_FRAMETYPE_KISS_REQ  = 0x78,
+    CRSF_FRAMETYPE_KISS_REQ = 0x78,
     CRSF_FRAMETYPE_KISS_RESP = 0x79,
     // MSP commands
     CRSF_FRAMETYPE_MSP_REQ = 0x7A,   // response request using msp sequence as command
@@ -102,14 +102,15 @@ typedef enum
     CRSF_FRAMETYPE_ARDUPILOT_RESP = 0x80,
 } crsf_frame_type_e;
 
-
-enum {
+enum
+{
     CRSF_FRAME_TX_MSP_FRAME_SIZE = 58,
     CRSF_FRAME_RX_MSP_FRAME_SIZE = 8,
     CRSF_FRAME_ORIGIN_DEST_SIZE = 2,
 };
 
-enum {
+enum
+{
     CRSF_FRAME_GPS_PAYLOAD_SIZE = 15,
     CRSF_FRAME_VARIO_PAYLOAD_SIZE = 2,
     CRSF_FRAME_BATTERY_SENSOR_PAYLOAD_SIZE = 8,
@@ -137,7 +138,7 @@ typedef enum
     CRSF_ADDRESS_ELRS_LUA = 0xEF
 } crsf_addr_e;
 
-//typedef struct crsf_addr_e asas;
+// typedef struct crsf_addr_e asas;
 
 typedef enum
 {
@@ -160,9 +161,9 @@ typedef enum
 } crsf_value_type_e;
 
 // These flags are or'ed with the field type above to hide the field from the normal LUA view
-#define CRSF_FIELD_HIDDEN       0x80     // marked as hidden in all LUA responses
-#define CRSF_FIELD_ELRS_HIDDEN  0x40     // marked as hidden when talking to ELRS specific LUA
-#define CRSF_FIELD_TYPE_MASK    ~(CRSF_FIELD_HIDDEN|CRSF_FIELD_ELRS_HIDDEN)
+#define CRSF_FIELD_HIDDEN 0x80      // marked as hidden in all LUA responses
+#define CRSF_FIELD_ELRS_HIDDEN 0x40 // marked as hidden when talking to ELRS specific LUA
+#define CRSF_FIELD_TYPE_MASK ~(CRSF_FIELD_HIDDEN | CRSF_FIELD_ELRS_HIDDEN)
 
 /**
  * Define the shape of a standard header
@@ -224,7 +225,7 @@ typedef struct deviceInformationPacket_s
     uint32_t serialNo;
     uint32_t hardwareVer;
     uint32_t softwareVer;
-    uint8_t fieldCnt;          //number of field of params this device has
+    uint8_t fieldCnt; // number of field of params this device has
     uint8_t parameterVersion;
 } PACKED deviceInformationPacket_t;
 
@@ -242,10 +243,9 @@ typedef struct deviceInformationPacket_s
 union inBuffer_U
 {
     uint8_t asUint8_t[CRSF_MAX_PACKET_LEN]; // max 64 bytes for CRSF packet serial buffer
-    rcPacket_t asRCPacket_t;    // access the memory as RC data
-                                // add other packet types here
+    rcPacket_t asRCPacket_t;                // access the memory as RC data
+                                            // add other packet types here
 };
-
 
 typedef struct crsf_channels_s crsf_channels_t;
 
@@ -337,7 +337,7 @@ static inline uint16_t ICACHE_RAM_ATTR CRSF_to_UINT10(uint16_t val)
 // Convert 0-max to the CRSF values for 1000-2000
 static inline uint16_t ICACHE_RAM_ATTR N_to_CRSF(uint16_t val, uint16_t max)
 {
-    return val * (CRSF_CHANNEL_VALUE_2000-CRSF_CHANNEL_VALUE_1000) / max + CRSF_CHANNEL_VALUE_1000;
+    return val * (CRSF_CHANNEL_VALUE_2000 - CRSF_CHANNEL_VALUE_1000) / max + CRSF_CHANNEL_VALUE_1000;
 }
 
 // Convert CRSF to 0-(cnt-1), constrained between 1000us and 2000us
@@ -358,10 +358,13 @@ static inline uint16_t ICACHE_RAM_ATTR SWITCH3b_to_CRSF(uint16_t val)
 {
     switch (val)
     {
-    case 0: return CRSF_CHANNEL_VALUE_1000;
-    case 5: return CRSF_CHANNEL_VALUE_2000;
+    case 0:
+        return CRSF_CHANNEL_VALUE_1000;
+    case 5:
+        return CRSF_CHANNEL_VALUE_2000;
     case 6: // fallthrough
-    case 7: return CRSF_CHANNEL_VALUE_MID;
+    case 7:
+        return CRSF_CHANNEL_VALUE_MID;
     default: // (val - 1) * 240 + 630; aka 150us spacing, starting at 1275
         return val * 240 + 391;
     }
@@ -382,7 +385,8 @@ static inline uint16_t ICACHE_RAM_ATTR BIT_to_CRSF(uint8_t val)
 static inline uint8_t ICACHE_RAM_ATTR CalcCRCMsp(uint8_t *data, int length)
 {
     uint8_t crc = 0;
-    for (uint8_t i = 0; i < length; ++i) {
+    for (uint8_t i = 0; i < length; ++i)
+    {
         crc = crc ^ *data++;
     }
     return crc;
@@ -408,27 +412,24 @@ static inline uint32_t htobe32(uint32_t val)
 }
 #endif
 
+#define CRSF_MAX_NAME_LEN 16
 
-#define CRSF_MAX_NAME_LEN      16
-
-
-
-enum cmd_status {
-    READY               = 0,
-    START               = 1,
-    PROGRESS            = 2,
+enum cmd_status
+{
+    READY = 0,
+    START = 1,
+    PROGRESS = 2,
     CONFIRMATION_NEEDED = 3,
-    CONFIRM             = 4,
-    CMD_CANCEL          = 5,
-    POLL                = 6
+    CONFIRM = 4,
+    CMD_CANCEL = 5,
+    POLL = 6
 };
-
-
 
 /*******************************
   Crossfire
 ********************************/
-typedef enum {
+typedef enum
+{
     TELEM_CRSF_RX_RSSI1 = 1,
     TELEM_CRSF_RX_RSSI2,
     TELEM_CRSF_RX_QUALITY,

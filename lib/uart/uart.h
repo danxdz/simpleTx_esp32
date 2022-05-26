@@ -4,10 +4,8 @@
 #include "Arduino.h"
 #include "crsf_protocol.h"
 
-
-//portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
+// portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 extern HardwareSerial elrs;
 extern HardwareSerial dbout;
-
 
 #endif

@@ -15,20 +15,19 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-
-
- uint8_t readVoltage() {
+uint8_t readVoltage()
+{
     int voltageA = 0;
     float voltageB;
 
-    //analogRead(VOLTAGE_READ_PIN); // first fake read to improve further readings accuracy (as suggested by Nicola Gorghetto)
+    // analogRead(VOLTAGE_READ_PIN); // first fake read to improve further readings accuracy (as suggested by Nicola Gorghetto)
 
-    for (uint8_t i = 0; i < VOLTAGE_READS; i++) {
-        //voltageA += analogRead(VOLTAGE_READ_PIN);
+    for (uint8_t i = 0; i < VOLTAGE_READS; i++)
+    {
+        // voltageA += analogRead(VOLTAGE_READ_PIN);
     }
 
-    voltageA = voltageA/VOLTAGE_READS; // average of VOLTAGE_READS readings
-    voltageB=voltageA/33;
+    voltageA = voltageA / VOLTAGE_READS; // average of VOLTAGE_READS readings
+    voltageB = voltageA / 33;
     return voltageB;
 }
