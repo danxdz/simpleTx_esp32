@@ -20,26 +20,14 @@
 #include <Arduino.h>
 #include "crsf_protocol.h"
 
-// pins that used for the Joystick
-
-// pins that used for the Joystick
-const int analogInPinElevator = 32;
-const int analogInPinAileron = 33;
-const int analogInPinThrottle = 34;
-const int analogInPinRudder = 35;
-// int VOLTAGE_READ_PIN = 36;
-
-// pins that used for the switchs
-const int DIGITAL_PIN_SWITCH_ARM = 25;  // Arm switch
-const int DIGITAL_PIN_SWITCH_AUX2 = 26; //
-
-static int Arm; // switch values read from the digital pin
-static int FlightMode;
-
-extern int Aileron_value; // values read from the pot
-extern int Elevator_value;
-extern int Throttle_value;
-extern int Rudder_value;
+typedef struct {
+  int aileron = 0;      // values read from the pot 
+  int elevator = 0; 
+  int throttle = 0;
+  int rudder = 0;
+  int arm = 0;          // switch values read from the digital pin
+  int mode = 0;
+} rc_input_t;
 
 #define CRSF_MAX_PARAMS 55 // one extra required, max observed is 47 in Diversity Nano RX
 #define CRSF_MAX_DEVICES 4
@@ -183,7 +171,7 @@ static volatile uint8_t SerialInPacketPtr; // index where we are reading/writing
 static volatile bool CRSFframeActive;      // = false; //since we get a copy of the serial data use this flag to know when to ignore it
 
 uint8_t crsf_crc8(const uint8_t *ptr, uint8_t len);
-void crsfSendChannels();
+void crsfSendChannels(rc_input_t* rc_input);
 
 void buildElrsPacket(uint8_t packetCmd[], uint8_t command, uint8_t value);
 void CRSF_broadcast_ping();

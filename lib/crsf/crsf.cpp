@@ -153,28 +153,20 @@ uint8_t crsf_crc8_BA(const uint8_t *ptr, uint8_t len)
 }
 
 // prepare data packet
-void crsfSendChannels()
+void crsfSendChannels(rc_input_t* rc_input)
 {
 
   uint8_t crsfPacket[CRSF_PACKET_SIZE];
 
-  // read values of rcChannels
-  Aileron_value = analogRead(analogInPinAileron);
-  Elevator_value = analogRead(analogInPinElevator);
-  Throttle_value = analogRead(analogInPinThrottle);
-  Rudder_value = analogRead(analogInPinRudder);
-  Arm = digitalRead(DIGITAL_PIN_SWITCH_ARM);
-  FlightMode = digitalRead(DIGITAL_PIN_SWITCH_AUX2);
-
   // map rcchannels
-  rcChannels[0] = map(Aileron_value, 0, 4095, RC_CHANNEL_MIN, RC_CHANNEL_MAX);
-  rcChannels[1] = map(Elevator_value, 0, 4095, RC_CHANNEL_MIN, RC_CHANNEL_MAX);
-  rcChannels[2] = map(Throttle_value, 0, 4095, RC_CHANNEL_MIN, RC_CHANNEL_MAX);
-  rcChannels[3] = map(Rudder_value, 0, 4095, RC_CHANNEL_MIN, RC_CHANNEL_MAX);
+  rcChannels[0] = map(rc_input->aileron,  0, 4095, RC_CHANNEL_MIN,RC_CHANNEL_MAX);
+  rcChannels[1] = map(rc_input->elevator, 0, 4095, RC_CHANNEL_MIN,RC_CHANNEL_MAX); 
+  rcChannels[2] = map(rc_input->throttle, 0, 4095, RC_CHANNEL_MIN,RC_CHANNEL_MAX);
+  rcChannels[3] = map(rc_input->rudder,   0, 4095, RC_CHANNEL_MIN,RC_CHANNEL_MAX);
   // Aux 1 Arm Channel
-  rcChannels[4] = Arm ? RC_CHANNEL_MIN : RC_CHANNEL_MAX;
+  rcChannels[4] = rc_input->arm ? RC_CHANNEL_MIN : RC_CHANNEL_MAX;
   // Aux 2 Mode Channel
-  rcChannels[5] = FlightMode ? RC_CHANNEL_MIN : RC_CHANNEL_MAX;
+  rcChannels[5] = rc_input->mode ? RC_CHANNEL_MIN : RC_CHANNEL_MAX;
   // Additional switch add here.
   // rcChannels[6] = CH6 ? RC_CHANNEL_MIN : RC_CHANNEL_MAX;
 

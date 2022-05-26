@@ -51,6 +51,8 @@
 TaskHandle_t elrsTaskHandler;
 TaskHandle_t outputTaskHandler;
 
+rc_input_t rcInput;
+
 //#define constrain(amt,low,high) ((amt)<(low)?(low):((amt)>(high)?(high):(amt)))
 
 void OutputTask(void *pvParameters)
@@ -163,8 +165,16 @@ void ElrsTask(void *pvParameters)
       }
       else
       {
+        // read values of rcChannels
+        rcInput.aileron  = analogRead(ANALOG_IN_PIN_ELEVATOR);
+        rcInput.elevator = analogRead(ANALOG_IN_PIN_AILERON);
+        rcInput.throttle = analogRead(ANALOG_IN_PIN_THROTTLE);
+        rcInput.rudder   = analogRead(ANALOG_IN_PIN_RUDDER);
+        rcInput.arm      = digitalRead(DIGITAL_PIN_SWITCH_ARM);
+        rcInput.mode     = digitalRead(DIGITAL_PIN_SWITCH_AUX2);
+
         // send crsf channels packet
-        crsfSendChannels();
+        crsfSendChannels(&rcInput);
       } // end elrs loop
       // start receiving at end of each crsf cycle or cmd sent
 
