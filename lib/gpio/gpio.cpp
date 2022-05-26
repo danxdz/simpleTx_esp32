@@ -1,4 +1,5 @@
 #include "Arduino.h"
+#include "config.h"
 #include "gpio.h"
 #include "crsf.h"
 

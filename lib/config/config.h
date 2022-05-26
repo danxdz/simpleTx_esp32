@@ -2,6 +2,19 @@
 
 #include <Arduino.h>
 
+
+//pins that used for the Joystick
+#define ANALOG_IN_PIN_ELEVATOR 32
+#define ANALOG_IN_PIN_AILERON 33
+#define ANALOG_IN_PIN_THROTTLE 34
+#define ANALOG_IN_PIN_RUDDER 35
+#define VOLTAGE_READ_PIN 36
+
+//pins that used for the switchs
+#define DIGITAL_PIN_SWITCH_ARM 25  // Arm switch
+#define DIGITAL_PIN_SWITCH_AUX2 26  // 
+
+
 extern bool powerChangeHasRun;
 
 extern uint32_t tickTime;
