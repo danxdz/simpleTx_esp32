@@ -124,7 +124,10 @@ void read_ui_buttons()
       next_param = selected + 1;
       next_chunk = mmOptionSelected;
 
-      dbout.printf("ChangeParam: %s\n", menuItems[selected].name);
+      dbout.printf("ChangeParam: %s:%u\n", menuItems[selected].name,
+                   menuItems[selected].p_type);
+      if (menuItems[selected].p_type == 13)
+        next_chunk = 4; // cmd
       CRSF_changeParam(next_param, next_chunk);
 
       // Menu::ChangeParam(next_param,next_chunk);

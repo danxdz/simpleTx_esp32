@@ -74,10 +74,6 @@ module_type_t module_type;
 
 int rcChannels[CRSF_MAX_CHANNEL];
 
-int Aileron_value = 0; // values read from the pot
-int Elevator_value = 0;
-int Throttle_value = 0;
-int Rudder_value = 0;
 
 void protocol_module_type(module_type_t type)
 {
@@ -172,12 +168,14 @@ void crsfSendChannels(rc_input_t* rc_input)
 
 #if defined(DEBUG_CH)
   char buf[64];
-  sprintf(buf, "A:%i:%i;E:%i:%i;T:%i:%i;R:%i:%i;arm:%i;fm:%i\r\n",
-          Aileron_value, rcChannels[0],
-          Elevator_value, rcChannels[1],
-          Throttle_value, rcChannels[2],
-          Rudder_value, rcChannels[3],
-          Arm, FlightMode); // batteryVoltage);
+  sprintf(buf, "A:%i:%i\nE:%i:%i\nT:%i:%i\nR:%i:%i\narm:%i:%i\nmode:%i:%i\r\n",
+          rc_input->aileron, rcChannels[0],
+          rc_input->elevator, rcChannels[1],
+          rc_input->throttle, rcChannels[2],
+          rc_input->rudder, rcChannels[3],
+          rc_input->arm, rcChannels[4],
+          rc_input->mode, rcChannels[5]); // batteryVoltage);
+  dbout.printf(buf);
   delay(1000);
 #else
 
