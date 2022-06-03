@@ -21,12 +21,14 @@
 #include "crsf_protocol.h"
 
 typedef struct {
-  int aileron = 0;      // values read from the pot 
+  int aileron = 0;
   int elevator = 0; 
   int throttle = 0;
   int rudder = 0;
-  int arm = 0;          // switch values read from the digital pin
-  int mode = 0;
+  int aux1 = 0;
+  int aux2 = 0;
+  int aux3 = 0;
+  int aux4 = 0;
 } rc_input_t;
 
 #define CRSF_MAX_PARAMS 55 // one extra required, max observed is 47 in Diversity Nano RX

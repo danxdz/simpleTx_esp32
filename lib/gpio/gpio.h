@@ -1,5 +1,6 @@
 #ifndef GPIO_H /* include guards */
 #define GPIO_H
+#include "crsf.h"
 
 // IO setup
 
@@ -24,7 +25,7 @@ const int DIGITAL_PIN_BUZZER = 12; //
 const float WARNING_VOLTAGE = 7.2; // 2S Lipo
 
 void initGpio();
-
-int *get_rc_channels();
+void gpioReadInputs(rc_input_t* rc_input);
+void gpioMixer(rc_input_t* rc_input);
 
 #endif
