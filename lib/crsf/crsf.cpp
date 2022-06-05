@@ -159,12 +159,10 @@ void crsfSendChannels(rc_input_t* rc_input)
   rcChannels[1] = map(rc_input->elevator, 0, 4095, RC_CHANNEL_MIN,RC_CHANNEL_MAX); 
   rcChannels[2] = map(rc_input->throttle, 0, 4095, RC_CHANNEL_MIN,RC_CHANNEL_MAX);
   rcChannels[3] = map(rc_input->rudder,   0, 4095, RC_CHANNEL_MIN,RC_CHANNEL_MAX);
-  // Aux 1 Arm Channel
-  rcChannels[4] = rc_input->arm ? RC_CHANNEL_MIN : RC_CHANNEL_MAX;
-  // Aux 2 Mode Channel
-  rcChannels[5] = rc_input->mode ? RC_CHANNEL_MIN : RC_CHANNEL_MAX;
-  // Additional switch add here.
-  // rcChannels[6] = CH6 ? RC_CHANNEL_MIN : RC_CHANNEL_MAX;
+  rcChannels[4] = map(rc_input->aux1,     0, 4095, RC_CHANNEL_MIN,RC_CHANNEL_MAX);
+  rcChannels[5] = map(rc_input->aux2,     0, 4095, RC_CHANNEL_MIN,RC_CHANNEL_MAX);
+  rcChannels[6] = map(rc_input->aux3,     0, 4095, RC_CHANNEL_MIN,RC_CHANNEL_MAX);
+  rcChannels[7] = map(rc_input->aux4,     0, 4095, RC_CHANNEL_MIN,RC_CHANNEL_MAX); 
 
 #if defined(DEBUG_CH)
   char buf[64];
@@ -173,8 +171,8 @@ void crsfSendChannels(rc_input_t* rc_input)
           rc_input->elevator, rcChannels[1],
           rc_input->throttle, rcChannels[2],
           rc_input->rudder, rcChannels[3],
-          rc_input->arm, rcChannels[4],
-          rc_input->mode, rcChannels[5]); // batteryVoltage);
+          rc_input->aux1, rcChannels[4],
+          rc_input->aux2, rcChannels[5]); // batteryVoltage);
   dbout.printf(buf);
   delay(1000);
 #else

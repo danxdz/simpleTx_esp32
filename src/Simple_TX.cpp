@@ -166,12 +166,10 @@ void ElrsTask(void *pvParameters)
       else
       {
         // read values of rcChannels
-        rcInput.aileron  = analogRead(ANALOG_IN_PIN_ELEVATOR);
-        rcInput.elevator = analogRead(ANALOG_IN_PIN_AILERON);
-        rcInput.throttle = analogRead(ANALOG_IN_PIN_THROTTLE);
-        rcInput.rudder   = analogRead(ANALOG_IN_PIN_RUDDER);
-        rcInput.arm      = digitalRead(DIGITAL_PIN_SWITCH_ARM);
-        rcInput.mode     = digitalRead(DIGITAL_PIN_SWITCH_AUX2);
+        gpioReadInputs(&rcInput);
+
+        // TODO: channel mixer
+        gpioMixer(&rcInput);
 
         // send crsf channels packet
         crsfSendChannels(&rcInput);
@@ -189,6 +187,7 @@ void setup()
 {
 
   initGpio();
+  initUsb();
 
   xTaskCreatePinnedToCore(
       ElrsTask,         /* Task function. */
