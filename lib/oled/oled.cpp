@@ -23,13 +23,11 @@ void Oled::PrintLoad(char *tmp)
 
 void Oled::PrintCenter(char *tmp)
 {
-
     uint8_t x = (display.getDisplayWidth() / 2) - (display.getStrWidth(tmp) / 2);
     display.drawStr(x, display.getCursorY() + 10, tmp);
 }
 void Oled::PrintCenter(uint8_t y, char *tmp)
 {
-
     uint8_t x = (display.getDisplayWidth() / 2) - (display.getStrWidth(tmp) / 2);
     display.drawStr(x, y, tmp);
 }

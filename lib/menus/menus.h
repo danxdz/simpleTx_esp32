@@ -33,7 +33,6 @@ extern int subSelected;
 
 class Menu
 {
-
     uint8_t hidden;
     char *value;
     char *info;

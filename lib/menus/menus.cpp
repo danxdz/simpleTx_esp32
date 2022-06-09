@@ -128,7 +128,6 @@ void Menu::getParams(char *buffer, int iid)
     strlcpy(value, (const char *)buffer, strlen(buffer) + 1);
     buffer += strlen(buffer) + 1;
     divideValueParam(value);
-    // dbout.printf("%s",value);
     parse_bytes(UINT8, &buffer, (char *)&status);
     parse_bytes(UINT8, &buffer, (char *)&min_value);
     parse_bytes(UINT8, &buffer, (char *)&count); // don't use incorrect parameter->max_value
@@ -148,9 +147,7 @@ void Menu::getParams(char *buffer, int iid)
     parse_bytes(UINT8, &buffer, (char *)&status);
     // parse_bytes(UINT8, &buffer, (char *) &timeout);
     max_value = 0;
-
-    //*(uint8_t *)status = (uint8_t) (*buffer)[0];
-    //*buffer += 1;
+    
     timeout = (uint8_t)buffer[0];
     *buffer += 1;
     info = new char[20];
