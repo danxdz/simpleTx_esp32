@@ -12,8 +12,8 @@
   #define ANALOG_IN_PIN_RUDDER 35
   #define ANALOG_IN_PIN_AUX1 25  // Arm switch
   #define ANALOG_IN_PIN_AUX2 26  // Mode switch
-  #define ANALOG_IN_PIN_AUX3 17  // gpio13
-  #define ANALOG_IN_PIN_AUX4 16  // gpio14
+  #define ANALOG_IN_PIN_AUX3 27  // gpio27
+  #define ANALOG_IN_PIN_AUX4 12  // gpio12
   #define VOLTAGE_READ_PIN 36
 
 #elif defined(TARGET_ESP32_S)

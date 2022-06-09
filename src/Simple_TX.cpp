@@ -187,7 +187,7 @@ void setup()
 {
 
   initGpio();
-  initUsb();
+  //initUsb();
 
   xTaskCreatePinnedToCore(
       ElrsTask,         /* Task function. */
