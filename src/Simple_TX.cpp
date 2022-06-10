@@ -47,8 +47,8 @@
 #include "ui_buttons.h"
 #include "gpio.h"
 
-#include <melody_player.h>
-#include <melody_factory.h>
+#include "speaker.h"
+
 
 TaskHandle_t elrsTaskHandler;
 TaskHandle_t outputTaskHandler;
@@ -58,13 +58,6 @@ rc_input_t rcInput;
 //#define constrain(amt,low,high) ((amt)<(low)?(low):((amt)>(high)?(high):(amt)))
 
 
-int buzzerPin1 = 2;
-int buzzerPin2 = 0;
-
-MelodyPlayer player1(buzzerPin1,2);
-MelodyPlayer player2(buzzerPin2, 0);
-
-
 
 void OutputTask(void *pvParameters)
 {
@@ -72,18 +65,7 @@ void OutputTask(void *pvParameters)
   Oled oled;
   oled.init();
 
-
-  dbout.println("Melody Player - Play melodies simultaneouly");
-  dbout.print("Loading melodies... ");
-  String notes1[] = { "C4", "G3", "G3", "A3", "G3", "SILENCE", "B3", "C4" };
-  Melody melody1 = MelodyFactory.load("Nice Melody", 250, notes1, 8);
-  int notes2[] = { 500, 1000, 0, 2000 };
-  Melody melody2 = MelodyFactory.load("Raw frequencies", 400, notes2, 4);
-  dbout.println("Done!");
-
-  dbout.print("Start playing... ");
-  player1.playAsync(melody2);
-  player2.playAsync(melody2);
+  startup();
 
   for (;;)
   {
