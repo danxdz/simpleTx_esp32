@@ -2,6 +2,7 @@
 #include "config.h"
 #include "gpio.h"
 #include "crsf.h"
+#include "usb_bridge.h"
 
 // IO setup
 
@@ -35,14 +36,14 @@ void initGpio()
 
 void gpioReadInputs(rc_input_t* rc_input)
 {
-    rc_input->aileron  = analogRead(ANALOG_IN_PIN_AILERON);
-    rc_input->elevator = analogRead(ANALOG_IN_PIN_ELEVATOR);
-    rc_input->throttle = analogRead(ANALOG_IN_PIN_THROTTLE);
-    rc_input->rudder   = analogRead(ANALOG_IN_PIN_RUDDER);
-    rc_input->aux1     = analogRead(ANALOG_IN_PIN_AUX1);
-    rc_input->aux2     = analogRead(ANALOG_IN_PIN_AUX2);
-    rc_input->aux3     = analogRead(ANALOG_IN_PIN_AUX3);
-    rc_input->aux4     = analogRead(ANALOG_IN_PIN_AUX4);
+    rc_input->aileron  = usb_input_ch[0];//analogRead(ANALOG_IN_PIN_AILERON);
+    rc_input->elevator = usb_input_ch[1];//analogRead(ANALOG_IN_PIN_ELEVATOR);
+    rc_input->throttle = usb_input_ch[2];//analogRead(ANALOG_IN_PIN_THROTTLE);
+    rc_input->rudder   = usb_input_ch[3];//analogRead(ANALOG_IN_PIN_RUDDER);
+    rc_input->aux1     = usb_input_ch[4];//analogRead(ANALOG_IN_PIN_AUX1);
+    rc_input->aux2     = 0;//analogRead(ANALOG_IN_PIN_AUX2);
+    rc_input->aux3     = 0;//analogRead(ANALOG_IN_PIN_AUX3);
+    rc_input->aux4     = 0;//analogRead(ANALOG_IN_PIN_AUX4);
 }
 
 void gpioMixer(rc_input_t* rc_input)

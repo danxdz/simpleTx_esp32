@@ -25,7 +25,7 @@ void crsfdevice_init()
 void check_link_state(uint32_t currentMicros)
 {
 
-    dbout.printf("tick :: tx: %u rx: %u\n", txConected, rxConected);
+    //dbout.printf("tick :: tx: %u rx: %u\n", txConected, rxConected);
 
     // for (size_t i = 0;crsf_devices[i].address; i++) dbout.printf("device address: 0x%x\n",crsf_devices[i].address);
 

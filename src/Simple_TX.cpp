@@ -47,6 +47,7 @@
 #include "menus.h"
 #include "ui_buttons.h"
 #include "gpio.h"
+#include "usb_bridge.h"
 
 TaskHandle_t elrsTaskHandler;
 TaskHandle_t outputTaskHandler;
@@ -60,11 +61,12 @@ void OutputTask(void *pvParameters)
 
   Oled oled;
   oled.init();
+  
+  setUsbBridge();
 
   for (;;)
   {
     //read_ui_buttons();
-    
     if (entered == -1)
     { // main menu -1
       if (params_loaded < crsf_devices[0].number_of_params)
