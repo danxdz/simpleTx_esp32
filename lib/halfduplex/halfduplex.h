@@ -12,6 +12,12 @@
   #define GPIO_PIN_RCSIGNAL_RX 17
   #define GPIO_PIN_RCSIGNAL_UART_INV true
 
+#elif defined(TARGET_ESP32_S3)
+
+  #define GPIO_PIN_RCSIGNAL_TX 8
+  #define GPIO_PIN_RCSIGNAL_RX 8
+  #define GPIO_PIN_RCSIGNAL_UART_INV false
+
 #endif
 
 void ICACHE_RAM_ATTR duplex_set_RX();

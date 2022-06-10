@@ -5,10 +5,14 @@
 #include "crsf.h"
 #include "menus.h"
 #include "rx_params.h"
+#include "config.h"
 
 #define DEBUG
 
-U8G2_SSD1306_128X64_NONAME_F_HW_I2C display(U8G2_R0, U8X8_PIN_NONE, 22, 21); // todo define pins
+
+
+
+U8G2_SSD1306_128X64_NONAME_F_HW_I2C display(U8G2_R0, U8X8_PIN_NONE, oled_SCL, oled_SDA); // todo define pins
 
 void Oled::PrintLoad(char *tmp)
 {

@@ -342,7 +342,7 @@ void sync_crsf(int32_t add_delay)
   int32_t offset = (crsfTime - lastCrsfTime); // get dif between pckt send
   uint32_t updated_interval = get_update_interval();
 // debug timing
-#if !defined(DEBUG_SYNC)
+#if defined(DEBUG_SYNC)
   if (updated_interval != 20000)
     dbout.printf("%u ; %u ; %i ; %u\n", lastCrsfTime, crsfTime, offset, updated_interval);
 #endif

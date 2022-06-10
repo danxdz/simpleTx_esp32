@@ -41,7 +41,7 @@ void check_link_state(uint32_t currentMicros)
         else if ((int)local_info.good_pkts != (int)rates[tmp] && rxConected > 0)
         {
             dbout.printf("update crsf link statistics\n");
-            CRSF_get_elrs_info(ELRS_ADDRESS);
+            //CRSF_get_elrs_info(ELRS_ADDRESS);
         }
 
         if (rxConected == 0)

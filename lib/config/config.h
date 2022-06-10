@@ -2,31 +2,48 @@
 
 #include <Arduino.h>
 
-
-//pins that used for the Joystick
+// pins that used for the Joystick
 #if defined(TARGET_ESP32)
 
-  #define ANALOG_IN_PIN_ELEVATOR 32
-  #define ANALOG_IN_PIN_AILERON 33
-  #define ANALOG_IN_PIN_THROTTLE 34
-  #define ANALOG_IN_PIN_RUDDER 35
-  #define ANALOG_IN_PIN_AUX1 25  // Arm switch
-  #define ANALOG_IN_PIN_AUX2 26  // Mode switch
-  #define ANALOG_IN_PIN_AUX3 27  // gpio27
-  #define ANALOG_IN_PIN_AUX4 12  // gpio12
-  #define VOLTAGE_READ_PIN 36
+    #define ANALOG_IN_PIN_ELEVATOR 32
+    #define ANALOG_IN_PIN_AILERON 33
+    #define ANALOG_IN_PIN_THROTTLE 34
+    #define ANALOG_IN_PIN_RUDDER 35
+    #define ANALOG_IN_PIN_AUX1 25 // Arm switch
+    #define ANALOG_IN_PIN_AUX2 26 // Mode switch
+    #define ANALOG_IN_PIN_AUX3 27 // gpio27
+    #define ANALOG_IN_PIN_AUX4 12 // gpio12
+    #define VOLTAGE_READ_PIN 36
+
+    #define oled_SDA 21
+    #define oled_SCL 22
 
 #elif defined(TARGET_ESP32_S)
 
-  #define ANALOG_IN_PIN_ELEVATOR A2 // gpio3
-  #define ANALOG_IN_PIN_AILERON A3 // gpio4
-  #define ANALOG_IN_PIN_THROTTLE A4 // gpio5
-  #define ANALOG_IN_PIN_RUDDER A5 // gpio6
-  #define ANALOG_IN_PIN_AUX1 A10  // gpio11 - Arm switch
-  #define ANALOG_IN_PIN_AUX2 A11 // gpio12 - Mode switch
-  #define ANALOG_IN_PIN_AUX3 A12  // gpio13
-  #define ANALOG_IN_PIN_AUX4 A13  // gpio14
-  #define VOLTAGE_READ_PIN A0 // gpio0
+    #define ANALOG_IN_PIN_ELEVATOR A2 // gpio3
+    #define ANALOG_IN_PIN_AILERON A3  // gpio4
+    #define ANALOG_IN_PIN_THROTTLE A4 // gpio5
+    #define ANALOG_IN_PIN_RUDDER A5   // gpio6
+    #define ANALOG_IN_PIN_AUX1 A10    // gpio11 - Arm switch
+    #define ANALOG_IN_PIN_AUX2 A11    // gpio12 - Mode switch
+    #define ANALOG_IN_PIN_AUX3 A12    // gpio13
+    #define ANALOG_IN_PIN_AUX4 A13    // gpio14
+    #define VOLTAGE_READ_PIN A0       // gpio0
+
+#elif defined(TARGET_ESP32_S3)
+
+    #define ANALOG_IN_PIN_ELEVATOR A2 // gpio3
+    #define ANALOG_IN_PIN_AILERON A3  // gpio4
+    #define ANALOG_IN_PIN_THROTTLE A4 // gpio5
+    #define ANALOG_IN_PIN_RUDDER A5   // gpio6
+    #define ANALOG_IN_PIN_AUX1 A10    // gpio11 - Arm switch
+    #define ANALOG_IN_PIN_AUX2 A11    // gpio12 - Mode switch
+    #define ANALOG_IN_PIN_AUX3 A12    // gpio13
+    #define ANALOG_IN_PIN_AUX4 A13    // gpio14
+    //#define VOLTAGE_READ_PIN A0       // gpio0
+
+    #define oled_SDA 17
+    #define oled_SCL 18
 
 #endif
 

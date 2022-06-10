@@ -14,7 +14,7 @@ void initGpio()
 {
 
   // analogReference(EXTERNAL);
-  pinMode(ANALOG_IN_PIN_AUX1, INPUT_PULLDOWN);
+  pinMode(ANALOG_IN_PIN_AUX1, INPUT_PULLUP);
   pinMode(ANALOG_IN_PIN_AUX2, INPUT_PULLUP);
   // pinMode(DIGITAL_PIN_LED, OUTPUT);//LED
   // pinMode(DIGITAL_PIN_BUZZER, OUTPUT);//
