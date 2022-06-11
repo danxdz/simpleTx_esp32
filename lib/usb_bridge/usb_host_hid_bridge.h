@@ -49,7 +49,7 @@
 #define CLIENT_NUM_EVENT_MSG    5  // usb_host_client_config_t.max_num_event_msg
 
 #define INTV_XFER_CTRL          10  // tick offset between each usb_host_transfer_submit_control() call
-#define DELAY_POST_XFER_CTRL    0  // vTaskDelay(n) after a usb_host_transfer_submit_control() call
+#define DELAY_POST_XFER_CTRL    1000  // vTaskDelay(n) after a usb_host_transfer_submit_control() call
 
 #define INTV_XFER               8  // tick offset between each usb_host_transfer_submit() call
 #define DELAY_POST_XFER         0  // vTaskDelay(n) after a usb_host_transfer_submit() call

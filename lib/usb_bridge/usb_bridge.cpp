@@ -43,15 +43,15 @@ void hid_report_descriptor_cb(usb_transfer_t *transfer) {
     // Explanation: https://electronics.stackexchange.com/questions/68141/
     // USB Descriptor and Request Parser: https://eleccelerator.com/usbdescreqparser/#
     //<<<<<
-    Serial.printf("\nstatus %d, actual number of bytes transferred %d\n", transfer->status, transfer->actual_num_bytes);
+    dbout.printf("\nstatus %d, actual number of bytes transferred %d\n", transfer->status, transfer->actual_num_bytes);
     for(int i=0; i < transfer->actual_num_bytes; i++) {
         if (i == USB_SETUP_PACKET_SIZE) {
-            Serial.printf("\n\n>>> Goto https://eleccelerator.com/usbdescreqparser/ \n");
-            Serial.printf(">>> Copy & paste below HEX and parser as... USB HID Report Descriptor\n\n");
+            dbout.printf("\n\n>>> Goto https://eleccelerator.com/usbdescreqparser/ \n");
+            dbout.printf(">>> Copy & paste below HEX and parser as... USB HID Report Descriptor\n\n");
         }
-        Serial.printf("%02X ", transfer->data_buffer[i]);
+        dbout.printf("%02X ", transfer->data_buffer[i]);
     }
-    Serial.printf("\n\n");
+    dbout.printf("\n\n");
     // Serial.printf("HID Report Descriptor\n");
     uint8_t *const data = (uint8_t *const)(transfer->data_buffer + USB_SETUP_PACKET_SIZE);
     size_t len = transfer->actual_num_bytes - USB_SETUP_PACKET_SIZE;
@@ -64,10 +64,9 @@ void hid_report_descriptor_cb(usb_transfer_t *transfer) {
         isGamepad = memcmp(data, gamepadUsagePage, sizeof(gamepadUsagePage)) == 0;
         isVenDef  = memcmp(data, vdrDefUsagePage, sizeof(vdrDefUsagePage)) == 0;
     }
-    Serial.printf(">>> best guess: %s\n", isGamepad ? "HID Gamepad" : isVenDef ? "Vendor Defined" : "Unkown");
-    dbout.println("hid_report_descriptor_cb ***************************");
-
+    dbout.printf(">>> best guess: %s\n", isGamepad ? "HID Gamepad" : isVenDef ? "Vendor Defined" : "Unkown");
 }
+
 
 void hid_report_cb(usb_transfer_t *transfer) {
     //
@@ -77,20 +76,19 @@ void hid_report_cb(usb_transfer_t *transfer) {
     //for (int i=0; i<transfer->actual_num_bytes && i<11; i++) {
         // Serial.printf("%d ", data[i]);
         // Serial.printf("%02X ", data[i]);
-        //for (int b = 8; b != -1; b--) dbout.printf("%d", (data[i] & (1 << b)) >> b );
-        //dbout.print(" ");
+      //  for (int b = 8; b != -1; b--) dbout.printf("%d", (data[i] & (1 << b)) >> b );
+      //  dbout.print(" ");
     //}
     //dbout.print("\n");
-    //delay(200);
-    usb_input_ch[0] = data[0] * 16; //map(data[0], 0, 255, 0, 4096);
+    usb_input_ch[0] = data[3] * 16; //map(data[0], 0, 255, 0, 4096);
     usb_input_ch[1] = data[1] * 16; //map(data[1], 0, 255, 0, 4096);
     usb_input_ch[2] = data[2] * 16; //map(data[2], 0, 255, 0, 4096);
-    usb_input_ch[3] = data[3] * 16; //map(data[3], 0, 255, 0, 4096);
-    usb_input_ch[4] = data[3] * 16; //map(data[3], 0, 255, 0, 4096);
-    usb_input_ch[5] = data[3] * 16; //map(data[3], 0, 255, 0, 4096);
-    usb_input_ch[6] = data[3] * 16; //map(data[3], 0, 255, 0, 4096);
-    for (int i=0; i<7; i++) dbout.printf("%d ", usb_input_ch[i]);
-    dbout.println("");
+    usb_input_ch[3] = data[0] * 16; //map(data[3], 0, 255, 0, 4096);
+    usb_input_ch[4] = data[4] * 16; //map(data[3], 0, 255, 0, 4096);
+    usb_input_ch[5] = data[5] * 16; //map(data[3], 0, 255, 0, 4096);
+    usb_input_ch[6] = data[6] * 16; //map(data[3], 0, 255, 0, 4096);
+    for (int i=0; i<6; i++) dbout.printf("%d ", usb_input_ch[i]);
+      dbout.println("");
 
 
 }

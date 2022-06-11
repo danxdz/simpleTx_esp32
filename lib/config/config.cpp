@@ -40,7 +40,7 @@ void check_link_state(uint32_t currentMicros)
         }
         else if ((int)local_info.good_pkts != (int)rates[tmp] && rxConected > 0)
         {
-            dbout.printf("update crsf link statistics\n");
+            //dbout.printf("update crsf link statistics\n");
             //CRSF_get_elrs_info(ELRS_ADDRESS);
         }
 
@@ -49,7 +49,7 @@ void check_link_state(uint32_t currentMicros)
             crsf_devices[1].address = 0;
             strlcpy(crsf_devices[1].name, (const char *)"", CRSF_MAX_NAME_LEN);
 
-            dbout.printf("no rx found\n");
+            //dbout.printf("no rx found\n");
         }
         else
         {
@@ -62,7 +62,7 @@ void check_link_state(uint32_t currentMicros)
             {
                 if (rx_params_loaded < crsf_devices[1].number_of_params)
                 {
-                    dbout.printf("read rx info\n");
+                    //dbout.printf("read rx info\n");
                     //next_param = 1;
                     //next_chunk = 0;
                     //CRSF_read_param(next_param, next_chunk, ELRS_RX_ADDRESS);
