@@ -273,7 +273,7 @@ static void action_transfer_control(class_driver_t *driver_obj, UsbHostHidBridge
         transfer->device_handle = driver_obj->dev_hdl;
         transfer->callback = transfer_cb;
         transfer->context = (void *)driver_obj;
-        transfer->timeout_ms = 1000;
+        transfer->timeout_ms = 5000;
 
         BaseType_t received = xSemaphoreTake(driver_obj->transfer_done, INTV_XFER_CTRL + pdMS_TO_TICKS(transfer->timeout_ms));
         if (received == pdTRUE) {
@@ -325,7 +325,7 @@ static void action_transfer(class_driver_t *driver_obj, UsbHostHidBridge *bdg)
         transfer->device_handle = driver_obj->dev_hdl;
         transfer->callback = transfer_cb;
         transfer->context = (void *)driver_obj;
-        transfer->timeout_ms = 50000;
+        transfer->timeout_ms = 5000;
 
         BaseType_t received = xSemaphoreTake(driver_obj->transfer_done, INTV_XFER + pdMS_TO_TICKS(transfer->timeout_ms));
         if (received == pdTRUE) {

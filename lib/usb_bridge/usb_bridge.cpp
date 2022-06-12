@@ -87,7 +87,17 @@ void hid_report_cb(usb_transfer_t *transfer) {
     usb_input_ch[4] = data[4] * 16; //map(data[3], 0, 255, 0, 4096);
     usb_input_ch[5] = data[5] * 16; //map(data[3], 0, 255, 0, 4096);
     usb_input_ch[6] = data[6] * 16; //map(data[3], 0, 255, 0, 4096);
-    for (int i=0; i<6; i++) dbout.printf("%d ", usb_input_ch[i]);
+    usb_input_ch[7] = data[7] * 16; //map(data[3], 0, 255, 0, 4096);
+    usb_input_ch[8] = data[8] * 16; //map(data[0], 0, 255, 0, 4096);
+    usb_input_ch[9] = data[9] * 16; //map(data[1], 0, 255, 0, 4096);
+    usb_input_ch[10] = data[10] * 16; //map(data[2], 0, 255, 0, 4096);
+    usb_input_ch[11] = data[11] * 16; //map(data[3], 0, 255, 0, 4096);
+    usb_input_ch[12] = data[12] * 16; //map(data[3], 0, 255, 0, 4096);
+    usb_input_ch[13] = data[13] * 16; //map(data[3], 0, 255, 0, 4096);
+    usb_input_ch[14] = data[14] * 16; //map(data[3], 0, 255, 0, 4096);
+    usb_input_ch[15] = data[15] * 16; //map(data[3], 0, 255, 0, 4096);
+
+    for (int i=0; i<16; i++) dbout.printf("%d ", data[i]);
       dbout.println("");
 
 

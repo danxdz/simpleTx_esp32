@@ -10,3 +10,4 @@
 extern int32_t usb_input_ch[];
 
 void setUsbBridge(void);
+
