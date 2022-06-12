@@ -11,6 +11,7 @@
   Version Modified By   Date      Comments
   ------- -----------  ---------- -----------
   1.0.0   Jeff Leung   06/07/2022 Initial coding
+  1.0.1   Jeff Leung   06/12/2022 Deprecapte semaphores
  *****************************************************************************************************************************/
 
 #ifndef ESP32_USB_HID_HOST_BRIDGE_H /* include guards */
@@ -43,21 +44,10 @@
      #define CLASS_TASK_COREID        0
 #endif
 #if !defined(CLASS_TASK_LOOP_DELAY)
-     #define CLASS_TASK_LOOP_DELAY    15
+     #define CLASS_TASK_LOOP_DELAY    5
 #endif
 
 #define CLIENT_NUM_EVENT_MSG    5  // usb_host_client_config_t.max_num_event_msg
-
-#define INTV_XFER_CTRL          10  // tick offset between each usb_host_transfer_submit_control() call
-#define DELAY_POST_XFER_CTRL    1000  // vTaskDelay(n) after a usb_host_transfer_submit_control() call
-
-#define INTV_XFER               8  // tick offset between each usb_host_transfer_submit() call
-#define DELAY_POST_XFER         0  // vTaskDelay(n) after a usb_host_transfer_submit() call
-
-typedef std::function<void(const usb_config_desc_t *config_desc)> OnConfigDescriptorReceived;
-typedef std::function<void(usb_device_info_t *dev_info)> OnDeviceInfoReceived;
-typedef std::function<void(usb_transfer_t *transfer)> OnHidReportDescriptorReceived;
-typedef std::function<void(usb_transfer_t *transfer)> OnReportReceived;
 
 class UsbHostHidBridge
 {
@@ -67,19 +57,11 @@ public:
     ~UsbHostHidBridge();
     void begin();
     void end();
-
-    void setOnConfigDescriptorReceived( OnConfigDescriptorReceived _configDescCb );
-    void setOnDeviceInfoReceived( OnDeviceInfoReceived _deviceInfoCb );
-    void setOnHidReportDescriptorReceived( OnHidReportDescriptorReceived _hidReportDescCb );
-    void setOnReportReceived( OnReportReceived _hidReportCb );
-
     bool hostInstalled;
-    // SemaphoreHandle_t _signaling_sem;
-
-    OnConfigDescriptorReceived _configDescCb;
-    OnDeviceInfoReceived _deviceInfoCb;
-    OnHidReportDescriptorReceived _hidReportDescCb;
-    OnReportReceived _hidReportCb;
+    void (*onConfigDescriptorReceived)(const usb_config_desc_t *config_desc);
+    void (*onDeviceInfoReceived)(usb_device_info_t *dev_info);
+    void (*onHidReportDescriptorReceived)(usb_transfer_t *transfer);
+    void (*onReportReceived)(usb_transfer_t *transfer);
 
 protected:
 

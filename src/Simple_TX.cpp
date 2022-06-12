@@ -67,6 +67,7 @@ void OutputTask(void *pvParameters)
   for (;;)
   {
     //read_ui_buttons();
+    
     if (entered == -1)
     { // main menu -1
       if (params_loaded < crsf_devices[0].number_of_params)

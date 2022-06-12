@@ -11,22 +11,12 @@
   Version Modified By   Date      Comments
   ------- -----------  ---------- -----------
   1.0.0   Jeff Leung   06/07/2022 Initial coding
+  1.0.1   Jeff Leung   06/12/2022 Deprecapte semaphores
  *****************************************************************************************************************************/
 
 #include <Arduino.h>
 #include "usb_host_hid_bridge.h"
 #include "uart.h"
-
-#if !CONFIG_DISABLE_HAL_LOCKS
-    SemaphoreHandle_t _mtx_lock;
-#endif
-#if !CONFIG_DISABLE_HAL_LOCKS
-#define HUHHB_MUTEX_LOCK()    do {} while (xSemaphoreTake(_mtx_lock, portMAX_DELAY) != pdPASS)
-#define HUHHB_MUTEX_UNLOCK()  xSemaphoreGive(_mtx_lock)
-#else
-#define HUHHB_MUTEX_LOCK()    
-#define HUHHB_MUTEX_UNLOCK()  
-#endif
 
 // bit mask for async tasks
 #define ACTION_OPEN_DEV             0x01
@@ -48,8 +38,7 @@ typedef struct {
     uint16_t bMaxPacketSize0;
     usb_ep_desc_t *ep_in;
     usb_ep_desc_t *ep_out;
-    SemaphoreHandle_t transfer_done;
-    usb_transfer_status_t transfer_status;
+    UsbHostHidBridge *bdg;
 } class_driver_t;
 
 TaskHandle_t _daemon_task_hdl;
@@ -130,8 +119,8 @@ static void action_get_config_desc(class_driver_t *driver_obj, UsbHostHidBridge 
     ESP_LOGI(TAG_CLASS, "Getting config descriptor");
     const usb_config_desc_t *config_desc;
     ESP_ERROR_CHECK(usb_host_get_active_config_descriptor(driver_obj->dev_hdl, &config_desc));
-    if (bdg->_configDescCb != NULL) {
-        bdg->_configDescCb(config_desc);
+    if (bdg->onConfigDescriptorReceived != NULL) {
+        bdg->onConfigDescriptorReceived(config_desc);
     }
     //Get the device's string descriptors next
     driver_obj->actions &= ~ACTION_GET_CONFIG_DESC;
@@ -143,8 +132,8 @@ static void action_get_str_desc(class_driver_t *driver_obj, UsbHostHidBridge *bd
     assert(driver_obj->dev_hdl != NULL);
     usb_device_info_t dev_info;
     ESP_ERROR_CHECK(usb_host_device_info(driver_obj->dev_hdl, &dev_info));
-    if (bdg->_deviceInfoCb != NULL) {
-        bdg->_deviceInfoCb(&dev_info);
+    if (bdg->onDeviceInfoReceived != NULL) {
+        bdg->onDeviceInfoReceived(&dev_info);
     }
     //Claim the interface next
     driver_obj->actions &= ~ACTION_GET_STR_DESC;
@@ -217,29 +206,24 @@ static void action_claim_interface(class_driver_t *driver_obj, UsbHostHidBridge 
     }
 }
 
-static void transfer_cb(usb_transfer_t *transfer)
+static void transfer_control_get_report_descriptor_cb(usb_transfer_t *transfer)
 {
     //This is function is called from within usb_host_client_handle_events(). Don't block and try to keep it short
     //struct class_driver_control *class_driver_obj = (struct class_driver_control *)transfer->context;
     class_driver_t *driver_obj = (class_driver_t *)transfer->context;
-    driver_obj->transfer_status = transfer->status;
-    xSemaphoreGive(driver_obj->transfer_done);
-}
-
-static esp_err_t wait_for_transfer_done(usb_transfer_t *transfer)
-{
-    class_driver_t *driver_obj = (class_driver_t *)transfer->context;
-    BaseType_t received = xSemaphoreTake(driver_obj->transfer_done, pdMS_TO_TICKS(transfer->timeout_ms));
-    // BaseType_t received = xSemaphoreTake(driver_obj->transfer_done, portMAX_DELAY);
-    if (received != pdTRUE) {
-        xSemaphoreGive(driver_obj->transfer_done);
-        return ESP_ERR_TIMEOUT;
+    if (transfer->status != USB_TRANSFER_STATUS_COMPLETED) {
+        ESP_LOGW("", "Transfer control failed - Status %d \n", transfer->status);
     }
-    xSemaphoreGive(driver_obj->transfer_done);
-    return (driver_obj->transfer_status == USB_TRANSFER_STATUS_COMPLETED) ? ESP_OK : ESP_FAIL;
+    if (transfer->status == USB_TRANSFER_STATUS_COMPLETED) {
+        UsbHostHidBridge *bdg = driver_obj->bdg;
+        if (transfer->actual_num_bytes > 0 && bdg->onHidReportDescriptorReceived != NULL) {
+            bdg->onHidReportDescriptorReceived(transfer);
+        }
+        driver_obj->actions |= ACTION_TRANSFER;
+    }
 }
 
-static void action_transfer_control(class_driver_t *driver_obj, UsbHostHidBridge *bdg)
+static void action_transfer_control_get_report_descriptor(class_driver_t *driver_obj, UsbHostHidBridge *bdg)
 {
     assert(driver_obj->dev_hdl != NULL);
     static uint16_t mps = driver_obj->bMaxPacketSize0;
@@ -248,62 +232,58 @@ static void action_transfer_control(class_driver_t *driver_obj, UsbHostHidBridge
     if (!transfer) {
         usb_host_transfer_alloc(tps, 0, &transfer);
     }
-    static TickType_t lastSendTime = 0;
-    if (xTaskGetTickCount() - lastSendTime > INTV_XFER_CTRL)
-    {
-        usb_setup_packet_t stp;
+    usb_setup_packet_t stp;
 
-        // 0x81,        // bmRequestType: Dir: D2H, Type: Standard, Recipient: Interface
-        // 0x06,        // bRequest (Get Descriptor)
-        // 0x00,        // wValue[0:7]  Desc Index: 0
-        // 0x22,        // wValue[8:15] Desc Type: (HID Report)
-        // 0x00, 0x00,  // wIndex Language ID: 0x00
-        // 0x40, 0x00,  // wLength = 64
-        stp.bmRequestType = USB_BM_REQUEST_TYPE_DIR_IN | USB_BM_REQUEST_TYPE_TYPE_STANDARD | USB_BM_REQUEST_TYPE_RECIP_INTERFACE;
-        stp.bRequest = USB_B_REQUEST_GET_DESCRIPTOR;
-        stp.wValue = 0x2200;
-        stp.wIndex = 0;
-        stp.wLength = tps - 8;
-        transfer->num_bytes = tps;
+    // 0x81,        // bmRequestType: Dir: D2H, Type: Standard, Recipient: Interface
+    // 0x06,        // bRequest (Get Descriptor)
+    // 0x00,        // wValue[0:7]  Desc Index: 0
+    // 0x22,        // wValue[8:15] Desc Type: (HID Report)
+    // 0x00, 0x00,  // wIndex Language ID: 0x00
+    // 0x40, 0x00,  // wLength = 64
+    stp.bmRequestType = USB_BM_REQUEST_TYPE_DIR_IN | USB_BM_REQUEST_TYPE_TYPE_STANDARD | USB_BM_REQUEST_TYPE_RECIP_INTERFACE;
+    stp.bRequest = USB_B_REQUEST_GET_DESCRIPTOR;
+    stp.wValue = 0x2200;
+    stp.wIndex = 0;
+    stp.wLength = tps - 8;
+    transfer->num_bytes = tps;
 
-        memcpy(transfer->data_buffer, &stp, USB_SETUP_PACKET_SIZE);
-        transfer->bEndpointAddress = 0x00;
-        ESP_LOGI("", "transfer->bEndpointAddress: 0x%02X \n", transfer->bEndpointAddress);
+    memcpy(transfer->data_buffer, &stp, USB_SETUP_PACKET_SIZE);
+    transfer->bEndpointAddress = 0x00;
+    ESP_LOGI("", "transfer->bEndpointAddress: 0x%02X \n", transfer->bEndpointAddress);
 
-        transfer->device_handle = driver_obj->dev_hdl;
-        transfer->callback = transfer_cb;
-        transfer->context = (void *)driver_obj;
-        transfer->timeout_ms = 5000;
+    transfer->device_handle = driver_obj->dev_hdl;
+    transfer->callback = transfer_control_get_report_descriptor_cb;
+    transfer->context = (void *)driver_obj;
+    transfer->timeout_ms = 1000;
 
-        BaseType_t received = xSemaphoreTake(driver_obj->transfer_done, INTV_XFER_CTRL + pdMS_TO_TICKS(transfer->timeout_ms));
-        if (received == pdTRUE) {
-            esp_err_t result = usb_host_transfer_submit_control(driver_obj->client_hdl, transfer);
-            if (result != ESP_OK) {
-                ESP_LOGW("", "attempting control %s\n", esp_err_to_name(result));
-                transfer_cb(transfer);
-            } else {
-                usb_host_client_handle_events(driver_obj->client_hdl, INTV_XFER_CTRL + pdMS_TO_TICKS(transfer->timeout_ms));
-                wait_for_transfer_done(transfer);
-                if (transfer->status != USB_TRANSFER_STATUS_COMPLETED) {
-                    ESP_LOGW("", "Transfer control failed - Status %d \n", transfer->status);
-                }
-                if (transfer->status == USB_TRANSFER_STATUS_COMPLETED) {
-                    if (transfer->actual_num_bytes > 0 && bdg->_hidReportDescCb != NULL) {
-                        bdg->_hidReportDescCb(transfer);
-                    }
-                    driver_obj->actions |= ACTION_TRANSFER;
-                }
-            }
-            driver_obj->actions &= ~ACTION_TRANSFER_CONTROL;
-            #if defined(DELAY_POST_XFER_CTRL) && DELAY_POST_XFER_CTRL > 0
-                vTaskDelay(DELAY_POST_XFER_CTRL); //Add a short delay to let the tasks run
-            #endif
-        }
-        lastSendTime = xTaskGetTickCount();
+    driver_obj->bdg = bdg;
+    esp_err_t result = usb_host_transfer_submit_control(driver_obj->client_hdl, transfer);
+    if (result != ESP_OK) {
+        ESP_LOGW("", "attempting %s\n", esp_err_to_name(result));
+    } else {
+        // event queued, transfer_cb2 must be called eventually, clean actions flag
+        driver_obj->actions &= ~ACTION_TRANSFER_CONTROL;
     }
 }
 
-static void action_transfer(class_driver_t *driver_obj, UsbHostHidBridge *bdg)
+static void action_interrupt_get_report_cb(usb_transfer_t *transfer)
+{
+    //This is function is called from within usb_host_client_handle_events(). Don't block and try to keep it short
+    //struct class_driver_control *class_driver_obj = (struct class_driver_control *)transfer->context;
+    class_driver_t *driver_obj = (class_driver_t *)transfer->context;
+    if (transfer->status != USB_TRANSFER_STATUS_COMPLETED) {
+        ESP_LOGW("", "Transfer failed - Status %d \n", transfer->status);
+    }
+    if (transfer->status == USB_TRANSFER_STATUS_COMPLETED) {
+        UsbHostHidBridge *bdg = driver_obj->bdg;
+        if (transfer->actual_num_bytes > 0 && bdg->onReportReceived != NULL) {
+            bdg->onReportReceived(transfer);
+        }
+    }
+    driver_obj->actions |= ACTION_TRANSFER;
+}
+
+static void action_interrupt_get_report(class_driver_t *driver_obj, UsbHostHidBridge *bdg)
 {
     assert(driver_obj->dev_hdl != NULL);
     static uint16_t mps = driver_obj->ep_in->wMaxPacketSize;
@@ -313,46 +293,22 @@ static void action_transfer(class_driver_t *driver_obj, UsbHostHidBridge *bdg)
         usb_host_transfer_alloc(mps, 0, &transfer);
         memset(transfer->data_buffer, 0x00, mps);
     }
-    static TickType_t lastSendTime = 0;
-    if (xTaskGetTickCount() - lastSendTime > INTV_XFER)
-    {
-        transfer->num_bytes = mps;
-        memset(transfer->data_buffer, 0x00, mps);
-        transfer->bEndpointAddress = driver_obj->ep_in->bEndpointAddress;
-        // ESP_LOGI("", "transfer->bEndpointAddress: 0x%02X \n", transfer->bEndpointAddress);
-        //dbout.printf("transfer->bEndpointAddress: 0x%02X \n", transfer->bEndpointAddress);
+    transfer->num_bytes = mps;
+    memset(transfer->data_buffer, 0x00, mps);
+    transfer->bEndpointAddress = driver_obj->ep_in->bEndpointAddress;
+    // ESP_LOGI("", "transfer->bEndpointAddress: 0x%02X \n", transfer->bEndpointAddress);
+    transfer->device_handle = driver_obj->dev_hdl;
+    transfer->callback = action_interrupt_get_report_cb;
+    transfer->context = (void *)driver_obj;
+    transfer->timeout_ms = 1000;
 
-        transfer->device_handle = driver_obj->dev_hdl;
-        transfer->callback = transfer_cb;
-        transfer->context = (void *)driver_obj;
-        transfer->timeout_ms = 5000;
-
-        BaseType_t received = xSemaphoreTake(driver_obj->transfer_done, INTV_XFER + pdMS_TO_TICKS(transfer->timeout_ms));
-        if (received == pdTRUE) {
-            esp_err_t result = usb_host_transfer_submit(transfer);
-            if (result != ESP_OK) {
-                ESP_LOGW("", "attempting %s\n", esp_err_to_name(result));
-                dbout.printf("attempting %s\n", esp_err_to_name(result));
-                transfer_cb(transfer);
-            } else {
-                usb_host_client_handle_events(driver_obj->client_hdl, INTV_XFER + pdMS_TO_TICKS(transfer->timeout_ms));
-                wait_for_transfer_done(transfer);
-                if (transfer->status != USB_TRANSFER_STATUS_COMPLETED) {
-                    ESP_LOGW("", "Transfer failed - Status %d \n", transfer->status);
-                    dbout.printf("", "Transfer failed - Status %d \n", transfer->status);
-                }
-                if (transfer->status == USB_TRANSFER_STATUS_COMPLETED) {
-                    if (transfer->actual_num_bytes > 0 && bdg->_hidReportCb != NULL) {
-                        bdg->_hidReportCb(transfer);
-                    }
-                }
-            }
-            // driver_obj->actions &= ~ACTION_TRANSFER; // break during development
-            #if defined(DELAY_POST_XFER) && DELAY_POST_XFER > 0
-                vTaskDelay(DELAY_POST_XFER); //Add a short delay to let the tasks run
-            #endif
-        }
-        lastSendTime = xTaskGetTickCount();
+    driver_obj->bdg = bdg;
+    esp_err_t result = usb_host_transfer_submit(transfer);
+    if (result != ESP_OK) {
+        ESP_LOGW("", "attempting %s\n", esp_err_to_name(result));
+    } else {
+        // event queued, transfer_cb2 must be called eventually, clean actions flag
+        driver_obj->actions &= ~ACTION_TRANSFER;
     }
 }
 
@@ -403,11 +359,9 @@ static void aciton_close_dev(class_driver_t *driver_obj)
 static void usb_class_driver_task(void *pvParameters)
 {
     UsbHostHidBridge *bdg = (UsbHostHidBridge *)pvParameters;
-    // SemaphoreHandle_t signaling_sem = (SemaphoreHandle_t)bdg->_signaling_sem;
     class_driver_t driver_obj = {0};
 
     //Wait until daemon task has installed USB Host Library
-    // xSemaphoreTake(signaling_sem, portMAX_DELAY);
     while (!bdg->hostInstalled) {
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
@@ -422,8 +376,6 @@ static void usb_class_driver_task(void *pvParameters)
         },
     };
     ESP_ERROR_CHECK(usb_host_client_register(&client_config, &driver_obj.client_hdl));
-
-    driver_obj.transfer_done = xSemaphoreCreateCounting( 1, 1 );
 
     while (1) {
         if (driver_obj.actions == 0) {
@@ -448,10 +400,10 @@ static void usb_class_driver_task(void *pvParameters)
                 action_claim_interface(&driver_obj, bdg);
             }
             if (driver_obj.actions & ACTION_TRANSFER_CONTROL) {
-                action_transfer_control(&driver_obj, bdg);
+                action_transfer_control_get_report_descriptor(&driver_obj, bdg);
             }
             if (driver_obj.actions & ACTION_TRANSFER) {
-                action_transfer(&driver_obj, bdg);
+                action_interrupt_get_report(&driver_obj, bdg);
             }
             if (driver_obj.actions & ACTION_CLOSE_DEV) {
                 aciton_close_dev(&driver_obj);
@@ -463,20 +415,15 @@ static void usb_class_driver_task(void *pvParameters)
         vTaskDelay(CLASS_TASK_LOOP_DELAY);
     } // end main loop
 
-    vSemaphoreDelete(driver_obj.transfer_done);
-
     ESP_LOGI(TAG_CLASS, "Deregistering Client");
     ESP_ERROR_CHECK(usb_host_client_deregister(driver_obj.client_hdl));
 
-    //Wait to be deleted
-    // xSemaphoreGive(signaling_sem);
     vTaskSuspend(NULL);
 }
 
 static void usb_host_lib_daemon_task(void *pvParameters)
 {
     UsbHostHidBridge *bdg = (UsbHostHidBridge *)pvParameters;
-    // SemaphoreHandle_t signaling_sem = (SemaphoreHandle_t)bdg->_signaling_sem;
 
     ESP_LOGI(TAG_DAEMON, "Installing USB Host Library");
     usb_host_config_t host_config = {
@@ -486,7 +433,6 @@ static void usb_host_lib_daemon_task(void *pvParameters)
     ESP_ERROR_CHECK(usb_host_install(&host_config));
 
     //Signal to the class driver task that the host library is installed
-    // xSemaphoreGive(signaling_sem);
     bdg->hostInstalled = true;
     vTaskDelay(DAEMON_TASK_LOOP_DELAY); //Short delay to let client task spin up
 
@@ -508,16 +454,15 @@ static void usb_host_lib_daemon_task(void *pvParameters)
     //Uninstall the USB Host Library
     ESP_ERROR_CHECK(usb_host_uninstall());
     //Wait to be deleted
-    // xSemaphoreGive(signaling_sem);
     vTaskSuspend(NULL);
 }
 
 UsbHostHidBridge::UsbHostHidBridge() :
     hostInstalled( false ),
-    _configDescCb( NULL ),
-    _deviceInfoCb( NULL ),
-    _hidReportDescCb( NULL ),
-    _hidReportCb( NULL )
+    onConfigDescriptorReceived( NULL ),
+    onDeviceInfoReceived( NULL ),
+    onHidReportDescriptorReceived( NULL ),
+    onReportReceived( NULL )
 {
 }
 
@@ -527,8 +472,6 @@ UsbHostHidBridge::~UsbHostHidBridge()
 
 void UsbHostHidBridge::begin()
 {
-    // this->_signaling_sem = xSemaphoreCreateBinary();
-
     //Create usb host lib daemon task
     xTaskCreatePinnedToCore(
         usb_host_lib_daemon_task,           /* Task function. */
@@ -554,31 +497,6 @@ void UsbHostHidBridge::begin()
 
 void UsbHostHidBridge::end()
 {
-    // //Wait for the tasks to complete
-    // for (int i = 0; i < 2; i++) {
-    //     xSemaphoreTake(this->_signaling_sem, portMAX_DELAY);
-    // }
-    // Delete the tasks
     vTaskDelete(_class_driver_task_hdl);
     vTaskDelete(_daemon_task_hdl);
-}
-
-void UsbHostHidBridge::setOnConfigDescriptorReceived( OnConfigDescriptorReceived _configDescCb )
-{
-    this->_configDescCb = _configDescCb;
-}
-
-void UsbHostHidBridge::setOnDeviceInfoReceived( OnDeviceInfoReceived _deviceInfoCb )
-{
-    this->_deviceInfoCb = _deviceInfoCb;
-}
-
-void UsbHostHidBridge::setOnHidReportDescriptorReceived( OnHidReportDescriptorReceived _hidReportDescCb )
-{
-    this->_hidReportDescCb = _hidReportDescCb;
-}
-
-void UsbHostHidBridge::setOnReportReceived( OnReportReceived _hidReportCb )
-{
-    this->_hidReportCb = _hidReportCb;
 }
