@@ -4,12 +4,23 @@
 #include "crsf.h"
 #include "usb_bridge.h"
 
-// IO setup
+// IO setup 
 
+#if defined(TARGET_ESP32)
 int upBt = 12;
 int downBt = 4;
 int enterBt = 14;
 int backBt = 5;
+#endif
+// thanks to [BFL] Sikolenski @ discord https://discord.gg/22qk42RY57
+// https://discord.com/channels/596350022191415318/830507824899555378/991812477958488154 
+// for add target pins for esp32_s3
+#if defined(TARGET_ESP32_S3)
+int upBt = 12;
+int downBt = 4;
+int enterBt = 16;
+int backBt = 9;
+#endif
 
 void initGpio()
 {
