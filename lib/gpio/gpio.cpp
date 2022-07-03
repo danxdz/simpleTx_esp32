@@ -7,7 +7,7 @@
 // IO setup 
 
 #if defined(TARGET_ESP32)
-int upBt = 12;
+int upBt = 2;
 int downBt = 4;
 int enterBt = 14;
 int backBt = 5;
@@ -16,7 +16,7 @@ int backBt = 5;
 // https://discord.com/channels/596350022191415318/830507824899555378/991812477958488154 
 // for add target pins for esp32_s3
 #if defined(TARGET_ESP32_S3)
-int upBt = 12;
+int upBt = 2;
 int downBt = 4;
 int enterBt = 16;
 int backBt = 9;
