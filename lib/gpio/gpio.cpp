@@ -1,14 +1,10 @@
 #include "Arduino.h"
 #include "config.h"
 #include "gpio.h"
+#include "ui_buttons.h"
 #include "crsf.h"
+#include "uart.h"
 
-// IO setup
-
-int upBt = 12;
-int downBt = 4;
-int enterBt = 14;
-int backBt = 5;
 
 void initGpio()
 {
@@ -21,17 +17,28 @@ void initGpio()
   // digitalWrite(DIGITAL_PIN_BUZZER, LOW);
   // batteryVoltage=7.0;
 
-  pinMode(upBt, INPUT_PULLUP);
-  pinMode(downBt, INPUT_PULLUP);
-  pinMode(enterBt, INPUT_PULLUP);
-  pinMode(backBt, INPUT_PULLUP);
-  pinMode(DigitalInPinPowerChange, INPUT_PULLUP);
+  pinMode(UI_BTN_UP, INPUT_PULLUP);
+  pinMode(UI_BTN_DOWN, INPUT_PULLUP);
+  pinMode(UI_BTN_ENTER, INPUT_PULLUP);
+  pinMode(UI_BTN_BACK, INPUT_PULLUP);
+  
 
   #if defined(TARGET_ESP32_S)
     analogReadResolution(12); // 4096
   #endif
 
 }
+
+
+
+void readUIbuttons (UI_input_t* UI_input) {
+
+  UI_input->up = digitalRead(UI_BTN_UP);
+  UI_input->down = digitalRead(UI_BTN_DOWN);
+  UI_input->enter = digitalRead(UI_BTN_ENTER);
+  UI_input->back = digitalRead(UI_BTN_BACK);
+
+} 
 
 void gpioReadInputs(rc_input_t* rc_input)
 {

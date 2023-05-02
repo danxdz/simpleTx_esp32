@@ -1,28 +1,31 @@
-#include "ui_buttons.h"
 #include "gpio.h"
 #include "menus.h"
 #include "uart.h"
 #include "oled.h"
-#include "webui.h"
-#include "config.h"
 
 
 int currentMenuPosition = 0;
+
 
 void read_ui_buttons(UI_input_t* UI_input)
 {
 
   //display button value 0 or 1
-  //dbout.printf("%i:%i::%i:%i\n",UI_input->up,UI_input->UI_input->down,UI_input->enter,UI_input->back);
+  //dbout.printf("%i:%i::%i:%i\n",UI_input->up,UI_input->down,UI_input->enter,UI_input->back);
+
+
+  bool up = UI_input->up;
+  bool down = UI_input->down;
+  bool enter = UI_input->enter;
+  bool back = UI_input->back;
 
   // TODO bt bouncer
-
   delay(150);
 
-  // dbout.printf("%i:%i::%i:%i\n",UI_input->enter,UI_input->back,UI_input->up,UI_input->down);
+  // dbout.printf("%i:%i::%i:%i\n",enter,back,up,down);
   // dbout.printf("%i:\n",params_loaded);
 
-  if (UI_input->up == LOW && UI_input->down == LOW)
+  if (up == LOW && down == LOW)
   {
   };
 
@@ -30,20 +33,7 @@ void read_ui_buttons(UI_input_t* UI_input)
   if (entered == -2)
   {
     // dbout.println("main");
-    if (UI_input->back == LOW)
-    {
-    if (params_loaded < crsf_devices[0].number_of_params)
-      {
-        char *load = (char *)hdr_str_cb(menuItems); // TODO
-        dbout.printf("hdr:%s\n", load);
-      } else {
-        dbout.printf("all params");
-        dbout.printf("start webserver");
-        startWebServer(params_loaded,menuItems);
-      }
-    }
-    
-    entered = UI_input->enter ? entered : -1;
+    entered = enter ? entered : -1;
 
     // if inside main menu - selected = -1
   }
@@ -51,17 +41,17 @@ void read_ui_buttons(UI_input_t* UI_input)
   {
     // dbout.println("menu");
 
-    if ((UI_input->up == LOW) && (entered != selected))
+    if ((up == LOW) && (entered != selected))
       // selected = (selected <= 0) ? 0 : selected-1;
       do
       {
-        selected--;
+        //selected--;
          dbout.printf("select -:%i:\n",selected);
         if (selected < 0)
           selected = crsf_devices[0].number_of_params - 3;
       } while (menuItems[selected].parent != 0);
 
-    if ((UI_input->down == LOW) && (entered != selected))
+    if ((down == LOW) && (entered != selected))
       // selected++;
       do
       {
@@ -71,7 +61,7 @@ void read_ui_buttons(UI_input_t* UI_input)
           selected = 0;
       } while (menuItems[selected].parent != 0);
 
-    if ((UI_input->enter == LOW))
+    if ((enter == LOW))
     {
       dbout.printf("click:%i:%i:%s:%u:%u\n",
                    selected,
@@ -111,16 +101,15 @@ void read_ui_buttons(UI_input_t* UI_input)
         entered = selected;
       }
     }
-    if (UI_input->back == LOW)
+    if (back == LOW)
       entered = -2;
 
-  
     // if at submenu
   }
   else if (entered == -10)
   {
-    // db_out.printf("select options: %i:%i:%i\n",mmOptionSelected,UI_input->up,UI_input->back);
-    if (UI_input->down == 1)
+    // db_out.printf("select options: %i:%i:%i\n",mmOptionSelected,up,back);
+    if (down == 1)
     {
       // entered = -1;
       if (mmOptionSelected < menuItems[selected].max_value)
@@ -128,18 +117,18 @@ void read_ui_buttons(UI_input_t* UI_input)
       else
         mmOptionSelected = 0;
     }
-    if (UI_input->up == 1) // && (entered != selected))
+    if (up == 1) // && (entered != selected))
     {
-      // db_out.println("UI_input->up");
+      // db_out.println("up");
       if (mmOptionSelected > 0)
         mmOptionSelected--;
       else
         mmOptionSelected = menuItems[selected].max_value;
     }
 
-    if (UI_input->back == LOW)
+    if (back == LOW)
       entered = -1;
-    if (UI_input->enter == LOW)
+    if (enter == LOW)
     {
       dbout.printf("select option %u:%u\n", mmOptionSelected, selected);
       next_param = selected + 1;
@@ -158,7 +147,7 @@ void read_ui_buttons(UI_input_t* UI_input)
   {
     // dbout.println("@submenu");
 
-    if (UI_input->enter == LOW)
+    if (enter == LOW)
     {
 
       next_param = menuItems[subSelected].id;
@@ -182,23 +171,23 @@ void read_ui_buttons(UI_input_t* UI_input)
       if (menuItems[subSelected].p_type == 13)
         next_chunk = 4; // cmd
 
-      dbout.printf("ChangeParam: %s::%s::%s\n", menuItems[selected].name,next_param,next_chunk);
+      dbout.printf("ChangeParam: %s\n", menuItems[selected].name);
       CRSF_changeParam(next_param, next_chunk);
       // Menu::ChangeParam(next_param,next_chunk);
     }
-    if (UI_input->back == LOW)
+    if (back == LOW)
     {
       entered = -1;
       // subSelected = -1;
     }
-    if ((UI_input->up == LOW)) // && (entered != selected))
+    if ((up == LOW)) // && (entered != selected))
     {
-      // dbout.println("UI_input->up");
+      // dbout.println("up");
       subSelected--;
     }
-    if ((UI_input->down == LOW)) // && (entered != subSelected))
+    if ((down == LOW)) // && (entered != subSelected))
     {
-      // dbout.println("@UI_input->down");
+      // dbout.println("@down");
       subSelected++;
     }
   }

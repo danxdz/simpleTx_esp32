@@ -10,6 +10,7 @@
 #include "oled.h"
 #include "uart.h"
 
+
 Menu menuItems[CRSF_MAX_PARAMS];
 
 int entered = -2; //-2 idle // -1 main menu // 0 options/submenu
@@ -61,11 +62,22 @@ char *Menu::getMainMenuItem_StatusText()
 }
 
 // debug
+/*
+ The p_type attribute indicates the type of the param, which can be an OPT, MainMenuItem, INFO, or CMD. 
+ The OPT type indicates that the param is a selectable option, 
+ the MainMenuItem type indicates that the param is a main menu item that can have submenus, 
+ the INFO type indicates that the param is informative, and the CMD type indicates that the param is a command. 
+ 
+ The hidden value indicates if the param is hidden or not, 
+ the max_value indicates the number of options available for the param,
+ and the status indicates the currently selected option for the param.
+
+*/
 void Menu::displayInfo()
 {
   if (name)
   {
-    dbout.printf("%u:%s:%u:%u:%u:%u:%u\n", id, name, parent, p_type, hidden, max_value, status);
+    dbout.printf("%u:%s:%u:%u:%u:%u:%u ", id, name, parent, p_type, hidden, max_value, status);
     if (max_value)
     {
       for (size_t i = 0; i <= max_value; i++)

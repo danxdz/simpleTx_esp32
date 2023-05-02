@@ -35,7 +35,6 @@ class Menu
 {
 
     uint8_t hidden;
-    char *value;
     char *info;
     uint8_t timeout;
     uint8_t min_value;
@@ -45,6 +44,7 @@ class Menu
 public:
     uint8_t id;
     char *name;
+    char *value;
     uint8_t parent;
     uint8_t p_type;
     uint8_t status;
@@ -58,6 +58,10 @@ public:
     void divideValueParam(char *values);
 
     void getParams(char *buffer, int iid);
+
+    uint8_t getCount() const { return count; }
+    char* getValue() const { return value; }
+
 };
 
 extern Menu menuItems[];

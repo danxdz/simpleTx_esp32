@@ -28,7 +28,7 @@
  =======================================================================================================
  */
 
-//#define DEBUG_PACKETS
+#define DEBUG_PACKETS
 //#define DEBUG_TLM
 //#define DEBUG_CH
 //#define DEBUG_SYNC
@@ -53,6 +53,8 @@ TaskHandle_t outputTaskHandler;
 
 rc_input_t rcInput;
 
+UI_input_t UIinput;
+
 //#define constrain(amt,low,high) ((amt)<(low)?(low):((amt)>(high)?(high):(amt)))
 
 void OutputTask(void *pvParameters)
@@ -63,8 +65,13 @@ void OutputTask(void *pvParameters)
 
   for (;;)
   {
-    read_ui_buttons();
-    if (entered == -1)
+    //entered = -2;
+
+
+    readUIbuttons (&UIinput);
+    read_ui_buttons(&UIinput);
+
+     if (entered == -1)
     { // main menu -1
       if (params_loaded < crsf_devices[0].number_of_params)
       {
@@ -117,6 +124,7 @@ void OutputTask(void *pvParameters)
     {
       Oled::setSubMenuItems();
     }
+     
   } // end main loop for
 } // end output task
 
@@ -147,7 +155,6 @@ void ElrsTask(void *pvParameters)
       check_link_state(currentMicros);
     }
 
-    testButtonPressed = digitalRead(DigitalInPinPowerChange);
 
     if (currentMicros >= crsfTime)
     {
@@ -158,11 +165,7 @@ void ElrsTask(void *pvParameters)
         powerChangeHasRun = false;
         clickCurrentMicros = currentMicros;
       }
-      if ((testButtonPressed == 0) && (powerChangeHasRun == false))
-      {
-        dbout.println("click");
-        bt_handle(1); // TODO
-      }
+ 
       else
       {
         // read values of rcChannels
@@ -248,3 +251,108 @@ void loop()
 //                Starting BLE Joystick!
 // 19: Set Lua [Bad/Good]=0
 // 20: Set Lua [2.1.0 EU868]=0 =1 ?? get
+
+/*
+
+0:Packet Rate:0:9:0:4:4;25Hz(-123dBm):50Hz(-120dBm):100Hz(-117dBm):100Hz Full(-112dBm):200Hz(-112dBm): :: OPT
+1:Telem Ratio:0:9:0:9:0;Std:Off:1:128:1:64:1:32:1:16:1:8:1:4:1:2:Race: :: OPT
+2:Switch Mode:0:9:0:1:0;Wide:Hybrid: :: OPT
+3:Model Match:0:9:0:1:0;Off:On: :: OPT
+4:TX Power (50mW):0:11:0:0:0 :: MainMenuItem 
+5:Max Power:5:9:0:2:2;10:25:50: :: OPT
+6:Dynamic:5:9:0:5:0;Off:Dyn:AUX9:AUX10:AUX11:AUX12: :: OPT
+7:VTX Administrator:0:11:0:0:0 :: MainMenuItem
+8:Band:8:9:0:6:0;Off:A:B:E:F:R:L: :: OPT
+9:Channel:8:9:0:7:0;1:2:3:4:5:6:7:8: :: OPT
+10:Pwr Lvl:8:9:0:8:0;-:1:2:3:4:5:6:7:8: :: OPT
+11:Pitmode:8:9:0:8:79;Off:On:AUX1�:AUX1�:AUX2�:AUX2�:AUX3�:AUX3�:AUX  Pitmode: :: OPT
+12:Send VTx:8:13:0:0:0 :: CMD
+13:WiFi Connectivity:0:11:0:0:0 :: MainMenuItem
+14:Enable WiFi:14:13:0:0:0 :: CMD
+15:Enable Rx WiFi:14:13:0:0:0 :: CMD
+16:BLE Joystick:0:13:0:0:0 :: CMD
+17:Bind:0:13:0:0:0 :: CMD
+18:Bad/Good:0:12:0:0:0 :: INFO
+19:3.1.2 EU868:0:12:0:0:0 :: INFO
+
+as menu:
+
+Main Menu
+|- Packet Rate (OPT)
+   |- 25Hz(-123dBm)
+   |- 50Hz(-120dBm)
+   |- 100Hz(-117dBm)
+   |- 100Hz Full(-112dBm)
+   |- 200Hz(-112dBm)
+|- Telem Ratio (OPT)
+   |- Std
+   |- Off
+   |- 1:128
+   |- 1:64
+   |- 1:32
+   |- 1:16
+   |- 1:8
+   |- 1:4
+   |- 1:2
+   |- Race
+|- Switch Mode (OPT)
+   |- Wide
+   |- Hybrid
+|- Model Match (OPT)
+   |- Off
+   |- On
+|- TX Power (50mW)
+|  |- Max Power (OPT)
+   |  |- 10
+   |  |- 25
+   |  |- 50
+   |- Dynamic (OPT)
+   |  |- Off
+   |  |- Dyn
+   |  |- AUX9
+   |  |- AUX10
+   |  |- AUX11
+   |  |- AUX12
+|- VTX Administrator
+|  |- Band (OPT)
+   |  |- Off
+   |  |- A
+   |  |- B
+   |  |- E
+   |  |- F
+   |  |- R
+   |  |- L
+   |- Channel (OPT)
+   |  |- 1
+   |  |- 2
+   |  |- 3
+   |  |- 4
+   |  |- 5
+   |  |- 6
+   |  |- 7
+   |  |- 8
+   |- Pwr Lvl (OPT)
+   |  |- -
+   |  |- 1
+   |  |- 2
+   |  |- 3
+   |  |- 4
+   |  |- 5
+   |  |- 6
+   |  |- 7
+   |  |- 8
+   |- Pitmode (OPT)
+      |- Off
+      |- On
+|- Send VTx
+|- WiFi Connectivity
+|  |- Enable WiFi
+   |- Enable Rx WiFi
+|- BLE Joystick
+|- Bind
+|- Bad/Good
+|- 3.1.2 EU868
+
+
+*/
+

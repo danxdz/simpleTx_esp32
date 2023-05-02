@@ -53,19 +53,20 @@ void check_link_state(uint32_t currentMicros)
         }
         else
         {
+        
             if (crsf_devices[1].address == 0)
             {
 
-                //CRSF_broadcast_ping();
+                CRSF_broadcast_ping();
             }
             else
             {
                 if (rx_params_loaded < crsf_devices[1].number_of_params)
                 {
                     dbout.printf("read rx info\n");
-                    //next_param = 1;
-                    //next_chunk = 0;
-                    //CRSF_read_param(next_param, next_chunk, ELRS_RX_ADDRESS);
+                    next_param = 1;
+                    next_chunk = 0;
+                    CRSF_read_param(next_param, next_chunk, ELRS_RX_ADDRESS);
                 }
             }
         }
@@ -92,7 +93,7 @@ const char *hdr_str_cb(const void *data)
 
     if (count_params_loaded(device_idx) != crsf_devices[device_idx].number_of_params)
     {
-        // dbout.printf("not all params: %u: %i\n",count_params_loaded(0), device_idx);
+        //dbout.printf("not all params: %u: %i\n",count_params_loaded(0), device_idx);
 
         snprintf(tempstring, sizeof tempstring, "%s %s", crsf_devices[device_idx].name, "LOADING");
     }

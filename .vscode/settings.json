@@ -18,7 +18,14 @@
         "array": "cpp",
         "utility": "cpp",
         "system_error": "cpp",
-        "crsf.c": "cpp"
+        "crsf.c": "cpp",
+        "deque": "cpp",
+        "vector": "cpp",
+        "string_view": "cpp",
+        "unordered_map": "cpp",
+        "unordered_set": "cpp",
+        "initializer_list": "cpp",
+        "regex": "cpp"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

@@ -3,6 +3,19 @@
 #include <Arduino.h>
 
 
+
+// IO setup
+
+// pin for button : testing bt
+//const int DigitalInPinPowerChange = 15; //
+// button bouncer
+static int testButtonPressed;
+
+// pins that used for output
+//const int DIGITAL_PIN_LED = 16;    //
+//const int DIGITAL_PIN_BUZZER = 12; //
+
+
 //pins that used for the Joystick
 #if defined(TARGET_ESP32)
 
@@ -15,6 +28,14 @@
   #define ANALOG_IN_PIN_AUX3 27  // gpio27
   #define ANALOG_IN_PIN_AUX4 12  // gpio12
   #define VOLTAGE_READ_PIN 36
+
+  // UI buttons
+  #define UI_BTN_UP 15
+  #define UI_BTN_DOWN 4
+  #define UI_BTN_ENTER 14
+  #define UI_BTN_BACK 5
+
+
 
 #elif defined(TARGET_ESP32_S)
 

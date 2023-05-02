@@ -46,6 +46,8 @@
 
 #define CRSF_TELEMETRY_LENGTH_INDEX 1
 #define CRSF_TELEMETRY_TYPE_INDEX 2
+#define CRSF_TELEMETRY_FIELD_ID_INDEX 5
+#define CRSF_TELEMETRY_FIELD_CHUNK_INDEX 6
 #define CRSF_TELEMETRY_CRC_LENGTH 1
 #define CRSF_TELEMETRY_TOTAL_SIZE(x) (x + CRSF_FRAME_LENGTH_EXT_TYPE_CRC)
 
@@ -75,6 +77,7 @@ typedef enum
     CRSF_FRAMETYPE_GPS = 0x02,
     CRSF_FRAMETYPE_VARIO = 0x07,
     CRSF_FRAMETYPE_BATTERY_SENSOR = 0x08,
+    CRSF_FRAMETYPE_BARO_ALTITUDE = 0x09,
     CRSF_FRAMETYPE_LINK_STATISTICS = 0x14,
     CRSF_FRAMETYPE_OPENTX_SYNC = 0x10,
     CRSF_FRAMETYPE_RADIO_ID = 0x3A,
@@ -88,7 +91,7 @@ typedef enum
     CRSF_FRAMETYPE_PARAMETER_READ = 0x2C,
     CRSF_FRAMETYPE_PARAMETER_WRITE = 0x2D,
 
-    CRSF_FRAMETYPE_ELRS_STATUS = 0x2E, // ELRS good/bad packet count and status flags
+    //CRSF_FRAMETYPE_ELRS_STATUS = 0x2E, // ELRS good/bad packet count and status flags //***************
 
     CRSF_FRAMETYPE_COMMAND = 0x32,
     // KISS frames
@@ -102,6 +105,14 @@ typedef enum
     CRSF_FRAMETYPE_ARDUPILOT_RESP = 0x80,
 } crsf_frame_type_e;
 
+typedef enum {
+    SUBCOMMAND_CRSF = 0x10
+} crsf_command_e;
+
+typedef enum {
+    COMMAND_MODEL_SELECT_ID = 0x05
+} crsf_subcommand_e;
+
 enum
 {
     CRSF_FRAME_TX_MSP_FRAME_SIZE = 58,
@@ -113,6 +124,7 @@ enum
 {
     CRSF_FRAME_GPS_PAYLOAD_SIZE = 15,
     CRSF_FRAME_VARIO_PAYLOAD_SIZE = 2,
+    CRSF_FRAME_BARO_ALTITUDE_PAYLOAD_SIZE = 4,
     CRSF_FRAME_BATTERY_SENSOR_PAYLOAD_SIZE = 8,
     CRSF_FRAME_ATTITUDE_PAYLOAD_SIZE = 6,
     CRSF_FRAME_DEVICE_INFO_PAYLOAD_SIZE = 48,
@@ -412,7 +424,7 @@ static inline uint32_t htobe32(uint32_t val)
 }
 #endif
 
-#define CRSF_MAX_NAME_LEN 16
+#define CRSF_MAX_NAME_LEN 20
 
 enum cmd_status
 {

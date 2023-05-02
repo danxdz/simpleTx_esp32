@@ -31,9 +31,9 @@ typedef struct {
   int aux4 = 0;
 } rc_input_t;
 
-#define CRSF_MAX_PARAMS 55 // one extra required, max observed is 47 in Diversity Nano RX
+#define CRSF_MAX_PARAMS 100 // one extra required, max observed is 47 in Diversity Nano RX
 #define CRSF_MAX_DEVICES 4
-#define CRSF_MAX_NAME_LEN 16
+
 #define CRSF_MAX_STRING_BYTES 2500 // max observed is 2010 in Nano RX
 #define CRSF_STRING_BYTES_AVAIL(current) (CRSF_MAX_STRING_BYTES - ((char *)(current)-mp->strings))
 
@@ -62,7 +62,7 @@ uint8_t protocol_module_is_elrs();
 extern int rcChannels[CRSF_MAX_CHANNEL];
 
 #define CRSF_MAX_CHUNK_SIZE 58 // 64 - header - type - destination - origin
-#define CRSF_MAX_CHUNKS 5      // not in specification. Max observed is 3 for Nano RX
+#define CRSF_MAX_CHUNKS 8     // not in specification. Max observed is 3 for Nano RX
 
 extern module_type_t module_type;
 extern uint8_t device_idx; // current device index
@@ -144,7 +144,7 @@ extern char *recv_param_ptr;
 #define COMMAND_MODEL_SELECT_ID 0x05
 
 #define TELEMETRY_RX_PACKET_SIZE 64
-
+#define CRSF_MAX_FIXEDID 63
 #define CRSF_CRC_POLY 0xd5
 
 #define CRSF_MAX_PACKET_LEN 64
