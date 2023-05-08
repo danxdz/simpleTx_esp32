@@ -9,7 +9,173 @@
 
 int currentMenuPosition = 0;
 
-void read_ui_buttons(UI_input_t* UI_input)
+//no button pressed = 0
+//center = 1
+//left = 2
+//up = 3
+//right = 4
+//down = 5
+
+
+void read_ui_buttons(UI_input_t* UI_input) {
+  int buttonState = 0;
+
+  if (UI_input->key != 0) {
+    dbout.printf("UI_input->key:%i\n",UI_input->key);
+    dbout.printf("entered:%i\n",entered);
+    dbout.printf("selected:%i\n",selected);
+    dbout.printf("subSelected:%i\n",subSelected);
+    dbout.printf("mmOptionSelected:%i\n",mmOptionSelected);
+    dbout.printf("next_param:%i\n",next_param);
+    dbout.printf("next_chunk:%i\n",next_chunk);
+    dbout.printf("params_loaded:%i\n",params_loaded);
+    dbout.printf("crsf_devices[0].number_of_params:%i\n",crsf_devices[0].number_of_params);
+    
+    
+    if (UI_input->key == 3 && UI_input->key == 5) {
+      // Code for up and down buttons not pressed
+    }
+
+    // If at main screen
+    if (entered == -2) {
+      if (UI_input->key == 2) {
+        if (params_loaded < crsf_devices[0].number_of_params) {
+          char *load = (char *)hdr_str_cb(menuItems); // TODO
+          dbout.printf("hdr:%s\n", load);
+        } else {
+          dbout.printf("all params");
+          dbout.printf("start webserver");
+          //startWebServer(params_loaded, menuItems);
+        }
+      }
+
+      entered = UI_input->key ? entered : -1;
+
+      // If inside main menu (selected = -1)
+    } else if (entered == -1) {
+      if (UI_input->key == 3 && entered != selected) {
+        do {
+          selected--;
+          dbout.printf("select -:%i:\n", selected);
+          if (selected < 0)
+            selected = crsf_devices[0].number_of_params - 3;
+        } while (menuItems[selected].parent != 0);
+      }
+
+      if (UI_input->key == 5 && entered != selected) {
+        do {
+          selected++;
+          dbout.printf("select +:%i:\n", selected);
+          if (selected > crsf_devices[0].number_of_params - 3)
+            selected = 0;
+        } while (menuItems[selected].parent != 0);
+      }
+
+      if (UI_input->key == 1) {
+        dbout.printf("click:%i:%i:%s:%u:%u\n", selected,
+                     menuItems[selected].parent,
+                     menuItems[selected].name,
+                     menuItems[selected].status,
+                     menuItems[selected].max_value);
+
+        if ((menuItems[selected].p_type == 9) ||
+            (menuItems[selected].p_type == 13)) {
+          dbout.printf("find:%i:%s:%u:%u\n", selected,
+                       menuItems[selected].name,
+                       menuItems[selected].status,
+                       menuItems[selected].max_value);
+          entered = -10;
+          mmOptionSelected = menuItems[selected].status;
+        } else {
+          dbout.printf("not find:%i:%s\n", selected,
+                       menuItems[selected].name);
+          subSelected = selected + 1;
+          entered = selected;
+        }
+      }
+
+      if (UI_input->key == 2)
+        entered = -2;
+
+      // If at submenu
+    } else if (entered == -10) {
+      if (UI_input->key == 5) {
+        if (mmOptionSelected < menuItems[selected].max_value)
+          mmOptionSelected++;
+        else
+          mmOptionSelected = 0;
+      }
+
+      if (UI_input->key == 3) {
+        if (mmOptionSelected > 0)
+          mmOptionSelected--;
+        else
+          mmOptionSelected = menuItems[selected].max_value;
+      }
+
+      if (UI_input->key == 2)
+        entered = -1;
+
+      if (UI_input->key == 1) {
+        dbout.printf("select option %u:%u\n", mmOptionSelected,        selected);
+        next_param = selected + 1;
+        next_chunk = mmOptionSelected;
+
+        dbout.printf("ChangeParam: %s:%u\n", menuItems[selected].name,
+                     menuItems[selected].p_type);
+        if (menuItems[selected].p_type == 13)
+          next_chunk = 4; // cmd
+        CRSF_changeParam(next_param, next_chunk);
+      }
+    } else if (entered >= 0) {
+      if (UI_input->key == 1) {
+        next_param = menuItems[subSelected].id;
+
+        if (menuItems[subSelected].status <
+            menuItems[subSelected].max_value) {
+          next_chunk = menuItems[subSelected].status + 1;
+        } else
+          next_chunk = 0;
+
+        dbout.printf("send cmd submenu \n %i:%i:%u:%u:%u:type:%u:%u\n",
+                     selected, subSelected, menuItems[subSelected].id,
+                     menuItems[subSelected].max_value,
+                     menuItems[subSelected].status,
+                     menuItems[subSelected].p_type, next_chunk);
+
+        if (menuItems[subSelected].p_type == 13)
+          next_chunk = 4; // cmd
+
+        dbout.printf("ChangeParam: %s::%s::%s\n",
+                     menuItems[selected].name, next_param, next_chunk);
+        CRSF_changeParam(next_param, next_chunk);
+      }
+
+      if (UI_input->key == 2) {
+        entered = -1;
+        dbout.printf("back to main menu\n");
+      }
+
+      if (UI_input->key == 3) {
+        subSelected--;
+        dbout.printf("select -:%i:\n", subSelected);
+      }
+
+      if (UI_input->key == 5) {
+        subSelected++;
+        dbout.printf("select +:%i:\n", subSelected);
+      }
+    }
+  }
+}
+
+
+
+
+
+
+
+void read_ui_buttons_old(UI_input_t* UI_input)
 {
 
   //display button value 0 or 1

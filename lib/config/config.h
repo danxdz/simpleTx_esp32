@@ -34,7 +34,7 @@ static int testButtonPressed;
   #define UI_BTN_DOWN 4
   #define UI_BTN_ENTER 14
   #define UI_BTN_BACK 5
-
+  #define UI_KEY_PAD 39
 
 
 #elif defined(TARGET_ESP32_S)

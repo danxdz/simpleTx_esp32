@@ -12,6 +12,7 @@ U8G2_SSD1306_128X64_NONAME_F_HW_I2C display(U8G2_R0, U8X8_PIN_NONE, 22, 21); // 
 
 void Oled::PrintLoad(char *tmp)
 {
+    dbout.printf("PrintLoad\n");
     display.clearBuffer();
     display.setFont(u8g2_font_chikita_tr);
 

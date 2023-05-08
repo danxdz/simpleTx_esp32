@@ -7,8 +7,11 @@ typedef struct {
   int down = 0; 
   int enter = 0;
   int back = 0;
+  int key = 0;
 } UI_input_t;
 
+
+void readUIkeypad (UI_input_t* UI_input);
 
 void readUIbuttons (UI_input_t* UI_input);
 

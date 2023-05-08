@@ -28,7 +28,7 @@
  =======================================================================================================
  */
 
-#define DEBUG_PACKETS
+//#define DEBUG_PACKETS
 //#define DEBUG_TLM
 //#define DEBUG_CH
 //#define DEBUG_SYNC
@@ -55,27 +55,34 @@ rc_input_t rcInput;
 
 UI_input_t UIinput;
 
-//#define constrain(amt,low,high) ((amt)<(low)?(low):((amt)>(high)?(high):(amt)))
 
 void OutputTask(void *pvParameters)
 {
-
   Oled oled;
   oled.init();
 
+  bool keypadEnabled = true; // Utilize a constante em vez da macro
+
   for (;;)
   {
-    //entered = -2;
+    // entered = -2;
 
+    if (keypadEnabled)
+    {
+      readUIkeypad(&UIinput);
+    }
+    else
+    {
+      readUIbuttons(&UIinput);
+    }
 
-    readUIbuttons (&UIinput);
     read_ui_buttons(&UIinput);
 
-     if (entered == -1)
+    if (entered == -1)
     { // main menu -1
       if (params_loaded < crsf_devices[0].number_of_params)
       {
-        char *load = (char *)hdr_str_cb(menuItems); // TODO
+        char *load = (char *)hdr_str_cb(menuItems); // TODO: Renomeie a variável para um nome mais descritivo
         dbout.printf("hdr:%s\n", load);
 
         oled.PrintLoad(load);
@@ -85,11 +92,10 @@ void OutputTask(void *pvParameters)
           if (crsf_devices[0].address == ADDR_RADIO)
           {
             dbout.println("address:radio");
-            // protocol_read_param(device_idx, &crsf_params[0]);    // only one param now
           }
           else
           {
-            // dbout.printf("Menu address: 0x%x - num par: %u : next_p:%u\n",crsf_devices[0].address, crsf_devices[0].number_of_params,next_param);
+            dbout.printf("Menu address: 0x%x - num par: %u : next_p:%u\n",crsf_devices[0].address, crsf_devices[0].number_of_params,next_param);
             if (next_param > 0)
             {
               // next_chunk = 0;
@@ -124,7 +130,6 @@ void OutputTask(void *pvParameters)
     {
       Oled::setSubMenuItems();
     }
-     
   } // end main loop for
 } // end output task
 
