@@ -175,7 +175,6 @@ static volatile bool CRSFframeActive;      // = false; //since we get a copy of 
 uint8_t crsf_crc8(const uint8_t *ptr, uint8_t len);
 void crsfSendChannels(rc_input_t* rc_input);
 
-void buildElrsPacket(uint8_t packetCmd[], uint8_t command, uint8_t value);
 void CRSF_broadcast_ping();
 
 void CRSF_read_param(uint8_t n_param, uint8_t n_chunk, uint8_t target);

@@ -74,7 +74,6 @@ module_type_t module_type;
 
 int rcChannels[CRSF_MAX_CHANNEL];
 
-
 void protocol_module_type(module_type_t type)
 {
   module_type = type;
@@ -149,30 +148,29 @@ uint8_t crsf_crc8_BA(const uint8_t *ptr, uint8_t len)
 }
 
 // prepare data packet
-void crsfSendChannels(rc_input_t* rc_input)
+void crsfSendChannels(rc_input_t *rc_input)
 {
 
   uint8_t crsfPacket[CRSF_PACKET_SIZE];
 
   // map rcchannels
-  rcChannels[0] = map(rc_input->aileron,  0, 4095, RC_CHANNEL_MIN,RC_CHANNEL_MAX);
-  rcChannels[1] = map(rc_input->elevator, 0, 4095, RC_CHANNEL_MIN,RC_CHANNEL_MAX); 
-  rcChannels[2] = map(rc_input->throttle, 0, 4095, RC_CHANNEL_MIN,RC_CHANNEL_MAX);
-  rcChannels[3] = map(rc_input->rudder,   0, 4095, RC_CHANNEL_MIN,RC_CHANNEL_MAX);
-  rcChannels[4] = map(rc_input->aux1,     0, 4095, RC_CHANNEL_MIN,RC_CHANNEL_MAX);
-  rcChannels[5] = map(rc_input->aux2,     0, 4095, RC_CHANNEL_MIN,RC_CHANNEL_MAX);
-  rcChannels[6] = map(rc_input->aux3,     0, 4095, RC_CHANNEL_MIN,RC_CHANNEL_MAX);
-  rcChannels[7] = map(rc_input->aux4,     0, 4095, RC_CHANNEL_MIN,RC_CHANNEL_MAX); 
+  rcChannels[0] = map(rc_input->aileron, 0, 4095, RC_CHANNEL_MIN, RC_CHANNEL_MAX);
+  rcChannels[1] = map(rc_input->elevator, 0, 4095, RC_CHANNEL_MIN, RC_CHANNEL_MAX);
+  rcChannels[2] = map(rc_input->throttle, 0, 4095, RC_CHANNEL_MIN, RC_CHANNEL_MAX);
+  rcChannels[3] = map(rc_input->rudder, 0, 4095, RC_CHANNEL_MIN, RC_CHANNEL_MAX);
+  rcChannels[4] = map(rc_input->aux1, 0, 4095, RC_CHANNEL_MIN, RC_CHANNEL_MAX);
+  rcChannels[5] = map(rc_input->aux2, 0, 4095, RC_CHANNEL_MIN, RC_CHANNEL_MAX);
+  rcChannels[6] = map(rc_input->aux3, 0, 4095, RC_CHANNEL_MIN, RC_CHANNEL_MAX);
+  rcChannels[7] = map(rc_input->aux4, 0, 4095, RC_CHANNEL_MIN, RC_CHANNEL_MAX);
 
 #if defined(DEBUG_CH)
   char buf[64];
-  sprintf(buf, "A:%i:%i\nE:%i:%i\nT:%i:%i\nR:%i:%i\narm:%i:%i\nmode:%i:%i\r\n",
+  sprintf(buf, "A:%i:%i\nE:%i:%i\nT:%i:%i\nR:%i:%i\narm:%i:%i\n",
           rc_input->aileron, rcChannels[0],
           rc_input->elevator, rcChannels[1],
           rc_input->throttle, rcChannels[2],
           rc_input->rudder, rcChannels[3],
-          rc_input->aux1, rcChannels[4],
-          rc_input->aux2, rcChannels[5]); // batteryVoltage);
+          rc_input->aux1, rcChannels[4]); // batteryVoltage);
   dbout.printf(buf);
   delay(1000);
 #else
@@ -262,7 +260,7 @@ The parameter number
 The chunk number
 The packet's cyclic redundancy check (CRC) value
 
-It then sends the packet using the CRSF_write function, passing in the packetCmd array and its length as arguments. 
+It then sends the packet using the CRSF_write function, passing in the packetCmd array and its length as arguments.
 */
 void CRSF_read_param(uint8_t n_param, uint8_t n_chunk, uint8_t target)
 {
@@ -450,7 +448,7 @@ void serialEvent()
           int32_t value;
           uint8_t id = SerialInBuffer[2];
           CRSF_serial_rcv(SerialInBuffer + 2, SerialInBuffer[1] - 1);
-          //dbout.printf("id: %u\n",id);
+          // dbout.printf("id: %u\n",id);
 
           if (id == CRSF_FRAMETYPE_BATTERY_SENSOR)
           {
@@ -481,10 +479,10 @@ void serialEvent()
             }
             if (MODULE_IS_UNKNOWN)
             {
-            #if defined(debug)
-                          dbout.printf("Ping...\n");
-                          // protocol_module_type(module_type);
-            #endif
+#if defined(debug)
+              dbout.printf("Ping...\n");
+              // protocol_module_type(module_type);
+#endif
               CRSF_broadcast_ping();
             }
           }
@@ -559,7 +557,7 @@ void CRSF_serial_rcv(uint8_t *buffer, uint8_t num_bytes)
 
   if ((buffer[0] != CRSF_FRAMETYPE_RADIO_ID) && (buffer[0] != CRSF_FRAMETYPE_LINK_STATISTICS))
   {
-     //dbout.printf("CRSF FRAMETYPE: 0x%x : L:%u : ",buffer[0],num_bytes);
+    dbout.printf("CRSF FRAMETYPE: 0x%x : L:%u : ", buffer[0], num_bytes);
   }
   else
   {
@@ -572,7 +570,7 @@ void CRSF_serial_rcv(uint8_t *buffer, uint8_t num_bytes)
       if (buffer[0] == TYPE_LINK)
         rxConected++;
 
-       //dbout.printf("rx conn: %u\n",rxConected);
+      // dbout.printf("rx conn: %u\n",rxConected);
     }
   }
   switch (buffer[0])
@@ -585,11 +583,10 @@ void CRSF_serial_rcv(uint8_t *buffer, uint8_t num_bytes)
 
     break;
 
-  //case CRSF_FRAMETYPE_ELRS_STATUS:
-    //parse_elrs_info(buffer);
-    //dbout.printf("FRAMETYPE_ELRS_STATUS\n");
+  case CRSF_FRAMETYPE_ELRS_STATUS:
+    parse_elrs_info(buffer);
 
-    //break;
+    break;
 
   case CRSF_FRAMETYPE_PARAMETER_SETTINGS_ENTRY:
 #if defined(debug)
@@ -630,7 +627,7 @@ void parse_elrs_info(uint8_t *buffer)
   // example bad_pckts : good_pckts ; flag ; flag_info ; info_update ;
   //  0 : 100 ; 5 ; Model Mismatch ; 0
   //  0 : 200 ; 8 ; [ ! Armed ! ] ; 0
-   dbout.printf("%u : %u ; %u ; %s ; %u\n ",local_info.bad_pkts,local_info.good_pkts,local_info.flags,local_info.flag_info,local_info.update);
+  dbout.printf("%u : %u ; %u ; %s ; %u\n ", local_info.bad_pkts, local_info.good_pkts, local_info.flags, local_info.flag_info, local_info.update);
 }
 
 uint8_t getCrossfireTelemetryValue(uint8_t index, int32_t *value, uint8_t len)
@@ -683,16 +680,15 @@ void add_device(uint8_t *buffer) {
 } //  no new device added if no more space in table
  */
 
-
 void add_param(uint8_t *buffer, uint8_t num_bytes)
 {
   // abort if wrong device, or not enough buffer space
-   dbout.printf("add_param:%u: device adr:0x%x:%u\n",buffer[3],buffer[2],num_bytes);
+  dbout.printf("add_param:%u: device adr:0x%x:%u\n", buffer[3], buffer[2], num_bytes);
   // CRSF_ADDRESS_CRSF_TRANSMITTER
 
   if (buffer[2] == ELRS_RX_ADDRESS)
   {
-     dbout.printf("rx param\n");
+    dbout.printf("rx param\n");
 
     memcpy(recv_param_ptr, buffer + 5, num_bytes - 5);
     recv_param_ptr += num_bytes - 5;
@@ -738,8 +734,8 @@ void add_param(uint8_t *buffer, uint8_t num_bytes)
     strlcpy(name, (const char *)recv_param_ptr, strlen(recv_param_ptr) + 1);
     recv_param_ptr += strlen(recv_param_ptr) + 1;
 
-    //show each RX module parameter when get it
-    //dbout.printf("param:%u:%u:%u:%u:%s\n",id,parent,p_type,hidden,name);
+    // show each RX module parameter when get it
+    // dbout.printf("param:%u:%u:%u:%u:%s\n",id,parent,p_type,hidden,name);
 
     recv_param_ptr = recv_param_buffer;
     next_chunk = 0;
@@ -826,7 +822,7 @@ void add_param(uint8_t *buffer, uint8_t num_bytes)
     }
     menuItems[(int)buffer[3] - 1].getParams(recv_param_ptr, buffer[3]);
     // debug
-    menuItems[buffer[3]-1].displayInfo();
+    menuItems[buffer[3] - 1].displayInfo();
 
     recv_param_ptr = recv_param_buffer;
     next_chunk = 0;
@@ -847,11 +843,11 @@ void add_param(uint8_t *buffer, uint8_t num_bytes)
       // dbout.printf("count_out:%u:%u:%u\n",
       // device_idx,
       //  crsf_devices[device_idx].number_of_params,params_loaded);
-        CRSF_read_param(next_param, next_chunk, ELRS_ADDRESS);
+      CRSF_read_param(next_param, next_chunk, ELRS_ADDRESS);
     }
     else
     {
-        next_param = 0;
+      next_param = 0;
     }
   }
 }

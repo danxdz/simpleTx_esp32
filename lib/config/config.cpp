@@ -19,30 +19,29 @@ void crsfdevice_init()
     next_chunk = 0;
     recv_param_ptr = recv_param_buffer;
     params_loaded = 0;
-    // CBUF_Init(send_buf);
+    //CBUF_Init(send_buf);
 }
 
+//void check_link_state(uint32_t currentMicros,rc_input_t *rc_input)
 void check_link_state(uint32_t currentMicros)
 {
-
+    //dbout.printf("aileron: %d\n", rc_input->aileron);
+    //dbout.printf("elevator: %d\n", rc_input->elevator);
+    //dbout.printf("throttle: %d\n", rc_input->throttle);
+    //dbout.printf("rudder: %d\n", rc_input->rudder);
     dbout.printf("tick :: tx: %u rx: %u\n", txConected, rxConected);
 
     // for (size_t i = 0;crsf_devices[i].address; i++) dbout.printf("device address: 0x%x\n",crsf_devices[i].address);
 
     uint8_t tmp = LinkStatistics.rf_Mode;
     // if (MODULE_IS_ELRS) {
+            dbout.print(local_info.good_pkts);
     if (txConected > 0)
     {
-        if ((int)local_info.good_pkts == 0)
-        {
-            dbout.printf("get crsf link statistics\n");
-            CRSF_get_elrs_info(ELRS_ADDRESS);
-        }
-        else if ((int)local_info.good_pkts != (int)rates[tmp] && rxConected > 0)
-        {
+        
             dbout.printf("update crsf link statistics\n");
             CRSF_get_elrs_info(ELRS_ADDRESS);
-        }
+        
 
         if (rxConected == 0)
         {
@@ -63,10 +62,10 @@ void check_link_state(uint32_t currentMicros)
             {
                 if (rx_params_loaded < crsf_devices[1].number_of_params)
                 {
-                    dbout.printf("read rx info\n");
-                    next_param = 1;
-                    next_chunk = 0;
-                    CRSF_read_param(next_param, next_chunk, ELRS_RX_ADDRESS);
+                    //dbout.printf("read rx info\n");
+                    //next_param = 1;
+                    //next_chunk = 0;
+                    //CRSF_read_param(next_param, next_chunk, ELRS_RX_ADDRESS);
                 }
             }
         }
@@ -116,27 +115,4 @@ const char *hdr_str_cb(const void *data)
     return tempstring;
 }
 
-void bt_handle(uint8_t value)
-{
-    dbout.println("bt_handle");
 
-    powerChangeHasRun = true;
-
-    clickCurrentMicros = crsfTime + 500000; // 0.5sec
-    dbout.printf("times: %u:%u\n", clickCurrentMicros / 1000, crsfTime / 1000);
-    // powerChangeHasRun=true;
-
-    // CRSF_read_param(crsfCmdPacket,1,next_chunk);
-    // CRSF_write(crsfCmdPacket,8,0);
-
-    // buildElrsPingPacket(crsfCmdPacket);
-    // dbout.println(CRSF_send_model_id(2));
-
-    // set modelId
-
-    // turn on rx wifi, even if missmatch modelId
-    // buildElrsPacket(crsfCmdPacket,16,1);
-
-    CRSF_read_param(1, next_chunk, ELRS_ADDRESS);
-    // serialEvent();
-}

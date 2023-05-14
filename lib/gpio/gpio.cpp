@@ -4,7 +4,7 @@
 #include "ui_buttons.h"
 #include "crsf.h"
 #include "uart.h"
-
+#include "ads.h"
 
 void initGpio()
 {
@@ -17,29 +17,7 @@ void initGpio()
   // digitalWrite(DIGITAL_PIN_BUZZER, LOW);
   // batteryVoltage=7.0;
 
-#define Keypad true
 
-#if defined(Keypad)
-  pinMode(UI_KEY_PAD, INPUT_PULLDOWN); 
-  //analogSetPinAttenuation(UI_KEY_PAD,ADC_11db); // 0-1.1V
-  //analogReadResolution(12); // 4096
-  //adcAttachPin(UI_KEY_PAD);
-
-#elif defined(Buttons)
-  pinMode(UI_BTN_UP, INPUT_PULLUP);
-  pinMode(UI_BTN_DOWN, INPUT_PULLUP);
-  pinMode(UI_BTN_ENTER, INPUT_PULLUP);
-  pinMode(UI_BTN_BACK, INPUT_PULLUP);
-  void readUIbuttons (UI_input_t* UI_input) {
-
-  UI_input->up = digitalRead(UI_BTN_UP);
-  UI_input->down = digitalRead(UI_BTN_DOWN);
-  UI_input->enter = digitalRead(UI_BTN_ENTER);
-  UI_input->back = digitalRead(UI_BTN_BACK);
-
-} 
-
-#endif  
   #if defined(TARGET_ESP32_S)
     analogReadResolution(12); // 4096
   #endif
@@ -70,7 +48,7 @@ int mapToButton(double value) {
 }
 
 void readUIkeypad(UI_input_t* UI_input) {
-  //delay(250);
+  delay(250);
   double buttonValue = ReadVoltage(UI_KEY_PAD);
   //dbout.println(buttonValue, 1);
 
@@ -89,8 +67,8 @@ void gpioReadInputs(rc_input_t* rc_input)
     rc_input->rudder   = analogRead(ANALOG_IN_PIN_RUDDER);
     rc_input->aux1     = analogRead(ANALOG_IN_PIN_AUX1);
     rc_input->aux2     = analogRead(ANALOG_IN_PIN_AUX2);
-    rc_input->aux3     = analogRead(ANALOG_IN_PIN_AUX3);
-    rc_input->aux4     = analogRead(ANALOG_IN_PIN_AUX4);
+    //rc_input->aux3     = analogRead(ANALOG_IN_PIN_AUX3);
+    //rc_input->aux4     = analogRead(ANALOG_IN_PIN_AUX4);
 }
 
 void gpioMixer(rc_input_t* rc_input)

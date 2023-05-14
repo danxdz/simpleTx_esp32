@@ -23,17 +23,17 @@ static int testButtonPressed;
   #define ANALOG_IN_PIN_AILERON 33
   #define ANALOG_IN_PIN_THROTTLE 34
   #define ANALOG_IN_PIN_RUDDER 35
-  #define ANALOG_IN_PIN_AUX1 25  // Arm switch
-  #define ANALOG_IN_PIN_AUX2 26  // Mode switch
-  #define ANALOG_IN_PIN_AUX3 27  // gpio27
-  #define ANALOG_IN_PIN_AUX4 12  // gpio12
+  #define ANALOG_IN_PIN_AUX1 15  // Arm switch
+  #define ANALOG_IN_PIN_AUX2 25  // Mode switch
+  //#define ANALOG_IN_PIN_AUX3 25  // gpio27
+  //#define ANALOG_IN_PIN_AUX4 1  // gpio12
   #define VOLTAGE_READ_PIN 36
 
   // UI buttons
-  #define UI_BTN_UP 15
-  #define UI_BTN_DOWN 4
-  #define UI_BTN_ENTER 14
-  #define UI_BTN_BACK 5
+  //#define UI_BTN_UP 15
+  //#define UI_BTN_DOWN 4
+  //#define UI_BTN_ENTER 14
+  //#define UI_BTN_BACK 5
   #define UI_KEY_PAD 39
 
 
@@ -64,6 +64,7 @@ static uint32_t clickCurrentMicros = 0;
                              // Maybe move this to target_defs.h
 extern char tempstring[TEMPSTRINGLENGTH];
 
+//void check_link_state(uint32_t currentMicros,rc_input_t *rc_input);
 void check_link_state(uint32_t currentMicros);
 const char *hdr_str_cb(const void *data);
 void crsfdevice_init();

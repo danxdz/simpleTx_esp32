@@ -7,17 +7,8 @@
 #include "config.h"
 
 
-int currentMenuPosition = 0;
 
-//no button pressed = 0
-//center = 1
-//left = 2
-//up = 3
-//right = 4
-//down = 5
-
-
-void read_ui_buttons(UI_input_t* UI_input) {
+void read_ui_buttons_(UI_input_t* UI_input) {
   int buttonState = 0;
 
   if (UI_input->key != 0) {
@@ -175,7 +166,7 @@ void read_ui_buttons(UI_input_t* UI_input) {
 
 
 
-void read_ui_buttons_old(UI_input_t* UI_input)
+void read_ui_buttons(UI_input_t* UI_input)
 {
 
   //display button value 0 or 1

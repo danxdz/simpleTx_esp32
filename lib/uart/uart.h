@@ -4,8 +4,9 @@
 #include "Arduino.h"
 #include "crsf_protocol.h"
 
-// portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 extern HardwareSerial elrs;
 extern HardwareSerial dbout;
+
+extern bool debugEnabled; // Variável de controle da depuração
 
 #endif

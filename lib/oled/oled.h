@@ -14,7 +14,6 @@ class Oled
 
 public:
   void init();
-  void setMsg(char *msg);
   void setMainScreen(char *name, crsfLinkStatistics_t LinkStatistics, uint8_t bpkts, uint8_t gpkts);
   void setMainMenuItems();
   static void selectOptionMainMenu();

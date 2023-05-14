@@ -25,7 +25,8 @@
         "unordered_map": "cpp",
         "unordered_set": "cpp",
         "initializer_list": "cpp",
-        "regex": "cpp"
+        "regex": "cpp",
+        "atomic": "cpp"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

@@ -28,12 +28,12 @@
  =======================================================================================================
  */
 
-//#define DEBUG_PACKETS
-//#define DEBUG_TLM
-//#define DEBUG_CH
-//#define DEBUG_SYNC
-//#define DEBUG_HALF_DUPLEX
-//#define DEBUG_CRSF_FRAMETYPE_RADIO_ID
+// #define DEBUG_PACKETS
+// #define DEBUG_TLM
+// #define DEBUG_CH
+// #define DEBUG_SYNC
+// #define DEBUG_HALF_DUPLEX
+// #define DEBUG_CRSF_FRAMETYPE_RADIO_ID
 
 #include <Arduino.h>
 
@@ -47,6 +47,10 @@
 #include "menus.h"
 #include "ui_buttons.h"
 #include "gpio.h"
+#include "ads.h"
+#include "ui_1wire_keypad.h"
+
+#include "prefs.h"
 
 TaskHandle_t elrsTaskHandler;
 TaskHandle_t outputTaskHandler;
@@ -55,28 +59,25 @@ rc_input_t rcInput;
 
 UI_input_t UIinput;
 
+Keypad keypad;
+
+Prefs preferences;
+
+ADSreader ads_reader;
+
 
 void OutputTask(void *pvParameters)
 {
+
   Oled oled;
   oled.init();
-
-  bool keypadEnabled = true; // Utilize a constante em vez da macro
 
   for (;;)
   {
     // entered = -2;
 
-    if (keypadEnabled)
-    {
-      readUIkeypad(&UIinput);
-    }
-    else
-    {
-      readUIbuttons(&UIinput);
-    }
-
-    read_ui_buttons(&UIinput);
+    readUIkeypad(&UIinput);
+    keypad.read_keypad(&UIinput);
 
     if (entered == -1)
     { // main menu -1
@@ -95,10 +96,11 @@ void OutputTask(void *pvParameters)
           }
           else
           {
-            dbout.printf("Menu address: 0x%x - num par: %u : next_p:%u\n",crsf_devices[0].address, crsf_devices[0].number_of_params,next_param);
+            // dbout.printf("Menu address: 0x%x - num par: %u : next_p:%u\n", crsf_devices[0].address, crsf_devices[0].number_of_params, next_param);
             if (next_param > 0)
             {
               // next_chunk = 0;
+              // delay(250);
               CRSF_read_param(next_param, 0, ELRS_ADDRESS);
             }
           }
@@ -136,15 +138,13 @@ void OutputTask(void *pvParameters)
 // Task2 - ELRS task - main loop
 void ElrsTask(void *pvParameters)
 {
+
   // setup channels
   for (uint8_t i = 0; i < CRSF_MAX_CHANNEL; i++)
   {
     rcChannels[i] = RC_CHANNEL_MIN;
   }
 
-  // uart debug
-  dbout.begin(115200);
-  delay(2000);
   elrs.begin(SERIAL_BAUDRATE, SERIAL_8N1, GPIO_PIN_RCSIGNAL_RX, GPIO_PIN_RCSIGNAL_TX, false, 500);
   dbout.write("starting elrs\n");
   // digitalWrite(DIGITAL_PIN_LED, LOW); //LED ON
@@ -160,7 +160,6 @@ void ElrsTask(void *pvParameters)
       check_link_state(currentMicros);
     }
 
-
     if (currentMicros >= crsfTime)
     {
       // dbout.printf("loop: %u:%u:%i \n",crsfTime,updateInterval,correction);
@@ -170,11 +169,12 @@ void ElrsTask(void *pvParameters)
         powerChangeHasRun = false;
         clickCurrentMicros = currentMicros;
       }
- 
+
       else
       {
         // read values of rcChannels
-        gpioReadInputs(&rcInput);
+        // gpioReadInputs(&rcInput);
+        ads_reader.readInputs(&rcInput);
 
         // TODO: channel mixer
         gpioMixer(&rcInput);
@@ -195,7 +195,19 @@ void setup()
 {
 
   initGpio();
-  //initUsb();
+
+  // uart debug
+  if (debugEnabled)
+  {
+    dbout.begin(115200);
+    delay(2000);
+  }
+
+  ads_reader.init();
+  
+  keypad.init();
+
+  preferences.init(&rcInput);
 
   xTaskCreatePinnedToCore(
       ElrsTask,         /* Task function. */
@@ -263,7 +275,7 @@ void loop()
 1:Telem Ratio:0:9:0:9:0;Std:Off:1:128:1:64:1:32:1:16:1:8:1:4:1:2:Race: :: OPT
 2:Switch Mode:0:9:0:1:0;Wide:Hybrid: :: OPT
 3:Model Match:0:9:0:1:0;Off:On: :: OPT
-4:TX Power (50mW):0:11:0:0:0 :: MainMenuItem 
+4:TX Power (50mW):0:11:0:0:0 :: MainMenuItem
 5:Max Power:5:9:0:2:2;10:25:50: :: OPT
 6:Dynamic:5:9:0:5:0;Off:Dyn:AUX9:AUX10:AUX11:AUX12: :: OPT
 7:VTX Administrator:0:11:0:0:0 :: MainMenuItem
@@ -360,4 +372,3 @@ Main Menu
 
 
 */
-
