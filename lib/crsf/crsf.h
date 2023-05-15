@@ -216,3 +216,4 @@ extern crsf_device_t crsf_devices[];
 
 extern volatile crsf_sensor_battery_s batteryVoltage;
 extern crsfPayloadLinkstatistics_s LinkStatistics; // Link Statisitics Stored as Struct
+extern crsfPayloadGPS_s GPS;

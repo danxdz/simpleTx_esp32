@@ -304,6 +304,13 @@ typedef struct crsfPayloadLinkstatistics_s
 } crsfLinkStatistics_t;
 
 typedef struct crsfPayloadLinkstatistics_s crsfLinkStatistics_t;
+typedef struct crsfPayloadGPS_s
+{
+    uint32_t gps_lat;
+    uint32_t gps_long;
+    uint8_t gps_sat;
+} crsfGPS_t;
+
 
 // typedef struct crsfOpenTXsyncFrame_s
 // {
