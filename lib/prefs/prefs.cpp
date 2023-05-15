@@ -150,11 +150,11 @@ bool Prefs::validateStickCalibration(rc_input_t *rc_input)
     // Definir um limite mínimo para considerar os sticks calibrados
     double minDiff = 2000;
 
-    // Calcular a tolerância para cada canal (50% da diferença, mas não menor que o limite mínimo)
-    int toleranceAileron = max(diffAileron * 0.5, minDiff);
-    int toleranceElevator = max(diffElevator * 0.5, minDiff);
-    int toleranceThrottle = max(diffThrottle * 0.5, minDiff);
-    int toleranceRudder = max(diffRudder * 0.5, minDiff);
+    // Calcular a tolerância para cada canal (25% da diferença, mas não menor que o limite mínimo)
+    int toleranceAileron = max(diffAileron * 0.25, minDiff);
+    int toleranceElevator = max(diffElevator * 0.25, minDiff);
+    int toleranceThrottle = max(diffThrottle * 0.25, minDiff);
+    int toleranceRudder = max(diffRudder * 0.25, minDiff);
     dbout.printf("Tolerance: Aileron: %d, Elevator: %d, Throttle: %d, Rudder: %d\n", toleranceAileron, toleranceElevator, toleranceThrottle, toleranceRudder);
 
     // Verificar se os valores atuais estão dentro dos limites da calibração
@@ -184,7 +184,8 @@ bool Prefs::validateStickCalibration(rc_input_t *rc_input)
     preferences.end();
 
     // Verificar se todos os canais estão válidos e calibrados
-    return isAileronValid && isElevatorValid && isThrottleValid && isRudderValid && isAileronCalibrated && isElevatorCalibrated && isThrottleCalibrated && isRudderCalibrated;
+    //return isAileronValid && isElevatorValid && isThrottleValid && isRudderValid && isAileronCalibrated && isElevatorCalibrated && isThrottleCalibrated && isRudderCalibrated;
+    return isRudderValid  && isRudderCalibrated; //only ruddder for now
 }
 
 
