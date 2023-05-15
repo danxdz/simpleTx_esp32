@@ -28,12 +28,7 @@
  =======================================================================================================
  */
 
-// #define DEBUG_PACKETS
-// #define DEBUG_TLM
-// #define DEBUG_CH
-// #define DEBUG_SYNC
-// #define DEBUG_HALF_DUPLEX
-// #define DEBUG_CRSF_FRAMETYPE_RADIO_ID
+
 
 #include <Arduino.h>
 

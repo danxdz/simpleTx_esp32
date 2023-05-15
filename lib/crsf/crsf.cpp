@@ -318,10 +318,8 @@ void CRSF_send_id(uint8_t modelId)
 void CRSF_write(uint8_t crsfPacket[], uint8_t size, int32_t add_delay)
 {
 
-#if defined(debug)
-  if (crsfPacket[2] != TYPE_CHANNELS)
-    dbout.printf("elrs write 0x%x\n", crsfPacket[2]);
-#endif
+ if (!debugEnabled) if (crsfPacket[2] != TYPE_CHANNELS) dbout.printf("elrs write 0x%x\n", crsfPacket[2]);
+
 
   duplex_set_TX();
   elrs.write(crsfPacket, size);
@@ -479,10 +477,10 @@ void serialEvent()
             }
             if (MODULE_IS_UNKNOWN)
             {
-#if defined(debug)
-              dbout.printf("Ping...\n");
-              // protocol_module_type(module_type);
-#endif
+              #if defined(debugEnabled)
+                dbout.printf("Ping...\n");
+                // protocol_module_type(module_type);
+              #endif
               CRSF_broadcast_ping();
             }
           }
@@ -576,7 +574,7 @@ void CRSF_serial_rcv(uint8_t *buffer, uint8_t num_bytes)
   switch (buffer[0])
   {
   case CRSF_FRAMETYPE_DEVICE_INFO:
-#if !defined(debug)
+#if defined(debugEnabled)
     dbout.printf("DEVICE_INFO\n");
 #endif
     add_device(buffer);
