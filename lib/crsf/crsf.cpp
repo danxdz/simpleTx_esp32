@@ -89,7 +89,7 @@ uint8_t device_idx = 0; // current device index
 uint8_t SerialInBuffer[CRSF_MAX_PACKET_LEN];
 
 crsfPayloadLinkstatistics_s LinkStatistics;
-
+crsfPayloadGPS_s GPS;
 volatile crsf_sensor_battery_s batteryVoltage;
 
 // crc implementation from CRSF protocol document rev7
@@ -525,7 +525,30 @@ void serialEvent()
             {
               LinkStatistics.downlink_Link_quality = value;
             }
+          
           }
+          if (id == CRSF_FRAMETYPE_GPS)
+          {
+             if (getCrossfireTelemetryValue(3, &value, 4))
+            {
+              GPS.gps_lat = value;
+              //dbout.printf("lat: %i\n", GPS.gps_lat);
+              
+            }
+            if (getCrossfireTelemetryValue(7, &value, 4))
+            {
+              GPS.gps_long = value;
+              //dbout.printf("long: %u\n", GPS.gps_long);
+              
+            }
+            if (getCrossfireTelemetryValue(17, &value, 1))
+            {
+              GPS.gps_sat = value;
+              //dbout.printf("sat: %u\n", GPS.gps_sat);
+              
+            }
+          }
+
 
 #if defined(DEBUG_PACKETS)
           // output packets to serial for debug

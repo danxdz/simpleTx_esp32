@@ -7,6 +7,9 @@
 #include <SPI.h>
 #include <Wire.h>
 
+//#define GPSCO /*Remove '//' to enable gps coordinates*/
+
+
 // U8X8_SSD1306_128X64_NONAME_HW_I2C display(U8X8_PIN_NONE);
 
 class Oled

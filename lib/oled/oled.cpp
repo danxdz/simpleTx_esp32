@@ -102,29 +102,63 @@ void Oled::setMainScreen(char *name, crsfLinkStatistics_t LinkStatistics, uint8_
                      LinkStatistics.uplink_Link_quality,
                      LinkStatistics.uplink_RSSI_1);
             Oled::Println(output);
+            #ifdef GPSCO
+             display.setFont(u8g2_font_6x10_tr);
+             // display.setCursor(0,32);
+             float vBat = 5; // (float)batteryVoltage.voltage/10;
+             char bat[64];
+        
 
-            display.setFont(u8g2_font_10x20_mr);
-            // display.setCursor(0,32);
-            float vBat = 5; // (float)batteryVoltage.voltage/10;
-            char bat[64];
+             int ret = snprintf(bat, sizeof bat, "%.2f", vBat);
+             //Oled::Println((char *)"");
+             //Oled::Println((char *)"");
+             Oled::Println(bat);
 
-            int ret = snprintf(bat, sizeof bat, "%.2f", vBat);
-            Oled::Println((char *)"");
-            Oled::Println((char *)"");
-            Oled::Println(bat);
+             display.setFont(u8g2_font_chikita_tr);
 
-            display.setFont(u8g2_font_chikita_tr);
+             Oled::Println(crsf_devices[1].name);
 
-            Oled::Println(crsf_devices[1].name);
-
-            snprintf(output, sizeof output, "%u:%u | %i dBm",
+             snprintf(output, sizeof output, "%u:%u | %i dBm",
                      LinkStatistics.rf_Mode,
                      LinkStatistics.downlink_Link_quality,
                      LinkStatistics.downlink_RSSI);
-            Oled::Println(output);
+             Oled::Println(output);
+             snprintf(output, sizeof output, "%u mW", LinkStatistics.uplink_TX_Power);
+             Oled::PrintRight(output);
+             snprintf(output, sizeof output, "lat:%u", GPS.gps_lat);
+             Oled::Println(output);
+             snprintf(output, sizeof output, "long:%u", GPS.gps_long);
+             Oled::Println(output);
+             snprintf(output, sizeof output, "sat:%u", GPS.gps_sat);
+             Oled::Println(output);
+            #else
+             display.setFont(u8g2_font_10x20_mr);
+             // display.setCursor(0,32);
+              float vBat = 5; // (float)batteryVoltage.voltage/10;
+             char bat[64];
 
-            snprintf(output, sizeof output, "%u mW", LinkStatistics.uplink_TX_Power);
-            Oled::PrintRight(output);
+             int ret = snprintf(bat, sizeof bat, "%.2f", vBat);
+             Oled::Println((char *)"");
+             Oled::Println((char *)"");
+             Oled::Println(bat);
+
+             display.setFont(u8g2_font_chikita_tr);
+
+             Oled::Println(crsf_devices[1].name);
+
+             snprintf(output, sizeof output, "%u:%u | %i dBm",
+                     LinkStatistics.rf_Mode,
+                     LinkStatistics.downlink_Link_quality,
+                     LinkStatistics.downlink_RSSI);
+             Oled::Println(output);
+
+             snprintf(output, sizeof output, "%u mW", LinkStatistics.uplink_TX_Power);
+             Oled::PrintRight(output);
+            #endif
+
+
+            
+             
         }
         else
         {

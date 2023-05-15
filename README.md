@@ -10,6 +10,11 @@ https://github.com/ExpressLRS/ExpressLRS
 
 https://github.com/DeviationTX/deviation
 
+By default gps support is disabled.
+For Gps support replace "//define GPSCO" with "define GPSCO" in "oled.h" file.
+Gps displayes latitude,longitude with number of satellite.
+
+
 
 its based on esp32 mcu
 
